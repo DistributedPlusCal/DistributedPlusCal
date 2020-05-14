@@ -288,7 +288,8 @@ public class TLAToken
       /*********************************************************************
       * This is used to print a TLAToken for debugging.                    *
       *********************************************************************/
-      { String typeName = "";
+      { 
+	   String typeName = "";
         switch (type) 
           { case BUILTIN    : typeName = "BUILTIN"    ; break ;
             case NUMBER     : typeName = "NUMBER"     ; break ;

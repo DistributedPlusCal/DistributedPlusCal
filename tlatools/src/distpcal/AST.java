@@ -62,13 +62,10 @@
 * it in the Java Reference Manual.                                         *
 ***************************************************************************/
 package distpcal;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 public class AST
   { public static AST.Uniprocess   UniprocessObj   ;
@@ -324,31 +321,30 @@ public class AST
 
         public MultiNodes() {} ;
         public String  toString() 
-          {
+        {
         	return
-                  Indent(lineCol()) +
-                  "[type    |-> \"multiNodes\", " + NewLine() +
-                  " name  |-> \"" + name + "\", " + NewLine() +
-                  Indent(" decls |-> ") + VectorToSeqString(decls) + ","
-                                              + 
-                  EndIndent() + NewLine() +
-                  Indent(" defs  |-> ") + defs.toString() + ","
-                                              + 
-                  EndIndent() + NewLine() +
-                 /*************************************************************
-                 * Uncomment the following to print the macros field.  It is  *
-                 * commented out so the printed result is what DistPlusCal.tla    *
-                 * considers a MultiNodes object to be.                     *
-                 *************************************************************/
-                 // Indent(" macros |-> ") + VectorToSeqString(macros) + ","
-                 //                             + 
-                 // EndIndent() + NewLine() +
+        			Indent(lineCol()) +
+        			"[type    |-> \"multiNodes\", " + NewLine() +
+        			" name  |-> \"" + name + "\", " + NewLine() +
+        			Indent(" decls |-> ") + VectorToSeqString(decls) + ","
+        			+ 
+        			EndIndent() + NewLine() +
 
-                  Indent(" prcds |-> ") + VectorToSeqString(prcds) + ","
-                          + 
-				EndIndent() + NewLine() +
-				Indent(" nodes |-> ") + VectorToSeqString(nodes) + "]";
-             }
+
+        			Indent(" defs  |-> ") + defs.toString() + ","
+        			+ 
+        			EndIndent() + NewLine() +
+
+
+        			Indent(" prcds |-> ") + VectorToSeqString(prcds) + ","
+        			+ 
+        			EndIndent() + NewLine() +
+
+
+        			Indent(" nodes |-> ") + VectorToSeqString(nodes) + "]"
+        			+ EndIndent();
+        }
+        
       }
     
     
@@ -1021,10 +1017,12 @@ public class AST
 //    }
     
     public static class ChannelSenderCall extends AST{
-    	public String msg   = null;
+//    	public String msg   = null;
+    	TLAExpr msg = null;
     	public String channelName = null ;
     	public String name = "";
     	public Boolean isBroadcast = false;
+    	public Boolean isMulticast = false;
     	public ChannelSenderCall() {};
     	public String toString()
     	{ return 
@@ -1051,7 +1049,7 @@ public class AST
     			System.out.println("varDecl is of type FIFOChannel : " + channel.var);
 
     		} else {
-    			System.out.println("varDecl is of type UnorderedChannel : " + channel.var);
+    			System.out.println("varDecl is of type UnorderedChannel :  " + channel.var);
 
     			AST.SingleAssign sass = new AST.SingleAssign();
     			sass.line = line;
@@ -1059,17 +1057,39 @@ public class AST
     			sass.lhs.var = channel.var;
 
     			// heba better to call normalize here
-    			sass.lhs.sub = new TLAExpr(new Vector());
-
     			TLAExpr expr = new TLAExpr();
+    			
+    			if(channelName.contains("[") && channelName.contains("]")) {
+    				expr = new TLAExpr();
+    				expr.addLine();
+    				String arg = channelName.substring(channelName.indexOf("["), channelName.indexOf("]") + 1);
+    				
+    				for (char ch: arg.toCharArray()) {
+    					expr.addToken(DistPcalTranslate.IdentToken(String.valueOf(ch)));
+    				}
+    				
+    				sass.lhs.sub = expr;
+    			}else {
+    				sass.lhs.sub = new TLAExpr(new Vector());
+    			}
+    			
+    			expr = new TLAExpr();
     			expr.addLine();
     			expr.addToken(DistPcalTranslate.IdentToken(channelName));
     			expr.addToken(DistPcalTranslate.BuiltInToken(" \\cup "));
     			expr.addToken(DistPcalTranslate.BuiltInToken("{"));
-    			expr.addToken(DistPcalTranslate.IdentToken(msg));
+
+    			for(int i = 0; i < msg.tokens.size(); i++) {
+    				
+    				Vector tv = (Vector) msg.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+    					expr.addToken(tok);
+    				}
+    			}
+    			
     			expr.addToken(DistPcalTranslate.BuiltInToken("}"));
-
-
     			sass.rhs = expr;
 
     			sass.setOrigin(this.getOrigin());
@@ -1088,14 +1108,17 @@ public class AST
     		}
     		return result;
     	}
+    	
     	/**
     	 * 
     	 * @param channel
+    	 * @param threadDecls
     	 * @param nodeDecls
     	 * @param globalDecls
     	 * @return
     	 */
-		public Vector generateBroadcastBodyTemplate(VarDecl channel, Vector nodeDecls, Vector globalDecls) {
+		public Vector generateBroadcastBodyTemplate(VarDecl channel, Vector threadDecls, Vector nodeDecls, Vector globalDecls
+				) {
 			
     		Vector result = new Vector();
 
@@ -1107,79 +1130,294 @@ public class AST
 
     			DistPcalDebug.reportInfo("Sending a broadcast message");
     			
-    			List<String> dimentions = new ArrayList();
     			
-    			StringBuffer temp = new StringBuffer();
-    			for (int i = 0; i < channel.val.toPlainString().length(); i++){
-    			    char c = channel.val.toPlainString().charAt(i);
-    			    
-    			    if(c == '[') {
-    			    	
-    			    	i++;
-    		    		c = channel.val.toPlainString().charAt(i);
-    			    	while(c != ']') {
-    			    		temp.append(c);
-    			    		i++;
-    			    		c = channel.val.toPlainString().charAt(i);
-    			    	}
-    			    	
-    			    	if(c == ']') {
-
-    			    		dimentions.add(temp.toString());
-    			    		temp = new StringBuffer();
-    			    	}
-    			    }
+//    			List<String> dimentions = new ArrayList();
+//    			
+//    			StringBuffer temp = new StringBuffer();
+//    			for (int i = 0; i < channel.val.toPlainString().length(); i++){
+//    			    char c = channel.val.toPlainString().charAt(i);
+//    			    
+//    			    if(c == '[') {
+//    			    	i++;
+//    		    		c = channel.val.toPlainString().charAt(i);
+//    			    	while(c != ']') {
+//    			    		temp.append(c);
+//    			    		i++;
+//    			    		c = channel.val.toPlainString().charAt(i);
+//    			    	}
+//    			    	if(c == ']') {
+//
+//    			    		dimentions.add(temp.toString());
+//    			    		temp = new StringBuffer();
+//    			    	}
+//    			    }
+//    			}
+    			
+    			//search through the declarations to make sure the  dimentons are predefined
+//    			for(String dimention : dimentions) {
+//    				varDecl = ParseDistAlgorithm.findVarDeclByVarName(dimention, threadDecls, nodeDecls, globalDecls, varDecl);
+//    				
+//    				//incase we want to do some validation
+//    				if(varDecl == null) {
+//    					
+//    				}
+//    			}
+    			
+    			AST.SingleAssign sass = new AST.SingleAssign();
+    			sass.line = line;
+    			sass.col  = col;
+    			sass.lhs.var = channel.var;
+    			
+    			TLAExpr expr = new TLAExpr();
+    			
+    			if(channelName.contains("[") && channelName.contains("]")) {
+    				expr = new TLAExpr();
+    				expr.addLine();
+    				String arg = channelName.substring(channelName.indexOf("["), channelName.indexOf("]") + 1);
+    				
+    				for (char ch: arg.toCharArray()) {
+    					expr.addToken(DistPcalTranslate.IdentToken(String.valueOf(ch)));
+    				}
+    				
+    				sass.lhs.sub = expr;
+    			}else {
+    				sass.lhs.sub = new TLAExpr(new Vector());
     			}
     			
-    			VarDecl varDecl = null;
-    			//search through the declarations to make sure the  dimentons are predefined
-    			for(String dimention : dimentions) {
-    				varDecl = ParseDistAlgorithm.findVarDeclByVarName(dimention, nodeDecls, globalDecls, varDecl);
+    			expr = new TLAExpr();
+
+    			expr.addLine();    			
+    			//very important step, update the variable decleration after processing
+    			//basically translate from ex: agt[agent][coord] to agt[a \in agent][c \in coord] which is the way TLA+ is expecting them later on 
+    			
+    			List<String> charUsed = new ArrayList();
+    			
+    			for(int i = 0; i < msg.tokens.size(); i++) {
     				
-    				//incase we want to do some validation
-    				if(varDecl == null) {
-    					
+    				Vector tv = (Vector) msg.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+    					expr.addToken(tok);
+
+    					if(tok.string.equals("\\in")) {
+    						//get previous char and set it to charUsed
+    						int prev = j > 1 ? j - 1 : 0;
+    						charUsed.add(((TLAToken) tv.get(prev)).string);
+    					}
+
+    					if(tok.string.equals("|->")) {
+
+    						expr.addToken(DistPcalTranslate.IdentToken(" " + channelName));
+    						expr.addToken(DistPcalTranslate.BuiltInToken("["));
+    						StringBuffer arg = new StringBuffer();
+    						for(int k = 0; k < charUsed.size(); k++) {
+    							
+    							if(k == 0) {
+    								arg.append(charUsed.get(k));
+    							} else {
+    								arg.append(",");
+    								arg.append(charUsed.get(k));
+    							}
+    						}
+    						
+    						expr.addToken(DistPcalTranslate.IdentToken(arg.toString()));
+    						expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+
+    						expr.addToken(DistPcalTranslate.BuiltInToken(" \\cup "));
+
+    						tok = (TLAToken) tv.elementAt(++j);
+    						
+    						expr.addToken(DistPcalTranslate.BuiltInToken("{"));
+
+    						//while the next char is , -1 to excluse ] at the end
+    						while(j < tv.size() - 1) {
+
+    							tok = (TLAToken) tv.elementAt(j);
+    							tok.column = 0;
+    							expr.addToken(tok);
+    							j++;
+    						}
+    						expr.addToken(DistPcalTranslate.BuiltInToken("}"));
+    						expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+
+    						break;
+    					}
     				}
     			}
+    			
+    			expr.normalize();
+    			
+    			sass.rhs = expr;
+    			sass.setOrigin(this.getOrigin());
+
+    			AST.Assign assign = new AST.Assign();
+    			assign.ass = new Vector();
+    			assign.line = line ;
+    			assign.col  = col ;
+    			assign.setOrigin(this.getOrigin());
+
+    			assign.ass.addElement(sass);
+    			result.addElement(assign);
+    		}
+			return result;
+		}
+		
+		public Vector generateMulticastBodyTemplate(VarDecl channel, Vector threadDecls, Vector nodeDecls,
+				Vector globalDecls) {
+			
+    		Vector result = new Vector();
+
+    		if(channel instanceof AST.FIFOChannel) {
+    			System.out.println("varDecl is of type FIFOChannel : " + channel.var);
+
+    		} else {
+    			System.out.println("varDecl is of type UnorderedChannel : " + channel.var);
+
+    			DistPcalDebug.reportInfo("Sending a multicast message");
     			
     			AST.SingleAssign sass = new AST.SingleAssign();
     			sass.line = line;
     			sass.col  = col;
     			sass.lhs.var = channel.var;
 
-    			// heba better to call normalize here
-    			sass.lhs.sub = new TLAExpr(new Vector());
-
     			TLAExpr expr = new TLAExpr();
-    			expr.addLine();
-    			for(int i = 0; i < dimentions.size(); i++) {
-    				String dimention = dimentions.get(i);
-    				String tempVarName = String.valueOf(dimention.toLowerCase().charAt(0)) + line + col;
-
-    				if(i == 0) {
-    					expr.addToken(DistPcalTranslate.BuiltInToken("["));
+    			
+    			if(channelName.contains("[") && channelName.contains("]")) {
+    				expr = new TLAExpr();
+    				expr.addLine();
+    				String arg = channelName.substring(channelName.indexOf("["), channelName.indexOf("]") + 1);
+    				
+    				for (char ch: arg.toCharArray()) {
+    					expr.addToken(DistPcalTranslate.IdentToken(String.valueOf(ch)));
     				}
-    				expr.addToken(DistPcalTranslate.IdentToken(tempVarName));
-    				expr.addToken(DistPcalTranslate.BuiltInToken(" \\in "));
-    				expr.addToken(DistPcalTranslate.IdentToken(dimention));
+    				
+    				sass.lhs.sub = expr;
+    			}else {
+    				sass.lhs.sub = new TLAExpr(new Vector());
+    			}
+    			
+    			expr = new TLAExpr();
+    			
+    			//extract from the msg expression the charUsed, and the exp
+    			//for example multicast(agt, [a \in S |-> exp(a)])
+    			//charUsed is a 'just before \in'
+    			//exp is everything between |-> and ]
+    			String charUsed = "";
+    			
+    			TLAExpr ifTestExp = new TLAExpr();
+    			ifTestExp.addLine();
+    			
+    			TLAExpr thenExp = new TLAExpr();
+    			thenExp.addLine();
 
+    			TLAExpr elseExp = new TLAExpr();
+    			elseExp.addLine();
 
-    				if(dimentions.size() != 1 && i != dimentions.size() - 1) {
-    					expr.addToken(DistPcalTranslate.BuiltInToken(", "));
+    			for(int i = 0; i < msg.tokens.size(); i++) {
+    				
+    				Vector tv = (Vector) msg.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+    					if(tok.string.equals("\\in")) {
+    						//get previous char and set it to charUsed
+    						int prev = j > 1 ? j - 1 : 0;
+
+    						charUsed = ((TLAToken) tv.get(prev)).string;
+
+    						ifTestExp.addToken(DistPcalTranslate.IdentToken(charUsed));
+    		    			ifTestExp.addToken(DistPcalTranslate.BuiltInToken(" \\in "));
+    						j++;
+    						
+    						//now we should be at the beginning of the subset, add to token till before |->
+    						while(j < tv.size()) {
+    							tok = (TLAToken) tv.elementAt(j);
+    	    					if(!tok.string.equals("|->")) {
+    	    						ifTestExp.addToken(tok);
+    	    					} else {
+    	    						break;
+    	    					}
+    							j++;
+							}
+
+    						if(tok.string.equals("|->") && j < tv.size()) {
+
+        						tok = (TLAToken) tv.elementAt(++j);
+        						
+    							//while the next char is , -1 to excluse ] at the end
+    							while(j < tv.size() - 1) {
+    								
+    								thenExp.addToken((TLAToken) tv.elementAt(j));
+            						j++;
+    							}
+    							
+    							break;
+    						}
+    					}
     				}
     			}
     			
-    			expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
-    			expr.addToken(DistPcalTranslate.BuiltInToken("{"));
-    			expr.addToken(DistPcalTranslate.IdentToken(msg));
-    			expr.addToken(DistPcalTranslate.BuiltInToken("}"));
-    			expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+    			elseExp.addToken(DistPcalTranslate.IdentToken(channelName));
+    			elseExp.addToken(DistPcalTranslate.BuiltInToken("["));
+    			elseExp.addToken(DistPcalTranslate.IdentToken(charUsed));
+    			elseExp.addToken(DistPcalTranslate.BuiltInToken("]"));
     			
-    			//very important step, update the variable decleration after processing
-    			//basically translate from ex: agt[agent][coord] to agt[a \in agent][c \in coord] which is the way TLA+ is expecting them later on 
-    			
-    			sass.rhs = expr;
+    			expr = new TLAExpr();
+    			expr.addLine();
 
+    			expr.addToken(DistPcalTranslate.BuiltInToken("["));
+    			
+    			//get identifier used in the expression with \cup message
+    			expr.addToken(DistPcalTranslate.IdentToken(charUsed));
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" \\in DOMAIN "));
+    			expr.addToken(DistPcalTranslate.IdentToken(channelName));
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" IF "));
+    			
+    			for(int i = 0; i < ifTestExp.tokens.size(); i++) {
+    				
+    				Vector tv = (Vector) ifTestExp.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+    					tok.column = 0;
+    					expr.addToken(tok);
+    				}
+    			}
+    			
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" THEN "));
+
+    			expr.addToken(DistPcalTranslate.IdentToken(channelName));
+    			expr.addToken(DistPcalTranslate.BuiltInToken("["));
+    			expr.addToken(DistPcalTranslate.IdentToken(charUsed));
+    			expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" \\cup "));
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" {"));
+    			for(int i = 0; i < thenExp.tokens.size(); i++) {
+    				
+    				Vector tv = (Vector) thenExp.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+    					tok.column = 0;
+    					expr.addToken(tok);
+    				}
+    			}
+    			expr.addToken(DistPcalTranslate.BuiltInToken("} "));
+    			
+    			expr.addToken(DistPcalTranslate.BuiltInToken(" ELSE "));
+
+    			for(int i = 0; i < elseExp.tokens.size(); i++) {
+    				
+    				Vector tv = (Vector) elseExp.tokens.elementAt(i);
+    				for (int j = 0; j < tv.size(); j++) {
+    					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+    					expr.addToken(tok);
+    				}
+    			}
+    			
+    			expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+    			expr.normalize();
+    			sass.rhs = expr;
+    			
     			sass.setOrigin(this.getOrigin());
 
     			AST.Assign assign = new AST.Assign();
@@ -1192,9 +1430,7 @@ public class AST
 
     			result.addElement(assign);
     		}
-    		
 			return result;
-			
 		}
     	
     }
@@ -1218,8 +1454,6 @@ public class AST
     			EndIndent() +
     			EndIndent() ;
     	}
-    	
-    	
       	
     	public Vector generateBodyTemplate(VarDecl channel, VarDecl targetVar) {
 
@@ -1231,39 +1465,53 @@ public class AST
 
     		} else {
     			System.out.println("varDecl is of type UnorderedChannel : " + channel.var);
-    			
+
     			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
-    			
+
     			TLAExpr exp = new TLAExpr();
-    			
+
     			AST.With with = new AST.With();
     			with.col = line;
     			with.line = col;
     			with.var = tempVarName;
     			with.isEq = false;
-    			
+
     			exp = new TLAExpr();
     			exp.addLine();
-    			
+
     			exp.addToken(DistPcalTranslate.IdentToken(channelName));
-    			
+
     			with.exp = exp;
     			with.setOrigin(this.getOrigin());
 
     			Vector doBody = new Vector();
-    			
+
     			AST.SingleAssign sass = new AST.SingleAssign();
     			sass.line = line;
     			sass.col  = col;
     			sass.lhs.var = targetVar.var;
-    			
-    			// heba better to call normalize here
-    			sass.lhs.sub = new TLAExpr(new Vector());
 
     			TLAExpr expr = new TLAExpr();
+    			
+//    			if(channelName.contains("[") && channelName.contains("]")) {
+//    				expr = new TLAExpr();
+//    				expr.addLine();
+//    				String arg = channelName.substring(channelName.indexOf("["), channelName.indexOf("]") + 1);
+//    				
+//    				for (char ch: arg.toCharArray()) {
+//    					expr.addToken(DistPcalTranslate.IdentToken(String.valueOf(ch)));
+//    				}
+//    				
+//    				sass.lhs.sub = expr;
+//    			}else {
+    				sass.lhs.sub = new TLAExpr(new Vector());
+//    			}
+    			
+    			expr = new TLAExpr();
+
     			expr.addLine();
     			expr.addToken(DistPcalTranslate.IdentToken(tempVarName));
-    			
+
     			sass.rhs = expr;
     			sass.setOrigin(this.getOrigin());
 
@@ -1274,15 +1522,12 @@ public class AST
     			assign.setOrigin(this.getOrigin());
 
     			assign.ass.addElement(sass);
-    			
+
 
     			sass = new AST.SingleAssign();
     			sass.line = line;
     			sass.col  = col;
     			sass.lhs.var = channel.var;
-    			
-    			// heba better to call normalize here
-    			sass.lhs.sub = new TLAExpr(new Vector());
 
     			expr = new TLAExpr();
     			expr.addLine();
@@ -1293,46 +1538,26 @@ public class AST
     			expr.addToken(DistPcalTranslate.BuiltInToken("}"));
 
     			sass.rhs = expr;
-    			sass.setOrigin(this.getOrigin());
 
-    			assign.ass.addElement(sass);
-    			
+    			if(channelName.contains("[") && channelName.contains("]")) {
+    				expr = new TLAExpr();
+    				expr.addLine();
+    				String arg = channelName.substring(channelName.indexOf("["), channelName.indexOf("]") + 1);
 
-    			doBody.addElement(assign);
-    			
-    			with.Do = doBody;
+    				for (char ch: arg.toCharArray()) {
+    					expr.addToken(DistPcalTranslate.IdentToken(String.valueOf(ch)));
+    				}
 
-    			//if we want to keep receiving continuously then add while true
-    			if(receiveAll) {
-    				
-    				AST.While w = new While();
-    				w.col = col;
-    				w.line = line;
-    				w.setOrigin(this.getOrigin());
-    				//create a true expression
-    				TLAToken token = new TLAToken();
-    				token.string = "TRUE";
-    				
-    				Vector tokenVec = new Vector();
-    				tokenVec.addElement(token);
-    				
-    				exp = new TLAExpr();
-    				exp.tokens.addElement(tokenVec);
-    				exp.setOrigin(this.getOrigin());
-    				
-    				w.test = exp;
-
-    				//i think it should be in a label, not sure though!
-    				w.labDo = new Vector();
-    				w.unlabDo = new Vector();
-    				
-    				w.unlabDo.addElement(with);
-    				
-
-    				result.addElement(w);
-    			} else {
-    				result.addElement(with);
+    				sass.lhs.sub = expr;
+    			}else {
+    				sass.lhs.sub = new TLAExpr(new Vector());
     			}
+
+    			sass.setOrigin(this.getOrigin());
+    			assign.ass.addElement(sass);
+    			doBody.addElement(assign);
+    			with.Do = doBody;
+    			result.addElement(with);
     		}
     		
     		return result;
@@ -1503,44 +1728,47 @@ public class AST
            if (DistPcalParams.inputVersionNumber < DistPcalParams.VersionToNumber("1.5")){
              return
               Indent(lineCol()) +
-                "[name   |-> \"" + name + "\", " + NewLine() +
-                " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
-                " id     |-> " + id.toString() + "," + NewLine() +
-                Indent(" decls  |-> ") + 
-                   VectorToSeqString(decls) + "," + 
-                EndIndent() + NewLine() +
-                Indent(" body   |-> ") + 
-                   VectorToSeqString(body) + "]" + ", " + 
-                EndIndent() + 
-                EndIndent() + NewLine() +
-                Indent(" threads   |-> ") + 
-                   VectorToSeqString(threads) + "]" +
-                EndIndent() + 
+	                "[name   |-> \"" + name + "\", " + NewLine() +
+	                " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
+	                " id     |-> " + id.toString() + "," + NewLine() +
+		                Indent(" decls  |-> ") + 
+		                   VectorToSeqString(decls) + "," + 
+		                EndIndent() + NewLine() +
+		                
+		                Indent(" body   |-> ") + 
+		                   VectorToSeqString(body) + "]" + ", " + 
+		                EndIndent() + NewLine() +
+		                
+		                Indent(" threads   |-> ") + 
+		                (threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
+		                EndIndent() + 
              EndIndent() ;
            } 
            
            return
             Indent(lineCol()) +
-              "[name   |-> \"" + name + "\"," 
-              + NewLine() +
-              " fairness |-> \"" 
-                + FairnessString[fairness] + "\", minusLabels |-> "
-                + VectorToSeqQuotedString(minusLabels) + ", plusLabels |->"
-                + VectorToSeqQuotedString(plusLabels) + ", proceduresCalled |->"
-                + VectorToSeqQuotedString(proceduresCalled) + ","
-              + NewLine() +
-              " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
-              " id     |-> " + id.toString() + "," + NewLine() +
-              Indent(" decls  |-> ") + 
-                 VectorToSeqString(decls) + "," + 
-              EndIndent() + NewLine() +
-              Indent(" body   |-> ") + 
-                 VectorToSeqString(body) + "]" + ", " + 
-              EndIndent() + 
-              EndIndent() + NewLine() +
-              Indent(" threads   |-> ") + 
-                 VectorToSeqString(threads) + "]" +
-              EndIndent() + 
+	              "[name   |-> \"" + name + "\"," 
+	              + NewLine() +
+	              " fairness |-> \"" 
+	                + FairnessString[fairness] + "\", minusLabels |-> "
+	                + VectorToSeqQuotedString(minusLabels) + ", plusLabels |->"
+	                + VectorToSeqQuotedString(plusLabels) + ", proceduresCalled |->"
+	                + VectorToSeqQuotedString(proceduresCalled) + ","
+	              + NewLine() +
+	              " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
+	              " id     |-> " + id.toString() + "," + NewLine() +
+		              Indent(" decls  |-> ") + 
+		                 VectorToSeqString(decls) + "," + 
+		              EndIndent() + NewLine() +
+		              
+		              Indent(" body   |-> ") + 
+		                 VectorToSeqString(body) + "]" + ", " + 
+		              EndIndent() + 
+		              
+//	              EndIndent() + NewLine() +
+	              Indent(" threads   |-> ") + 
+	              	(threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
+	              EndIndent() + 
             EndIndent() ;
          }
     }
@@ -1559,22 +1787,6 @@ public class AST
      public Thread() { };
      public String toString() 
        { 
-         // For versions earlier than 1.5 need to return those versions'
-         // value since toString() is used to generate the AST module
-         // used when TLC is doing the translation.
-         if (DistPcalParams.inputVersionNumber < DistPcalParams.VersionToNumber("1.5")){
-           return
-            Indent(lineCol()) +
-              "[name   |-> \"" + name + "\", " + NewLine() +
-//              " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
-              " id     |-> " + id.toString() + "," + NewLine() +
-              Indent(" decls  |-> ") + 
-                 VectorToSeqString(decls) + "," + 
-              EndIndent() + NewLine() +
-              Indent(" body   |-> ") + 
-                 VectorToSeqString(body) + "]" + ", " + 
-              EndIndent();
-         } 
          
          return
           Indent(lineCol()) +

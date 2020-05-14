@@ -250,12 +250,14 @@ public class DistPcalFixIDs {
         for (int i = 0; i < ast.body.size(); i++)
             FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
 
-        for (int i = 0; i < ast.threads.size(); i++) {
+//        for (int i = 0; i < ast.threads.size(); i++) {
         	
         	for (distpcal.AST.Thread thread : ast.threads) {
-             	FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+        		for (int i = 0; i < thread.body.size(); i++) {
+        			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+        		}
 			}
-        }
+//        }
         
         DistPcalSymTab.NodeEntry p = 
             (DistPcalSymTab.NodeEntry)

@@ -757,7 +757,6 @@ class trans {
 			untabInputVec.insertElementAt(TLA_TRANSLATION_COMMENT_LINE_PREFIX, (ecLine + 2));
 
 			translationLine = ecLine + 1;
-			DistPcalDebug.reportInfo("Heba : translationLine " + translationLine);
 		} else {
 			// if it has an existing checksum suffix then get rid of it
 			final String originalBeginLine = output.remove(translationLine);
@@ -822,21 +821,16 @@ class trans {
 //        		DistPcalDebug.reportInfo("omit pc = " + ParseDistAlgorithm.omitPC + 
 //        				", omitStutteringWhenDone = " + ParseDistAlgorithm.omitStutteringWhenDone);
 //        	}
-			// DistPcalDebug.reportInfo("!!!!!!!!!! ast.toString() \n" + ast.toString());
 
 		} catch (ParseDistAlgorithmException e) {
 			DistPcalDebug.reportError(e);
 //            return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
 			return null; // added for testing
 		}
-		// DistPcalDebug.reportInfo("!!!!!!!!!! ast.toString() \n" + ast.toString());
 
 		DistPcalDebug.reportInfo("Parsing completed.");
-		// DistPcalDebug.reportInfo("!!!!!!!!!! ast.toString() \n" + ast.toString());
 
 		final String distpcalMD5 = Validator.calculateMD5(ast.toString());
-		DistPcalDebug.reportInfo("distpcalMD5 " + distpcalMD5);
-		// DistPcalDebug.reportInfo("!!!!!!!!!! ast.toString() \n" + ast.toString());
 
 // tla-pcal debugging
 //System.out.println("Translation Output:");
@@ -865,7 +859,6 @@ class trans {
 		 *********************************************************************/
 
 		DistPCalTLAGenerator distPcalTLAGenerator = new DistPCalTLAGenerator(ast);
-		DistPcalDebug.reportInfo("!!!!!!!!!! distPcalTLAGenerator " + distPcalTLAGenerator);
 
 		try {
 			distPcalTLAGenerator.removeNameConflicts();

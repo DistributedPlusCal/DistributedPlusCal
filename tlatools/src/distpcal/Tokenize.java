@@ -798,7 +798,7 @@ public class Tokenize
                 || tok.equals("UnorderedChannels")
                 || tok.equals("FIFOChannel")
                 || tok.equals("FIFOChannels")
-
+                
          // The following are added to improve error reporting
          // and to make possible the omission of some final ";"s. 
                 || tok.equals("end")

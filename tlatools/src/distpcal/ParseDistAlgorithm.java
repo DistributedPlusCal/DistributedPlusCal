@@ -324,11 +324,13 @@ public class ParseDistAlgorithm {
 				vdecls = GetVarDecls();
 			}
 
+			DistPcalDebug.reportInfo("vdecls : " + vdecls.toString());
+			
 			if (PeekAtAlgToken(1).contains("Channel")) {
 				vdecls.addAll(GetChannelDecls());
 			}
 
-			DistPcalDebug.reportInfo("vdecls : " + vdecls.toString());
+			DistPcalDebug.reportInfo("adding channels : " + vdecls.toString());
 
 			TLAExpr defs = new TLAExpr();
 			if (PeekAtAlgToken(1).equals("define")) {
@@ -397,9 +399,8 @@ public class ParseDistAlgorithm {
 						}
 					}
 
-					// HEBA
 					AST.Node node = GetNode();
-					
+
 					node.fairness = fairness;
 					multiNodes.nodes.addElement(node);
 				}
@@ -427,19 +428,16 @@ public class ParseDistAlgorithm {
 
 				while (i < multiNodes.nodes.size()) {
 					AST.Node node = (AST.Node) multiNodes.nodes.elementAt(i);
-					
 
 					ExpandMacrosInStmtSeq(node.body, multiNodes.macros);
 
 					//when thread declarations are null we know we are dealing with nodes not threads
 					ExpandSendAndReceiveInStmtSeq(node.body, node.decls, null, vdecls);
 
-					DistPcalDebug.reportInfo("Macros expanded");
-
 					AddLabelsToStmtSeq(node.body);
 
 					node.body = MakeLabeledStmtSeq(node.body);
-
+					
 					omitStutteringWhenDone = true;
 					checkBody(node.body);
 
@@ -451,18 +449,10 @@ public class ParseDistAlgorithm {
 						DistPcalDebug.reportInfo("Thread : " + j + " for node : " + i);
 						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
 						ExpandMacrosInStmtSeq(thread.body, multiNodes.macros);
-						
-						//HEBA, should we also allow threads to define their own local variables?
 						ExpandSendAndReceiveInStmtSeq(thread.body, node.decls, thread.decls, vdecls);
-
-						DistPcalDebug.reportInfo("Macros expanded");
-
 						AddLabelsToStmtSeq(thread.body);
-						DistPcalDebug.reportInfo("AddLabelsToStmtSeq : " + thread.body);
 
 						thread.body = MakeLabeledStmtSeq(thread.body);
-
-						DistPcalDebug.reportInfo("MakeLabeledStmtSeq : " + thread.body);
 
 						omitStutteringWhenDone = true;
 						checkBody(thread.body);
@@ -650,8 +640,6 @@ public class ParseDistAlgorithm {
 		if (body == null || (body.size() == 0)) {
 			return;
 		}
-		
-		DistPcalDebug.reportInfo("body.elementAt(0).getClass() " + body.elementAt(0).getClass());
 
 		if ((body.size() > 1) || !body.elementAt(0).getClass().equals(AST.LabeledStmtObj.getClass())) {
 			omitPC = false;
@@ -802,6 +790,7 @@ public class ParseDistAlgorithm {
 	public static AST.Node GetNode() throws ParseDistAlgorithmException {
 		AST.Node result = new AST.Node();
 		GobbleThis("node");
+
 		DistPCalLocation beginLoc = GetLastLocationStart();
 		result.col = lastTokCol;
 		result.line = lastTokLine;
@@ -827,12 +816,21 @@ public class ParseDistAlgorithm {
 		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")) {
 			result.decls = new Vector(1);
 		} else {
-			result.decls = GetVarDecls();
+
+			if(result.decls == null) {
+				result.decls = new Vector();
+			}
+			result.decls.addAll(GetVarDecls());
+			result.decls.addAll(GetChannelDecls());
 		}
 
+		
 		GobbleBeginOrLeftBrace();
+
 		result.body = GetStmtSeq();
+
 		GobbleEndOrRightBrace("node");
+
 
 		// this is a vector of vectors,
 		// where each vector inside it represents a sub thread of the node
@@ -848,22 +846,24 @@ public class ParseDistAlgorithm {
 				AST.Thread thread = new AST.Thread();
 				thread.index = ++i;
 				
+
 				// HEBA change these names and ids
 				thread.id = result.id;
 
 				GobbleBeginOrLeftBrace();
-
+				
+				thread.decls = new Vector<>();
+				
 				if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
-					thread.decls = GetVarDecls();
-					// should i gobble them here?
-				} else {
-					thread.decls = new Vector<>(1);
+					thread.decls.addAll(GetVarDecls());
+				} 
+				
+				if(PeekAtAlgToken(1).contains("Channel")){
+					thread.decls.addAll(GetChannelDecls());
 				}
 
 				// check that next is not the end brace
 				thread.body = GetStmtSeq();
-
-				DistPcalDebug.reportInfo(" threads body : " + thread.body);
 
 				// something to change here
 				GobbleThis("}");
@@ -965,7 +965,11 @@ public class ParseDistAlgorithm {
 		while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
 				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node"))) {
+				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
+//				|| PeekAtAlgToken(1).equals("send") || PeekAtAlgToken(1).equals("receive")
+//				|| PeekAtAlgToken(1).contains("Channel") || PeekAtAlgToken(1).equals("while")
+//				|| PeekAtAlgToken(1).contains("with") || PeekAtAlgToken(1).equals("if")
+				|| PeekAtAlgToken(1).contains("Channel"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetVarDecl());
 		}
@@ -992,13 +996,13 @@ public class ParseDistAlgorithm {
 		}
 		;
 
+
 		GobbleCommaOrSemicolon();
 		/******************************************************************
 		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
 		 * separated by commas. *
 		 ******************************************************************/
 		pv.setOrigin(new Region(beginLoc, endLoc));
-
 		return pv;
 	}
 
@@ -1011,7 +1015,11 @@ public class ParseDistAlgorithm {
 			channelType = "Unordered";
 		} else if (tok.contains("FIFO")) {
 			channelType = "FIFO";
+		} else {
+			//no channels to read
+			return new Vector();
 		}
+		
 
 		if (tok.contains("Channels")) {
 			MustGobbleThis(tok);
@@ -1024,7 +1032,8 @@ public class ParseDistAlgorithm {
 		while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
 				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node"))) {
+				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
+				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetChannelDecl(channelType));
 		}
@@ -1060,29 +1069,12 @@ public class ParseDistAlgorithm {
 				ParsingError("Missing expression at ");
 			}
 			;
-		} else if(PeekAtAlgToken(1).equals(":")) {
-			pv.isEq = false;
-			GobbleThis(":");
-			pv.val = GetExpr();
-			
-			endLoc = pv.val.getOrigin().getEnd();
-			if (pv.val.tokens.size() == 0) {
-				ParsingError("Missing expression at ");
-			}
-			
-		} else {
+		}  else {
 			//heba change this to have {}
 			hasDefaultInitialization = true;
 		}
 		
-//		if (PeekAtAlgToken(1).equals("[")) {
-//			
-//			System.out.println("parse type of channel");
-//			
-//		} else {
 			GobbleCommaOrSemicolon();
-//		}
-
 		
 		/******************************************************************
 		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
@@ -1378,7 +1370,7 @@ public class ParseDistAlgorithm {
 		;
 		if (PeekPastAlgToken(1).charAt(0) == '(') {
 
-			if(nextTok.equals("send") || nextTok.equals("broadcast")) {
+			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
 				DistPcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getSendToChannelCall(nextTok);
 			} else if(nextTok.equals("receiveInto") || nextTok.equals("receiveAllInto")) {
@@ -1780,6 +1772,7 @@ public class ParseDistAlgorithm {
 			beginLoc = GetLastLocationStart();
 			endLoc = GetLastLocationEnd();
 
+			
 			result.sub = GetExpr();
 		} catch (ParseDistAlgorithmException e) {
 			throw new ParseDistAlgorithmException(e.getMessage());
@@ -2107,13 +2100,15 @@ public class ParseDistAlgorithm {
 
 		if(nextTok.equals("broadcast")) {
 			result.isBroadcast = true;
+		} else if(nextTok.equals("multicast")) {
+			result.isMulticast = true;
 		}
 
 		MustGobbleThis("(");
 
 		result.channelName = GetExpr().toPlainString();
 		GobbleThis(",");
-		result.msg =  GetExpr().toPlainString();
+		result.msg = GetExpr();
 
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
@@ -2622,17 +2617,12 @@ public class ParseDistAlgorithm {
 	 * procedure to avoid calling ClassifyStmtSeq with every * recursive call. *
 	 **********************************************************************/
 	{
-		DistPcalDebug.reportInfo("InnerMakeLabeledStmtSeq : " + stmtseq);
-
 		Vector result = new Vector();
 		int nextStmt = 0;
 		while (nextStmt < stmtseq.size()) {
 			
-			DistPcalDebug.reportInfo("nextStmt : " + nextStmt);
-
 			AST.LabeledStmt lstmt = new AST.LabeledStmt();
 			AST stmt = (AST) stmtseq.elementAt(nextStmt);
-			DistPcalDebug.reportInfo("stmt : " + stmt);
 
 			/**************************************************************
 			 * lstmt is the current <LabeledStmt> being constructed, and * stmt is the next
@@ -2643,13 +2633,6 @@ public class ParseDistAlgorithm {
 			 * Set the location of lstmt. *
 			 ****************************************************************/
 			
-			DistPcalDebug.reportInfo("stmt.col : " + stmt.col);
-			DistPcalDebug.reportInfo("stmt.line : " + stmt.line);
-			DistPcalDebug.reportInfo("stmt.macroCol : " + stmt.macroCol);
-			DistPcalDebug.reportInfo("stmt.macroLine : " + stmt.macroLine);
-			DistPcalDebug.reportInfo("stmt.lbl : " + stmt.lbl);
-			DistPcalDebug.reportInfo("stmt.lblLocation : " + stmt.lblLocation);
-
 			lstmt.col = stmt.col;
 			lstmt.line = stmt.line;
 			lstmt.macroCol = stmt.macroCol;
@@ -2677,8 +2660,6 @@ public class ParseDistAlgorithm {
 			 ****************************************************************/
 			boolean firstTime = true;
 			while ((nextStmt < stmtseq.size()) && (firstTime || stmt.lbl.equals(""))) {
-				DistPcalDebug.reportInfo("in while loop with first time : " + firstTime + "next stmt : " + nextStmt);
-
 				firstTime = false;
 				lstmt.stmts.addElement(stmt);
 				nextStmt = nextStmt + 1;
@@ -2688,32 +2669,20 @@ public class ParseDistAlgorithm {
 				;
 			}
 			;
-			DistPcalDebug.reportInfo("out of while loop");
-
 			FixStmtSeq(lstmt.stmts);
-			DistPcalDebug.reportInfo("done with FixStmtSeq ");
 
 			int numberOfStmts = lstmt.stmts.size();
-			DistPcalDebug.reportInfo("numberOfStmts : " + numberOfStmts);
 
 			if (numberOfStmts == 0) {
 				Debug.ReportBug("Found empty statement sequence in InnerMakeLabeledStmtSeq");
 			}
 
-			DistPcalDebug.reportInfo("lstmtBegin : " + lstmtBegin);
-			DistPcalDebug.reportInfo("lstmt : " + lstmt);
-			DistPcalDebug.reportInfo("lstmt.stmts : " + lstmt.stmts);
-			DistPcalDebug.reportInfo("(AST) lstmt.stmts.elementAt(0)s : " + (AST) lstmt.stmts.elementAt(0));
-			DistPcalDebug.reportInfo("(AST) lstmt.stmts.elementAt(0)s origin : " + ((AST) lstmt.stmts.elementAt(0)).getOrigin());
-
 			if (lstmtBegin == null) {
 				lstmtBegin = ((AST) lstmt.stmts.elementAt(0)).getOrigin().getBegin();
 			}
 			
-			DistPcalDebug.reportInfo("lstmtBegin : " + lstmtBegin);
 
 			DistPCalLocation lstmtEnd = ((AST) lstmt.stmts.elementAt(numberOfStmts - 1)).getOrigin().getEnd();
-			DistPcalDebug.reportInfo("lstmtEnd : " + lstmtEnd);
 
 			lstmt.setOrigin(new Region(lstmtBegin, lstmtEnd));
 			result.addElement(lstmt);
@@ -2731,13 +2700,10 @@ public class ParseDistAlgorithm {
 	 **********************************************************************/
 	{
 		
-		DistPcalDebug.reportInfo("in FixStmtSeq");
-
 		Vector result = new Vector();
 		int i = 0;
 		while (i < stmtseq.size()) {
 			AST stmt = (AST) stmtseq.elementAt(i);
-			DistPcalDebug.reportInfo("in FixStmtSeq with " + stmt.getClass());
 
 			if (stmt.getClass().equals(AST.LabelIfObj
 					.getClass())) { /************************************************************
@@ -3097,8 +3063,8 @@ public class ParseDistAlgorithm {
 			AST stmt = (AST) stmtseq.elementAt(i);
 
 			if (stmt.getClass().equals(AST.LabelIfObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, threadDecls,globalDecls);
-				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, threadDecls,globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, threadDecls, globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, threadDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.LabelEitherObj.getClass())) {
 				AST.LabelEither eNode = (AST.LabelEither) stmt;
 				int j = 0;
@@ -3108,9 +3074,9 @@ public class ParseDistAlgorithm {
 				}
 				;
 			} else if (stmt.getClass().equals(AST.WithObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.With) stmt).Do, nodeDecls, threadDecls,globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.With) stmt).Do, nodeDecls, threadDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, threadDecls,globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, threadDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
 				Vector expansion = ExpandSendCall(((AST.ChannelSenderCall) stmt), nodeDecls, threadDecls, globalDecls);
 
@@ -3209,24 +3175,24 @@ public class ParseDistAlgorithm {
 	public static Vector ExpandSendCall(AST.ChannelSenderCall call, Vector nodeDecls, Vector threadDecls, Vector globalDecls) throws ParseDistAlgorithmException {
 
 		VarDecl varDecl = null;
-		int i = 0;
-
 
 		if(call.channelName.contains("[") && call.channelName.contains("]")) {
 
-			varDecl = findVarDeclByVarName(call.channelName.split("\\[")[0], nodeDecls, globalDecls, varDecl);
+			varDecl = findVarDeclByVarName(call.channelName.split("\\[")[0], threadDecls, nodeDecls, globalDecls, varDecl);
 		} else {
-			varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, varDecl);
-
+			varDecl = findVarDeclByVarName(call.channelName, threadDecls,nodeDecls, globalDecls, varDecl);
 		}
 
 		Vector result = null;
 		if(call.isBroadcast) {
-			result = call.generateBroadcastBodyTemplate(varDecl, nodeDecls, globalDecls);
-		} else {
+			result = call.generateBroadcastBodyTemplate(varDecl, threadDecls, nodeDecls, globalDecls);
+		} if(call.isMulticast){
+			result = call.generateMulticastBodyTemplate(varDecl, threadDecls, nodeDecls, globalDecls);
+		}else if(!call.isBroadcast && !call.isMulticast){
 			//construct body based on type 
 			result = call.generateBodyTemplate(varDecl);
 		}
+		
 		return result;
 	}
 
@@ -3236,20 +3202,22 @@ public class ParseDistAlgorithm {
 	 * @return
 	 * @throws ParseDistAlgorithmException
 	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call,  Vector nodeDecl, Vector threadDecls, Vector globalDecl)
+	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call, Vector nodeDecl, Vector threadDecls, Vector globalDecl)
 			throws ParseDistAlgorithmException {
 
 		VarDecl chanVar = null;
 		VarDecl targetVar = null;
 		int i = 0;
 		
+		//TODO
+		
 		if(call.channelName.contains("[") && call.channelName.contains("]")) {
 
 			//get main channel name and try again, since the object 
 			//we are trying to receive From can be an array 
-			chanVar = findVarDeclByVarName(call.channelName.split("\\[")[0], nodeDecl, globalDecl, chanVar);
+			chanVar = findVarDeclByVarName(call.channelName.split("\\[")[0], threadDecls, nodeDecl, globalDecl, chanVar);
 		} else {
-			chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, chanVar);
+			chanVar = findVarDeclByVarName(call.channelName, threadDecls, nodeDecl, globalDecl, chanVar);
 		}
 		
 		if(call.targetVarName.contains("[") && call.targetVarName.contains("]")) {
@@ -3258,25 +3226,13 @@ public class ParseDistAlgorithm {
 			//we are trying to receive From can be an array 
 
 			//get main name and try again
-			targetVar = findVarDeclByVarName(call.targetVarName.split("\\[")[0], nodeDecl, globalDecl, targetVar);
+			targetVar = findVarDeclByVarName(call.targetVarName.split("\\[")[0], threadDecls, nodeDecl, globalDecl, targetVar);
 		} else {
-			targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, targetVar);
+			targetVar = findVarDeclByVarName(call.targetVarName, threadDecls, nodeDecl, globalDecl, targetVar);
 		}
 
 		if(targetVar == null) {
-			//create a temp var maybe? in the immediate scope, for now ill add it to the node declerations
-			targetVar = new VarDecl();
-			targetVar.isEq = true;
-			targetVar.var = call.targetVarName;
-			
-			//not sure but i think maybe this variable need to have the same initialization as the chanel, since it will be reading from it
-			targetVar.val = chanVar.val;
-			
-			targetVar.col = call.col;
-			targetVar.line = call.line;
-			targetVar.setOrigin(call.getOrigin());
-
-			nodeDecl.add(targetVar);
+			throw new ParseDistAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
 		}
 		
 		//construct body based on type 
@@ -3285,24 +3241,36 @@ public class ParseDistAlgorithm {
 		return result;
 	}
 
-	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl,
+	static VarDecl findVarDeclByVarName(String varName, Vector threadDecls, Vector nodeDecl, Vector globalDecl,
 			VarDecl chanVar) {
 		int i = 0;
 		//test if we add vars to thread body and not in main node, but we use it in main node ==> should not work(not in our scope)
 		if(chanVar == null) {
-			while (i < nodeDecl.size()) {
-				AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			
+			while (threadDecls != null && i < threadDecls.size()) {
+				AST.VarDecl tempVar = (AST.VarDecl) threadDecls.elementAt(i);
 				if (tempVar.var.equals(varName)) {
 					chanVar = tempVar;
 				}
 
 				i = i + 1;
-			};
-
+			}
+			
 			if(chanVar == null) {
-
 				i = 0;
-				while (i < globalDecl.size()) {
+				while (nodeDecl != null && i < nodeDecl.size()) {
+					AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+					if (tempVar.var.equals(varName)) {
+						chanVar = tempVar;
+					}
+
+					i = i + 1;
+				};
+			}
+			
+			if(chanVar == null) {
+				i = 0;
+				while (globalDecl != null && i < globalDecl.size()) {
 					AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
 
 					if (tempVar.var.equals(varName)) {

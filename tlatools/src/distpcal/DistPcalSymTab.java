@@ -72,6 +72,7 @@ import distpcal.exception.DistPcalSymTabException;
 import distpcal.AST;
 import distpcal.AST.ChannelReceiverCall;
 import distpcal.AST.ChannelSenderCall;
+import distpcal.AST.Thread;
 import distpcal.DistPcalDebug;
 import distpcal.DistPcalSymTab.ProcessEntry;
 
@@ -195,6 +196,7 @@ public class DistPcalSymTab {
 		public Vector decls; // of ParDecl
 		public StringBuffer iPC; // Initial pc of this process
 		public AST.Node ast; // AST of the procedure
+		public Vector<Thread> threads = null;
 		// Added 13 Jan 2011 by LL
 
 		public NodeEntry(AST.Node n) {
@@ -203,6 +205,7 @@ public class DistPcalSymTab {
 			this.id = n.id;
 			this.decls = n.decls;
 			this.ast = n;
+			this.threads = n.threads;
 			if (n.body.size() == 0)
 				this.iPC = null;
 			else {
@@ -528,9 +531,6 @@ public class DistPcalSymTab {
 	 * Type generic extract routine *
 	 ********************************/
 	private void ExtractSym(AST ast, String context) {
-		DistPcalDebug.reportInfo("ast : 1 " + ast);
-		DistPcalDebug.reportInfo("ast : 2 " + ast.getClass());
-
 		if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
 			ExtractMultiNodes((AST.MultiNodes) ast, context);
 		else {
@@ -576,27 +576,10 @@ public class DistPcalSymTab {
 			ExtractEither((AST.Either) ast, context, cType);
 		else if (ast.getClass().equals(AST.LabelEitherObj.getClass()))
 			ExtractLabelEither((AST.LabelEither) ast, context, cType);
-//		else if (ast.getClass().equals(AST.ChannelSenderObj.getClass()))
-//			ExtractChannelSender((AST.ChannelSenderCall) ast, context, cType);
-//		else if (ast.getClass().equals(AST.ChannelReceiverObj.getClass()))
-//			ExtractChannelReceiver((ChannelReceiverCall) ast, context, cType);
-		
 		else
 			DistPcalDebug.ReportBug("Unexpected AST type " + ast.toString());
 	}
 
-//	private void ExtractChannelReceiver(ChannelReceiverCall ast, String context, String cType) {
-//		// TODO Auto-generated method stub
-//		System.out.println("in ExtractChannelReceiver");
-//		
-//	}
-//
-//	private void ExtractChannelSender(ChannelSenderCall ast, String context, String cType) {
-//		// TODO Auto-generated method stub
-//		System.out.println("in ExtractChannelSender");
-//
-//		
-//	}
 
 	/**********************************************
 	 * Type specific extraction routines. *

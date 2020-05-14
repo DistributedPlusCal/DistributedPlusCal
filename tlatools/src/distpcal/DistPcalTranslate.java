@@ -160,9 +160,9 @@ public class DistPcalTranslate {
         return result ;
     }
 
-    public static TLAToken NumbericToken(String str)
+    public static TLAToken NumericToken(String str)
     /*********************************************************************
-    * Returns a new Numberic token with string str.                      *
+    * Returns a new Numeric token with string str.                      *
     *********************************************************************/
     { TLAToken result = new TLAToken() ;
       result.string = str;
@@ -292,7 +292,7 @@ public class DistPcalTranslate {
         AST.When checkPC = new AST.When();
         Vector toks = new Vector();
         toks.addElement(AddedToken("pc"));
-        toks.addElement(NumbericToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+        toks.addElement(NumericToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
         toks.addElement(BuiltInToken("="));
         toks.addElement(StringToken(label));
         checkPC.exp = TokVectorToExpr(toks, 1);

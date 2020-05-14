@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import org.openjdk.jmh.annotations.Threads;
+
 import distpcal.AST.MultiNodes;
 import distpcal.AST.Node;
 import distpcal.AST.VarDecl;
@@ -145,9 +147,9 @@ public class DistPcalTLAGen {
 		}
 
 		st = symtab;
+		//TODO
 		GenSym(ast, "");
 
-		DistPcalDebug.reportInfo("ast after gensym : \n" + ast.toString());
 		/*
 		 * We put at the beginning and end of mappingVector a LeftParen and RightParen
 		 * with location (0, 0), so that location will be found by the TLA+ to PCal
@@ -303,6 +305,7 @@ public class DistPcalTLAGen {
 		mp = true;
 		GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, ast.nodes);
 		GenNodeSet();
+		GenThreadSet();
 		GenInit(ast.decls, ast.prcds, null, ast.nodes);
 		for (int i = 0; i < ast.prcds.size(); i++)
 			GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -330,6 +333,8 @@ public class DistPcalTLAGen {
 		}
 		for (int i = 0; i < ast.body.size(); i++) {
 			AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
+			
+			//TODO
 			GenLabeledStmt(stmt, "procedure");
 		}
 
@@ -522,6 +527,7 @@ public class DistPcalTLAGen {
 		} else
 			nextStep.addElement(node.name);
 
+		//TODO
 		for (int i = 0; i < node.body.size(); i++) {
 			AST.LabeledStmt stmt = (AST.LabeledStmt) node.body.elementAt(i);
 			GenLabeledStmt(stmt, "node");
@@ -537,6 +543,8 @@ public class DistPcalTLAGen {
 //		            return ExplodeWhile(ast, next);
 //		        }
 //				Gen(tStmt, "thread");
+				
+				//attach the thread number with the context
 				GenLabeledStmt(tStmt, "thread");
 			}
 		}
@@ -578,7 +586,7 @@ public class DistPcalTLAGen {
 			for (int j = 0; j < node.threads.size(); j++) {
 				//iterate the threads of each node
 				AST.Thread thread = node.threads.elementAt(j);
-				for (int k = 0; k < node.threads.size(); k++) {
+				for (int k = 0; k < thread.body.size(); k++) {
 					AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
 					String disjunct = stmt.label + argument;
 					if (j != 0 && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
@@ -752,7 +760,6 @@ public class DistPcalTLAGen {
 		 */
 		addLeftParenV(ast, macroBeginLeft);
 		for (int i = 0; i < ast.stmts.size(); i++) {
-			//heba
 			GenStmt((AST) ast.stmts.elementAt(i), c, context, sb.toString(), sb.length());
 			
 			sb = new StringBuffer(NSpaces(col));
@@ -1046,8 +1053,10 @@ public class DistPcalTLAGen {
 				addLeftParen(sass.getOrigin());
 				TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
 				TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
+				
 				if (mp && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsNodeSetVar(sass.lhs.var)
 						|| sass.lhs.var.equals("stack"))) {
+					
 					/* Generate single assignment to variable with self subscript */
 					sb.append(sass.lhs.var);
 					sb.append("' = [");
@@ -1094,11 +1103,18 @@ public class DistPcalTLAGen {
 //						sb.append(sass.lhs.var);
 						sb.append(" EXCEPT ");
 						sb.append("![");
-						if(sass.lhs.threadIndex == null) {
+						if(context.equals("node")) {
 							//then this is the main of a node
 							sb.append("1");
 						}else {
-							sb.append((sass.lhs.threadIndex + 1));
+							
+							if(sass.lhs.threadIndex == null) {
+								sb.append(1);
+
+							} else {
+//								//case of PC
+								sb.append((sass.lhs.threadIndex + 1));
+							}
 						}
 						
 						addOneTokenToTLA(sb.toString());
@@ -1108,6 +1124,7 @@ public class DistPcalTLAGen {
 						addOneTokenToTLA(" = ");;
 					}
 					
+					//TODO
 					
 					addLeftParen(rhs.getOrigin());
 					addExprToTLA(rhs);
@@ -1123,6 +1140,7 @@ public class DistPcalTLAGen {
 					 * Generate single assignment to variable with no [self] subscript but with an
 					 * explicit subscript.
 					 */
+					
 					sb.append(sass.lhs.var);
 					sb.append("' = [");
 					sb.append(sass.lhs.var);
@@ -1204,6 +1222,7 @@ public class DistPcalTLAGen {
 				 * user-specified subscript.
 				 */
 				AST.SingleAssign sass = sF;
+				
 				sb.append(sass.lhs.var);
 				sb.append("' = [");
 				sb.append(sass.lhs.var);
@@ -1934,6 +1953,7 @@ public class DistPcalTLAGen {
 				AST.Node node = (AST.Node) nodes.elementAt(i);
 				if (node.decls != null)
 					for (int n = 0; n < node.decls.size(); n++) {
+						
 						AST.VarDecl decl = (AST.VarDecl) node.decls.elementAt(n);
 						lVars.addElement(decl.var);
 						lVarsSource.addElement(decl);
@@ -1941,7 +1961,26 @@ public class DistPcalTLAGen {
 						if (!node.isEq)
 							psV.addElement(decl.var);
 					}
+				
+				//for thread declerations
+//				if (node.threads != null) {
+//					for (int j = 0; j < node.threads.size(); j++) {
+//						System.out.println("thread : " + j);
+//
+//						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
+//						if (thread.decls != null)
+//							for (int n = 0; n < thread.decls.size(); n++) {
+//								AST.VarDecl decl = (AST.VarDecl) thread.decls.elementAt(n);
+//								lVars.addElement(decl.var);
+//								lVarsSource.addElement(decl);
+//								vars.addElement(decl.var);
+//								if (!node.isEq)
+//									psV.addElement(decl.var);
+//							}
+//					}
+//				}
 			}
+			
 		/********************************************************************
 		 * Add a declaration of the constant defaultInitValue if it is * used. (Added by
 		 * LL on 22 Aug 2007.) *
@@ -2096,7 +2135,7 @@ public class DistPcalTLAGen {
 	}
 
 	/**
-	 * Generates the "ProcSet == ..." output. It is just a union of all the process
+	 * Generates the "NodeSet == ..." output. It is just a union of all the node
 	 * sets, all on one line (except if a process set is a multi-line expression).
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
@@ -2132,6 +2171,72 @@ public class DistPcalTLAGen {
 		addOneLineOfTLA("");
 	}
 
+	/**
+	 * Generates the "NodeSet == ..." output. It is just a union of all the node
+	 * sets, all on one line (except if a process set is a multi-line expression).
+	 * It wouldn't be too hard to break long lines, but that should be done later,
+	 * if desired, after the TLA to PCal translation is finished.
+	 */
+	public void GenThreadSet() {
+		StringBuffer ps = new StringBuffer();
+		if (st.nodes == null || st.nodes.size() == 0)
+			return;
+//		addOneTokenToTLA("ThreadSet == [n \\in NodeSet |-> ");
+		ps.append("ThreadSet == [n \\in NodeSet |-> ");
+		int col = "ThreadSet == ".length();
+		int positionOfLastIf = 0;
+		for (int i = 0; i < st.nodes.size(); i++) {
+			DistPcalSymTab.NodeEntry node = (DistPcalSymTab.NodeEntry) st.nodes.elementAt(i);
+
+			//if this is the last node
+			if(i == st.nodes.size() - 1) {
+				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
+				ps.append(" ELSE ");
+				ps.append("(**");
+			} else if(i > 0) {
+				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
+				ps.append(" ELSE ");
+//				ps.append("(");
+			}
+			
+			if(i != st.nodes.size() - 1) {
+				if (node.isEq) {
+					ps.append("IF n = ");
+				} else {
+					ps.append("IF n \\in ");
+				}
+			}
+			positionOfLastIf = ps.length();
+
+//			addExprToTLA(node.id);
+			ps.append(node.id.toPlainString());
+			if(i != st.nodes.size() - 1) {
+				ps.append(" THEN ");
+			}
+
+			//if this is the last node
+			if(i == st.nodes.size() - 1) {
+				ps.append("**) ");
+			}
+			
+			if(node.threads.size() > 0){
+				//1 is always for the main thread, the original block of the node
+				ps.append("1.." + (node.threads.size() + 1));
+			} else {
+				ps.append("1");
+			}
+			
+			if(i == st.nodes.size() - 1) {
+				ps.append("]");
+			}
+			
+			addOneLineOfTLA(ps.toString());
+		}
+		
+		endCurrentLineOfTLA();
+		addOneLineOfTLA("");
+	}
+
 	/***********************************/
 	/* Generate the Init == statement. */
 	/**
@@ -2140,7 +2245,7 @@ public class DistPcalTLAGen {
 		int col = "Init == ".length();
 		StringBuffer is = new StringBuffer();
 		is.append("Init == ");
-
+		
 		/* Global variables */
 		if (globals != null && globals.size() > 0) {
 			is.append("(* Global variables *)");
@@ -2184,6 +2289,7 @@ public class DistPcalTLAGen {
 
 
 						is.append("[ self \\in NodeSet |-> ");
+						//MODIFY HERE TO INCLUDE THREADSET
 						addOneTokenToTLA(is.toString());
 						addLeftParen(decl.val.getOrigin());
 						addExprToTLA(
@@ -2195,6 +2301,7 @@ public class DistPcalTLAGen {
 					}
 					is = new StringBuffer(NSpaces(col));
 				}
+				
 				for (int p = 0; p < proc.decls.size(); p++) {
 					/*
 					 * Note: the following code is identical to the for loop code above for
@@ -2221,6 +2328,7 @@ public class DistPcalTLAGen {
 						DistPcalDebug.Assert(decl.isEq);
 						is.append(" = ");
 
+						//MODIFY HERE FOR THREADSET
 						is.append("[ self \\in NodeSet |-> ");
 						addOneTokenToTLA(is.toString());
 						addLeftParen(decl.val.getOrigin());
@@ -2475,19 +2583,17 @@ public class DistPcalTLAGen {
 			}
 		}
 		
-		//HEBA
 		/* stack initial value */
 		if (procs != null && procs.size() > 0) {
 			if (mp)
+				//MAYBE MODIY HERE
 				is.append("/\\ stack = [self \\in NodeSet |-> << >>]");
 			else
 				is.append("/\\ stack = << >>");
-//            tlacode.addElement(is.toString());
 			addOneLineOfTLA(is.toString());
 			is = new StringBuffer(NSpaces(col));
 		}
 		
-		//HEBA
 		/* pc initial value */
 		if (!ParseDistAlgorithm.omitPC) {
 			if (mp) {
@@ -2685,7 +2791,7 @@ public class DistPcalTLAGen {
 				 * generate no (distinct) successor states instead, which * is perfectly correct
 				 * and easy to understand. *
 				 ************************************************************/
-				sb.append("/\\ \\A self \\in NodeSet: pc[self] = \"Done\"");
+				sb.append("/\\ \\A self \\in NodeSet : \\A thread \\in ThreadSet[self]: pc[self][thread] = \"Done\"");
 				addOneLineOfTLA(sb.toString());
 				sb = new StringBuffer(NSpaces("Terminating == ".length()));
 				sb.append("/\\ UNCHANGED vars");
@@ -2717,6 +2823,7 @@ public class DistPcalTLAGen {
 		// Steps with (self) from NodeSet
 		// These are procedures in a multiprocess algorithm
 		Vector nextSS = new Vector();
+		//MODIFY HERE
 		String nextSSstart = "(\\E self \\in NodeSet: ";
 		sb = new StringBuffer();
 		max = wrapColumn - ("Next == \\/ (\\E self \\in NodeSet: \\/ ".length());
@@ -3078,8 +3185,7 @@ public class DistPcalTLAGen {
 		StringBuffer sb = new StringBuffer();
 		sb.append("Termination == <>(");
 		if (mp)
-			//heba, modify this to include the updated pc
-			sb.append("\\A self \\in NodeSet: pc[self]");
+			sb.append("\\A self \\in NodeSet: \\A thread \\in ThreadSet[self] : pc[self][thread]");
 		else
 			sb.append("pc");
 		sb.append(" = \"Done\")");
@@ -3718,7 +3824,9 @@ public class DistPcalTLAGen {
 			addOneTokenToTLA("(");
 		}
 		
-		if(decl.val.toPlainString().contains("[") && decl.val.toPlainString().contains("]")) {
+		//TO MAKE SURE WE DON'T REWRITE NORMAL VARIABLES ONLY CHANNELS
+		if(decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel
+				&& (decl.val.toPlainString().contains("[") && decl.val.toPlainString().contains("]"))) {
 			RewriteVarDeclDimentions(decl);
 		}
 		
@@ -3743,16 +3851,21 @@ public class DistPcalTLAGen {
 				i++;
 				c = decl.val.toPlainString().charAt(i);
 				while(c != ']') {
+
+					if(c == ',') {
+
+						dimentions.add(temp.toString());
+						temp = new StringBuffer();
+						i++;
+						c = decl.val.toPlainString().charAt(i);
+					}
+
 					temp.append(c);
 					i++;
 					c = decl.val.toPlainString().charAt(i);
 				}
-
-				if(c == ']') {
-
-					dimentions.add(temp.toString());
-					temp = new StringBuffer();
-				}
+				
+				dimentions.add(temp.toString());
 			}
 		}
 
