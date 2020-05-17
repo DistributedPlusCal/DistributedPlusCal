@@ -794,10 +794,10 @@ public class Tokenize
                 || tok.equals("variable")
                 || tok.equals("variables")
                 || tok.equals("||")
-                || tok.equals("UnorderedChannel")
-                || tok.equals("UnorderedChannels")
-                || tok.equals("FIFOChannel")
-                || tok.equals("FIFOChannels")
+                || tok.equals("channel")
+                || tok.equals("channels")
+                || tok.equals("fifo")
+                || tok.equals("fifos")
                 
          // The following are added to improve error reporting
          // and to make possible the omission of some final ";"s. 

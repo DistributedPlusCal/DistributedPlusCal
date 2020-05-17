@@ -167,6 +167,33 @@ public final class DistPcalParams
         return exp ;
       }
 
+    /*************************************************************************
+     * Parameters related to language definition.                             *
+     *************************************************************************/
+       public static TLAExpr DefaultChannelInit()
+         { Vector<TLAToken> line = new Vector<TLAToken>() ;
+           line.addElement(new TLAToken("{", 0, 0)) ;
+           line.addElement(new TLAToken("}", 0, 0)) ;
+           Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+           vec.addElement(line) ;
+           TLAExpr exp = new TLAExpr(vec) ;
+           exp.normalize() ;
+           return exp ;
+         }
+
+       /*************************************************************************
+        * Parameters related to language definition.                             *
+        *************************************************************************/
+          public static TLAExpr DefaultFifoInit()
+            { Vector<TLAToken> line = new Vector<TLAToken>() ;
+              line.addElement(new TLAToken("<<", 0, 0)) ;
+              line.addElement(new TLAToken(">>", 0, 0)) ;
+              Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+              vec.addElement(line) ;
+              TLAExpr exp = new TLAExpr(vec) ;
+              exp.normalize() ;
+              return exp ;
+            }
     /***********************************************************************
     * The strings identifying the beginning of the algorithm in the .tla   *
     * file.                                                                *

@@ -326,7 +326,7 @@ public class ParseDistAlgorithm {
 
 			DistPcalDebug.reportInfo("vdecls : " + vdecls.toString());
 			
-			if (PeekAtAlgToken(1).contains("Channel")) {
+			if (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) {
 				vdecls.addAll(GetChannelDecls());
 			}
 
@@ -500,96 +500,6 @@ public class ParseDistAlgorithm {
 				multiNodes.setOrigin(new Region(multiprocBegin, GetLastLocationEnd()));
 				return multiNodes;
 			}
-//       else {
-//
-//    	   System.out.println("found uni process");
-//    	   AST.Uniprocess uniproc = new AST.Uniprocess() ;
-//           TLAtoDistPCalMapping map = DistPcalParams.tlaDistPcalMapping ;
-//           DistPCalLocation uniprocBegin = new DistPCalLocation(map.algLine, map.algColumn);
-//           uniproc.name   = name ;
-//           uniproc.decls  = vdecls ;
-//           uniproc.defs  = defs ;
-//           uniproc.macros = macros ;
-//           uniproc.prcds  = procedures ;
-//           // Version 1.5 allowed "fair" to appear here
-//           // to specify fairness for a sequential algorithm
-//           if (DistPcalParams.inputVersionNumber == DistPcalParams.VersionToNumber("1.5")) {
-//        	   if (PeekAtAlgToken(1).equals("fair")) {
-//                   GobbleThis("fair");
-//                   if (PeekAtAlgToken(1).equals("+")) {
-//                       GobbleThis("+");
-//                   } 
-//                   DistPcalParams.FairnessOption = "wf";
-//                 }
-//           }
-//           
-//           // Following if statement added by LL on 5 Oct 2011
-//           // to fix bug in which --fair uniprocess algorithm
-//           // wasn't producing fairness condition.
-//           if (fairAlgorithm) {
-//        	   if (!DistPcalParams.FairnessOption.equals("") 
-//        		      && !DistPcalParams.FairnessOption.equals("wf")
-//        		      && !DistPcalParams.FairnessOption.equals("wfNext")) {
-//        		  DistPcalDebug.reportWarning("Option `" + DistPcalParams.FairnessOption + "' specified for --fair algorithm.");
-//        	   }
-//        	   DistPcalParams.FairnessOption = "wf";
-//           } ;
-//           
-//           GobbleBeginOrLeftBrace() ;
-//           uniproc.body = GetStmtSeq() ;
-//           CheckForDuplicateMacros(uniproc.macros) ;
-//           ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
-//// LL comment added 11 Mar 2006.
-//// I moved the following to after processing the procedures
-//// so added labels are printed in correct order-- e.g., with 
-//// -reportLabels option 
-////           AddLabelsToStmtSeq(uniproc.body) ;
-////           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
-//           int i = 0 ;
-//           while (i < uniproc.prcds.size())
-//             {  AST.Procedure prcd =
-//                  (AST.Procedure) uniproc.prcds.elementAt(i) ;
-//               currentProcedure = prcd.name ;
-//               ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
-//               AddLabelsToStmtSeq(prcd.body);
-//               prcd.body = MakeLabeledStmtSeq(prcd.body);
-//               i = i + 1 ;
-//             }
-//           if (cSyntax) 
-//             { GobbleThis("}") ; 
-//               GobbleThis("}") ; } 
-//           else 
-//             { GobbleThis("end") ;
-//               GobbleThis("algorithm") ;} ;
-//           AddLabelsToStmtSeq(uniproc.body) ;
-//           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
-//           /****************************************************************
-//           * Check for added labels, report an error if there shouldn't    *
-//           * be any, and print them out if the -reportLabels was           *
-//           * specified.                                                    *
-//           ****************************************************************/
-//           if (addedLabels.size() > 0)
-//             { if (hasLabel && ! DistPcalParams.LabelFlag) 
-//                        { AddedMessagesError() ; } ;
-//               if (DistPcalParams.ReportLabelsFlag) { ReportLabels() ; } 
-//               else
-//                   // SZ March 11, 2009: info reporting using DistPcalDebug added
-//                { DistPcalDebug.reportInfo("Labels added.") ; } ;
-//              } ;
-//           
-//           if (gotoUsed) {
-//                  omitPC = false;
-//              }
-//           if (gotoDoneUsed) {
-//               omitPC = false;
-//               omitStutteringWhenDone = false;
-//           } else {
-//               checkBody(uniproc.body);
-//           }
-//           uniproc.setOrigin(new Region(uniprocBegin, 
-//                             GetLastLocationEnd())) ;
-//           return uniproc ;
-//         }
 
 			ParsingError("Can't find any node");
 			return null;
@@ -1011,9 +921,10 @@ public class ParseDistAlgorithm {
 		String tok = PeekAtAlgToken(1);
 		String channelType = "";
 
-		if (tok.contains("Unordered")) {
+		System.out.println("tok : " + tok);
+		if (tok.contains("channel")) {
 			channelType = "Unordered";
-		} else if (tok.contains("FIFO")) {
+		} else if (tok.contains("fifo")) {
 			channelType = "FIFO";
 		} else {
 			//no channels to read
@@ -1021,7 +932,7 @@ public class ParseDistAlgorithm {
 		}
 		
 
-		if (tok.contains("Channels")) {
+		if (tok.contains("channel") || tok.contains("fifo")) {
 			MustGobbleThis(tok);
 		} else {
 			GobbleThis(tok);
@@ -1045,10 +956,8 @@ public class ParseDistAlgorithm {
 		AST.VarDecl pv;
 		if (channelType.equals("Unordered")) {
 			pv = new AST.UnorderedChannel();
-			channelType = "Unordered";
 		} else if (channelType.equals("FIFO")) {
 			pv = new AST.FIFOChannel();
-			channelType = "FIFO";
 		} else {
 			// specify a default type
 			pv = new AST.VarDecl();
@@ -1069,18 +978,29 @@ public class ParseDistAlgorithm {
 				ParsingError("Missing expression at ");
 			}
 			;
-		}  else {
-			//heba change this to have {}
-			hasDefaultInitialization = true;
+		}  
+		else {
+			//call the default initialization for channels
+			pv.isEq = true;
+			if(channelType.equals("Unordered")) {
+				pv.val = DistPcalParams.DefaultChannelInit();
+			} else if(channelType.equals("FIFO")) {
+				pv.val = DistPcalParams.DefaultFifoInit();
+			} else {
+				//default
+				hasDefaultInitialization = true;
+			}
+			
 		}
-		
-			GobbleCommaOrSemicolon();
-		
+		GobbleCommaOrSemicolon();
+
 		/******************************************************************
 		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
 		 * separated by commas. *
 		 ******************************************************************/
 		pv.setOrigin(new Region(beginLoc, endLoc));
+		
+		System.out.println("pv : " + pv);
 		return pv;
 	}
 
@@ -1373,7 +1293,7 @@ public class ParseDistAlgorithm {
 			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
 				DistPcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getSendToChannelCall(nextTok);
-			} else if(nextTok.equals("receiveInto") || nextTok.equals("receiveAllInto")) {
+			} else if(nextTok.equals("receive")) {
 				DistPcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getReceiveFromChannelCall(nextTok);
 			} else {
@@ -1655,13 +1575,13 @@ public class ParseDistAlgorithm {
 		result.line = lastTokLine;
 		result.var = GetAlgToken();
 		
-		if(result.var.equals("receiveInto") || result.var.equals("receiveAllInto")){
+		if(result.var.equals("receive")){
 			result.isEq = true;
 		} else {
 			result.isEq = GobbleEqualOrIf();
 		}
 		
-		//modify here to allow with to handle Receiveinto function call
+		//modify here to allow with to handle Receive function call
 		//NEEDS TO TRANSLATE RECEIVCEINTO(CHAN,VAR) ==> VAR := RECEIVEFROMCHAN
 //		result.isEq = GobbleEqualOrIf();
 		
@@ -2123,10 +2043,6 @@ public class ParseDistAlgorithm {
 		DistPCalLocation beginLoc = GetLastLocationStart();
 		result.col = lastTokCol;
 		result.line = lastTokLine;
-
-		if(nextTok.equals("receiveAllInto")) {
-			result.receiveAll = true;
-		}
 
 		MustGobbleThis("(");
 
@@ -3185,12 +3101,12 @@ public class ParseDistAlgorithm {
 
 		Vector result = null;
 		if(call.isBroadcast) {
-			result = call.generateBroadcastBodyTemplate(varDecl, threadDecls, nodeDecls, globalDecls);
+			result = call.generateBroadcastBodyTemplate((AST.Channel) varDecl);
 		} if(call.isMulticast){
-			result = call.generateMulticastBodyTemplate(varDecl, threadDecls, nodeDecls, globalDecls);
+			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
 		}else if(!call.isBroadcast && !call.isMulticast){
 			//construct body based on type 
-			result = call.generateBodyTemplate(varDecl);
+			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
 		
 		return result;
@@ -3236,7 +3152,7 @@ public class ParseDistAlgorithm {
 		}
 		
 		//construct body based on type 
-		Vector result = call.generateBodyTemplate(chanVar, targetVar);
+		Vector result = call.generateBodyTemplate((AST.Channel)chanVar, targetVar);
 
 		return result;
 	}
