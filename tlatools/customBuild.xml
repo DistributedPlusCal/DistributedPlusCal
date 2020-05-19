@@ -137,6 +137,7 @@
 			<classpath refid="project.classpath" />
 			<classpath>
 				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
+				<pathelement location="lib/jmh/jmh-core-1.21.jar" />
 			</classpath>
 		</javac>
 
