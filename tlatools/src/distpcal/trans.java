@@ -393,32 +393,6 @@ class trans {
 		// }
 
 		/*********************************************************************
-		 * Code from aborted version 1.31. * For .pcal input, set outputSuffixLoc and
-		 * add the rest of the * input file to the output. *
-		 *********************************************************************/
-		// if (DistPcalParams.fromPcalFile)
-		// {
-		// DistPcalParams.outputSuffixLoc = new IntPair(outputVec.size(), 0);
-		// // if there's stuff in the suffix on the same line with the
-		// // end of the algorithm, write it on a separate line.
-		// IntPair curLoc = new IntPair(DistPcalParams.inputSuffixLoc.one,
-		// DistPcalParams.inputSuffixLoc.two);
-		// if (curLoc.one < untabInputVec.size())
-		// {
-		// String lastLine = (String) untabInputVec.elementAt(curLoc.one);
-		// if (curLoc.two < lastLine.length())
-		// {
-		// outputVec.addElement(lastLine.substring(curLoc.two));
-		// }
-		// curLoc.one++;
-		// }
-		// // Copy the rest of the input file into the output file.
-		// for (int ii = curLoc.one; ii < untabInputVec.size(); ii++)
-		// {
-		// outputVec.addElement((String) untabInputVec.elementAt(ii));
-		// }
-		// }
-		/*********************************************************************
 		 * Write the output file. *
 		 *********************************************************************/
 		try {
@@ -589,7 +563,6 @@ class trans {
 					}
 				}
 			} catch (ParseDistAlgorithmException e) {
-				// The token "PlusCal" not found.
 				notDone = false;
 			}
 		}
@@ -810,11 +783,10 @@ class trans {
 		/*********************************************************************
 		 * Set ast to the AST node representing the entire algorithm. *
 		 *********************************************************************/
-		AST ast = null;
+		AST ast = null
+				;
 		try {
 			ast = ParseDistAlgorithm.getAlgorithm(reader, foundFairBegin);
-			DistPcalDebug.reportInfo("after parsing the algorithm : " + ast.toString());
-
 			// For testing, we print out when the new code for eliminating the
 			// suttering-on-done and pc is used.
 //        	if (ParseDistAlgorithm.omitPC || ParseDistAlgorithm.omitStutteringWhenDone) {

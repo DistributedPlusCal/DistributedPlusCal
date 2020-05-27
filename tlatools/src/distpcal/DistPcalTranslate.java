@@ -292,7 +292,7 @@ public class DistPcalTranslate {
         AST.When checkPC = new AST.When();
         Vector toks = new Vector();
         toks.addElement(AddedToken("pc"));
-        toks.addElement(NumericToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+        toks.addElement(BuiltInToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
         toks.addElement(BuiltInToken("="));
         toks.addElement(StringToken(label));
         checkPC.exp = TokVectorToExpr(toks, 1);
@@ -1534,7 +1534,6 @@ public class DistPcalTranslate {
         newast.line = ast.line;
         newast.name = ast.name;
         newast.id = ast.id;
-        newast.decls = ast.decls;
         newast.index = ast.index;
         newast.body = new Vector();
         

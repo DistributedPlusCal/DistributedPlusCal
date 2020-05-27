@@ -106,6 +106,7 @@
 ***************************************************************************/
 package distpcal;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -324,13 +325,9 @@ public class ParseDistAlgorithm {
 				vdecls = GetVarDecls();
 			}
 
-			DistPcalDebug.reportInfo("vdecls : " + vdecls.toString());
-			
 			if (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) {
 				vdecls.addAll(GetChannelDecls());
 			}
-
-			DistPcalDebug.reportInfo("adding channels : " + vdecls.toString());
 
 			TLAExpr defs = new TLAExpr();
 			if (PeekAtAlgToken(1).equals("define")) {
@@ -430,14 +427,11 @@ public class ParseDistAlgorithm {
 					AST.Node node = (AST.Node) multiNodes.nodes.elementAt(i);
 
 					ExpandMacrosInStmtSeq(node.body, multiNodes.macros);
-
-					//when thread declarations are null we know we are dealing with nodes not threads
-					ExpandSendAndReceiveInStmtSeq(node.body, node.decls, null, vdecls);
-
+					ExpandSendAndReceiveInStmtSeq(node.body, node.decls, vdecls);
 					AddLabelsToStmtSeq(node.body);
 
 					node.body = MakeLabeledStmtSeq(node.body);
-					
+
 					omitStutteringWhenDone = true;
 					checkBody(node.body);
 
@@ -446,10 +440,9 @@ public class ParseDistAlgorithm {
 
 					int j = 0;
 					while (j < node.threads.size()) {
-						DistPcalDebug.reportInfo("Thread : " + j + " for node : " + i);
 						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
 						ExpandMacrosInStmtSeq(thread.body, multiNodes.macros);
-						ExpandSendAndReceiveInStmtSeq(thread.body, node.decls, thread.decls, vdecls);
+						ExpandSendAndReceiveInStmtSeq(thread.body, node.decls, vdecls);
 						AddLabelsToStmtSeq(thread.body);
 
 						thread.body = MakeLabeledStmtSeq(thread.body);
@@ -545,8 +538,6 @@ public class ParseDistAlgorithm {
 		// test should be redundant. But just in case the
 		// error is being found elsewhere...
 		
-		DistPcalDebug.reportInfo("in checkBody " + body);
-
 		if (body == null || (body.size() == 0)) {
 			return;
 		}
@@ -761,16 +752,6 @@ public class ParseDistAlgorithm {
 				thread.id = result.id;
 
 				GobbleBeginOrLeftBrace();
-				
-				thread.decls = new Vector<>();
-				
-				if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
-					thread.decls.addAll(GetVarDecls());
-				} 
-				
-				if(PeekAtAlgToken(1).contains("Channel")){
-					thread.decls.addAll(GetChannelDecls());
-				}
 
 				// check that next is not the end brace
 				thread.body = GetStmtSeq();
@@ -876,10 +857,7 @@ public class ParseDistAlgorithm {
 				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
 				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
-//				|| PeekAtAlgToken(1).equals("send") || PeekAtAlgToken(1).equals("receive")
-//				|| PeekAtAlgToken(1).contains("Channel") || PeekAtAlgToken(1).equals("while")
-//				|| PeekAtAlgToken(1).contains("with") || PeekAtAlgToken(1).equals("if")
-				|| PeekAtAlgToken(1).contains("Channel"))) {
+				|| PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetVarDecl());
 		}
@@ -921,7 +899,6 @@ public class ParseDistAlgorithm {
 		String tok = PeekAtAlgToken(1);
 		String channelType = "";
 
-		System.out.println("tok : " + tok);
 		if (tok.contains("channel")) {
 			channelType = "Unordered";
 		} else if (tok.contains("fifo")) {
@@ -931,7 +908,6 @@ public class ParseDistAlgorithm {
 			return new Vector();
 		}
 		
-
 		if (tok.contains("channel") || tok.contains("fifo")) {
 			MustGobbleThis(tok);
 		} else {
@@ -953,45 +929,53 @@ public class ParseDistAlgorithm {
 
 	public static VarDecl GetChannelDecl(String channelType) throws ParseDistAlgorithmException {
 
-		AST.VarDecl pv;
+		AST.Channel pv;
 		if (channelType.equals("Unordered")) {
 			pv = new AST.UnorderedChannel();
+			pv.val = DistPcalParams.DefaultChannelInit();
 		} else if (channelType.equals("FIFO")) {
 			pv = new AST.FIFOChannel();
+			pv.val = DistPcalParams.DefaultFifoInit();
 		} else {
 			// specify a default type
-			pv = new AST.VarDecl();
+			pv = null;
+			hasDefaultInitialization = true;
 		}
 
 		pv.var = GetAlgToken();
-
+		pv.isEq = true;		
+		
 		DistPCalLocation beginLoc = GetLastLocationStart();
 		DistPCalLocation endLoc = GetLastLocationEnd();
 		pv.col = lastTokCol;
 		pv.line = lastTokLine;
-		if (PeekAtAlgToken(1).equals("=") || PeekAtAlgToken(1).equals("\\in")) {
-			pv.isEq = GobbleEqualOrIf();
-			pv.val = GetExpr();
+		
+		if (PeekAtAlgToken(1).equals("[")) {
 
-			endLoc = pv.val.getOrigin().getEnd();
-			if (pv.val.tokens.size() == 0) {
-				ParsingError("Missing expression at ");
-			}
-			;
-		}  
-		else {
-			//call the default initialization for channels
-			pv.isEq = true;
-			if(channelType.equals("Unordered")) {
-				pv.val = DistPcalParams.DefaultChannelInit();
-			} else if(channelType.equals("FIFO")) {
-				pv.val = DistPcalParams.DefaultFifoInit();
-			} else {
-				//default
-				hasDefaultInitialization = true;
-			}
+			GobbleThis("[");
+			pv.dimensions = new ArrayList<>();
+			pv.dimensions.add(GetAlgToken());
+
+			String next = PeekAtAlgToken(1);
 			
+			//for one dimensional channels
+			if(next.equals("]")) {
+				GobbleThis("]");
+			} else {
+				while(!next.equals("]")) {
+					if(next.equals(",")) {
+						GobbleThis(",");
+						next = PeekAtAlgToken(1);
+						continue;
+					} else {
+						pv.dimensions.add(GetAlgToken());
+						next = PeekAtAlgToken(1);
+					}
+				}
+				GobbleThis("]");
+			}
 		}
+		
 		GobbleCommaOrSemicolon();
 
 		/******************************************************************
@@ -1000,7 +984,6 @@ public class ParseDistAlgorithm {
 		 ******************************************************************/
 		pv.setOrigin(new Region(beginLoc, endLoc));
 		
-		System.out.println("pv : " + pv);
 		return pv;
 	}
 
@@ -1015,6 +998,7 @@ public class ParseDistAlgorithm {
 		} catch (TokenizerException e) {
 			throw new ParseDistAlgorithmException(e.getMessage());
 		}
+		
 		LAT[LATsize] = Tokenize.Delimiter;
 		curTokCol[LATsize] = Tokenize.DelimiterCol;
 		curTokLine[LATsize] = Tokenize.DelimiterLine;
@@ -1666,7 +1650,7 @@ public class ParseDistAlgorithm {
 		if (result.rhs.tokens.size() == 0) {
 			ParsingError("Empty right-hand side of assignment at ");
 		}
-		;
+		
 		result.setOrigin(new Region(result.lhs.getOrigin().getBegin(), result.rhs.getOrigin().getEnd()));
 		return result;
 	}
@@ -1697,9 +1681,11 @@ public class ParseDistAlgorithm {
 		} catch (ParseDistAlgorithmException e) {
 			throw new ParseDistAlgorithmException(e.getMessage());
 		}
+		
 		if (result.sub.getOrigin() != null) {
 			endLoc = result.sub.getOrigin().getEnd();
 		}
+		
 		result.setOrigin(new Region(beginLoc, endLoc));
 		return result;
 	}
@@ -1757,7 +1743,7 @@ public class ParseDistAlgorithm {
 		} else {
 			MustGobbleThis("await");
 		}
-		;
+		
 		result.col = lastTokCol;
 		result.line = lastTokLine;
 		result.exp = GetExpr();
@@ -1766,7 +1752,7 @@ public class ParseDistAlgorithm {
 		if (result.exp.tokens.size() == 0) {
 			ParsingError("Empty expression in when statement at ");
 		}
-		;
+		
 		GobbleThis(";");
 		return result;
 	}
@@ -2014,19 +2000,30 @@ public class ParseDistAlgorithm {
 	public static AST.ChannelSenderCall getSendToChannelCall(String nextTok) throws ParseDistAlgorithmException {
 		AST.ChannelSenderCall result = new AST.ChannelSenderCall();
 		result.name = GetAlgToken() ;
-		DistPCalLocation beginLoc = GetLastLocationStart();
-		result.col = lastTokCol;
-		result.line = lastTokLine;
+
+		MustGobbleThis("(");
+
+		result.col = curTokCol[0] + 1;
+		result.line = curTokLine[0] + 1;
+		/******************************************************************
+		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+		 * LAT[0] contains the next token. *
+		 ******************************************************************/
+		DistPCalLocation beginLoc = null;
+		DistPCalLocation endLoc = null;
+		result.channelName = GetAlgToken();
+
+		beginLoc = GetLastLocationStart();
+		endLoc = GetLastLocationEnd();
 
 		if(nextTok.equals("broadcast")) {
 			result.isBroadcast = true;
 		} else if(nextTok.equals("multicast")) {
 			result.isMulticast = true;
+		} else {
+			result.callExp = GetExpr();
 		}
 
-		MustGobbleThis("(");
-
-		result.channelName = GetExpr().toPlainString();
 		GobbleThis(",");
 		result.msg = GetExpr();
 
@@ -2040,17 +2037,28 @@ public class ParseDistAlgorithm {
 	public static AST.ChannelReceiverCall getReceiveFromChannelCall(String nextTok) throws ParseDistAlgorithmException {
 		AST.ChannelReceiverCall result = new AST.ChannelReceiverCall();
 		result.name = GetAlgToken() ;
-		DistPCalLocation beginLoc = GetLastLocationStart();
-		result.col = lastTokCol;
-		result.line = lastTokLine;
-
 		MustGobbleThis("(");
 
-		result.channelName = GetExpr().toPlainString();
+		result.col = curTokCol[0] + 1;
+		result.line = curTokLine[0] + 1;
+		/******************************************************************
+		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+		 * LAT[0] contains the next token. *
+		 ******************************************************************/
+		DistPCalLocation beginLoc = null;
+		DistPCalLocation endLoc = null;
+		result.channelName = GetAlgToken();
+
+		beginLoc = GetLastLocationStart();
+		endLoc = GetLastLocationEnd();
+
+		result.callExp = GetExpr();
+
 		GobbleThis(",");
-		
-		result.targetVarName = GetExpr().toPlainString();
-		 
+
+		result.targetVarName = GetAlgToken();
+		result.targetExp = GetExpr();
+
 		//if there is more than one parameter an error is thrown
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
@@ -2582,9 +2590,7 @@ public class ParseDistAlgorithm {
 				if (nextStmt < stmtseq.size()) {
 					stmt = (AST) stmtseq.elementAt(nextStmt);
 				}
-				;
 			}
-			;
 			FixStmtSeq(lstmt.stmts);
 
 			int numberOfStmts = lstmt.stmts.size();
@@ -2597,12 +2603,12 @@ public class ParseDistAlgorithm {
 				lstmtBegin = ((AST) lstmt.stmts.elementAt(0)).getOrigin().getBegin();
 			}
 			
-
 			DistPCalLocation lstmtEnd = ((AST) lstmt.stmts.elementAt(numberOfStmts - 1)).getOrigin().getEnd();
 
 			lstmt.setOrigin(new Region(lstmtBegin, lstmtEnd));
 			result.addElement(lstmt);
 		}
+
 		return result;
 	}
 
@@ -2973,29 +2979,28 @@ public class ParseDistAlgorithm {
 		return;
 	}
 
-	public static void ExpandSendAndReceiveInStmtSeq(Vector stmtseq, Vector nodeDecls, Vector threadDecls, Vector globalDecls) throws ParseDistAlgorithmException {
+	public static void ExpandSendAndReceiveInStmtSeq(Vector stmtseq, Vector nodeDecls, Vector globalDecls) throws ParseDistAlgorithmException {
 		int i = 0;
 		while (i < stmtseq.size()) {
 			AST stmt = (AST) stmtseq.elementAt(i);
 
 			if (stmt.getClass().equals(AST.LabelIfObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, threadDecls, globalDecls);
-				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, threadDecls, globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.LabelEitherObj.getClass())) {
 				AST.LabelEither eNode = (AST.LabelEither) stmt;
 				int j = 0;
 				while (j < eNode.clauses.size()) {
-					ExpandSendAndReceiveInStmtSeq(((AST.Clause) eNode.clauses.elementAt(j)).unlabOr, nodeDecls, threadDecls,globalDecls);
+					ExpandSendAndReceiveInStmtSeq(((AST.Clause) eNode.clauses.elementAt(j)).unlabOr, nodeDecls,globalDecls);
 					j = j + 1;
 				}
 				;
 			} else if (stmt.getClass().equals(AST.WithObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.With) stmt).Do, nodeDecls, threadDecls, globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
-				ExpandSendAndReceiveInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, threadDecls, globalDecls);
+				ExpandSendAndReceiveInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSenderCall) stmt), nodeDecls, threadDecls, globalDecls);
-
+				Vector expansion = ExpandSendCall(((AST.ChannelSenderCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -3004,9 +3009,7 @@ public class ParseDistAlgorithm {
 				}
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiverCall) stmt), nodeDecls, threadDecls, globalDecls);
-
+				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiverCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -3088,27 +3091,21 @@ public class ParseDistAlgorithm {
 	 * @return
 	 * @throws ParseDistAlgorithmException
 	 */
-	public static Vector ExpandSendCall(AST.ChannelSenderCall call, Vector nodeDecls, Vector threadDecls, Vector globalDecls) throws ParseDistAlgorithmException {
+	public static Vector ExpandSendCall(AST.ChannelSenderCall call, Vector nodeDecls, Vector globalDecls) throws ParseDistAlgorithmException {
 
-		VarDecl varDecl = null;
-
-		if(call.channelName.contains("[") && call.channelName.contains("]")) {
-
-			varDecl = findVarDeclByVarName(call.channelName.split("\\[")[0], threadDecls, nodeDecls, globalDecls, varDecl);
-		} else {
-			varDecl = findVarDeclByVarName(call.channelName, threadDecls,nodeDecls, globalDecls, varDecl);
-		}
+		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
 
 		Vector result = null;
 		if(call.isBroadcast) {
 			result = call.generateBroadcastBodyTemplate((AST.Channel) varDecl);
 		} if(call.isMulticast){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
+
 		}else if(!call.isBroadcast && !call.isMulticast){
 			//construct body based on type 
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
-		
+
 		return result;
 	}
 
@@ -3118,87 +3115,49 @@ public class ParseDistAlgorithm {
 	 * @return
 	 * @throws ParseDistAlgorithmException
 	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call, Vector nodeDecl, Vector threadDecls, Vector globalDecl)
+	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseDistAlgorithmException {
 
-		VarDecl chanVar = null;
-		VarDecl targetVar = null;
-		int i = 0;
-		
-		//TODO
-		
-		if(call.channelName.contains("[") && call.channelName.contains("]")) {
+		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 
-			//get main channel name and try again, since the object 
-			//we are trying to receive From can be an array 
-			chanVar = findVarDeclByVarName(call.channelName.split("\\[")[0], threadDecls, nodeDecl, globalDecl, chanVar);
-		} else {
-			chanVar = findVarDeclByVarName(call.channelName, threadDecls, nodeDecl, globalDecl, chanVar);
-		}
-		
-		if(call.targetVarName.contains("[") && call.targetVarName.contains("]")) {
-
-			//get main name and try again, since the object 
-			//we are trying to receive From can be an array 
-
-			//get main name and try again
-			targetVar = findVarDeclByVarName(call.targetVarName.split("\\[")[0], threadDecls, nodeDecl, globalDecl, targetVar);
-		} else {
-			targetVar = findVarDeclByVarName(call.targetVarName, threadDecls, nodeDecl, globalDecl, targetVar);
-		}
+		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);
 
 		if(targetVar == null) {
 			throw new ParseDistAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
 		}
-		
+
 		//construct body based on type 
 		Vector result = call.generateBodyTemplate((AST.Channel)chanVar, targetVar);
 
 		return result;
 	}
 
-	static VarDecl findVarDeclByVarName(String varName, Vector threadDecls, Vector nodeDecl, Vector globalDecl,
-			VarDecl chanVar) {
+	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
+		VarDecl chanVar = null;
 		int i = 0;
-		//test if we add vars to thread body and not in main node, but we use it in main node ==> should not work(not in our scope)
+
+		while (nodeDecl != null && i < nodeDecl.size()) {
+			AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			if (tempVar.var.equals(varName)) {
+				chanVar = tempVar;
+			}
+
+			i = i + 1;
+		};
+
 		if(chanVar == null) {
-			
-			while (threadDecls != null && i < threadDecls.size()) {
-				AST.VarDecl tempVar = (AST.VarDecl) threadDecls.elementAt(i);
+			i = 0;
+			while (globalDecl != null && i < globalDecl.size()) {
+				AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
+
 				if (tempVar.var.equals(varName)) {
 					chanVar = tempVar;
 				}
-
 				i = i + 1;
 			}
-			
+
 			if(chanVar == null) {
-				i = 0;
-				while (nodeDecl != null && i < nodeDecl.size()) {
-					AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
-					if (tempVar.var.equals(varName)) {
-						chanVar = tempVar;
-					}
-
-					i = i + 1;
-				};
-			}
-			
-			if(chanVar == null) {
-				i = 0;
-				while (globalDecl != null && i < globalDecl.size()) {
-					AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
-
-					if (tempVar.var.equals(varName)) {
-						chanVar = tempVar;
-					}
-
-					i = i + 1;
-				}
-
-				if(chanVar == null) {
-					//throw an error
-				}
+				//throw an error
 			}
 		}
 		return chanVar;
@@ -3737,35 +3696,6 @@ public class ParseDistAlgorithm {
 		}
 	}
 
-//	public static AST SubstituteSendAndReceiveInStmt(AST stmt, Vector args, // of TLAExpr
-//			Vector params // of String
-//	) throws ParseDistAlgorithmException {
-//
-//		if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-//			AST.ChannelSenderCall tstmt = (AST.ChannelSenderCall) stmt;
-//			AST.ChannelSenderCall result = new AST.ChannelSenderCall();
-//			result.col = tstmt.col;
-//			result.line = tstmt.line;
-//			// result.macroCol = tstmt.macroCol ;
-//			// result.macroLine = tstmt.macroLine ;
-//			result.setOrigin(tstmt.getOrigin());
-//
-//			return result;
-//		}
-//
-//		if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-//			AST.ChannelReceiverCall tstmt = (AST.ChannelReceiverCall) stmt;
-//			AST.ChannelReceiverCall result = new AST.ChannelReceiverCall();
-//			result.col = tstmt.col;
-//			result.line = tstmt.line;
-//			result.setOrigin(tstmt.getOrigin());
-//
-//			return result;
-//		}
-//
-//		DistPcalDebug.ReportBug("Found unexpected statement type in macro at" + stmt.location());
-//		return new AST(); // Needed to keep Java from complaining.
-//	}
 
 	/*************************** UTILITY METHODS ******************************/
 //    private static String Loc(int line , int col)

@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import org.openjdk.jmh.annotations.Threads;
 
+import distpcal.AST.Channel;
 import distpcal.AST.MultiNodes;
 import distpcal.AST.Node;
 import distpcal.AST.VarDecl;
@@ -1051,6 +1052,7 @@ public class DistPcalTLAGen {
 				AST.SingleAssign sass = sF;
 
 				addLeftParen(sass.getOrigin());
+
 				TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
 				TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
 				
@@ -1098,7 +1100,6 @@ public class DistPcalTLAGen {
 						sb = new StringBuffer();
 
 						//extend pc to include threads
-//						sb.append(sass.lhs.var);
 						sb.append(" = [@ ");
 //						sb.append(sass.lhs.var);
 						sb.append(" EXCEPT ");
@@ -1961,24 +1962,6 @@ public class DistPcalTLAGen {
 						if (!node.isEq)
 							psV.addElement(decl.var);
 					}
-				
-				//for thread declerations
-//				if (node.threads != null) {
-//					for (int j = 0; j < node.threads.size(); j++) {
-//						System.out.println("thread : " + j);
-//
-//						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
-//						if (thread.decls != null)
-//							for (int n = 0; n < thread.decls.size(); n++) {
-//								AST.VarDecl decl = (AST.VarDecl) thread.decls.elementAt(n);
-//								lVars.addElement(decl.var);
-//								lVarsSource.addElement(decl);
-//								vars.addElement(decl.var);
-//								if (!node.isEq)
-//									psV.addElement(decl.var);
-//							}
-//					}
-//				}
 			}
 			
 		/********************************************************************
@@ -2181,10 +2164,26 @@ public class DistPcalTLAGen {
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
-//		addOneTokenToTLA("ThreadSet == [n \\in NodeSet |-> ");
 		ps.append("ThreadSet == [n \\in NodeSet |-> ");
 		int col = "ThreadSet == ".length();
 		int positionOfLastIf = 0;
+		
+		//if there is only one node
+		if(st.nodes.size() == 1) {
+			DistPcalSymTab.NodeEntry node = (DistPcalSymTab.NodeEntry) st.nodes.elementAt(0);
+			if(node.threads.size() > 0){
+				//1 is always for the main thread, the original block of the node
+				ps.append("1.." + (node.threads.size() + 1));
+			} else {
+				ps.append("1");
+			}
+			ps.append("]");
+			addOneLineOfTLA(ps.toString());
+			endCurrentLineOfTLA();
+			addOneLineOfTLA("");
+			return;
+		}
+			
 		for (int i = 0; i < st.nodes.size(); i++) {
 			DistPcalSymTab.NodeEntry node = (DistPcalSymTab.NodeEntry) st.nodes.elementAt(i);
 
@@ -2196,7 +2195,6 @@ public class DistPcalTLAGen {
 			} else if(i > 0) {
 				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
 				ps.append(" ELSE ");
-//				ps.append("(");
 			}
 			
 			if(i != st.nodes.size() - 1) {
@@ -2208,7 +2206,6 @@ public class DistPcalTLAGen {
 			}
 			positionOfLastIf = ps.length();
 
-//			addExprToTLA(node.id);
 			ps.append(node.id.toPlainString());
 			if(i != st.nodes.size() - 1) {
 				ps.append(" THEN ");
@@ -2231,6 +2228,7 @@ public class DistPcalTLAGen {
 			}
 			
 			addOneLineOfTLA(ps.toString());
+			
 		}
 		
 		endCurrentLineOfTLA();
@@ -2315,10 +2313,7 @@ public class DistPcalTLAGen {
 						is.append("/\\ ");
 						addOneTokenToTLA(is.toString());
 						addLeftParen(decl.getOrigin());
-//                    is.append(decl.var);
 						is = new StringBuffer(decl.var);
-//                    is.append("/\\ ");
-//                    is.append(decl.var);
 
 						/*******************************************************
 						 * Modified on 31 Jan 2006 by LL to add subscripts to * initialization
@@ -2642,6 +2637,7 @@ public class DistPcalTLAGen {
 								}
 							}
 						} else {
+							//TODO
 							is = new StringBuffer(" -> \"");
 							is.append(ne.iPC);
 						}
@@ -2673,8 +2669,17 @@ public class DistPcalTLAGen {
 							
 					} // end if (useCase)
 					else {
-						//heba test this case
-						is.append("\"" + ne.iPC + "\"]");
+						String[] stringArray = ne.iPC.toString().split(",");
+						
+						is.append("<<");
+						for(int i = 0; i < stringArray.length; i++) {
+							is.append("\"" + stringArray[i].trim() + "\"");
+							
+							if(i != stringArray.length-1) {
+								is.append(",");
+							}
+						}
+						is.append(">>]");
 					}
 					addOneTokenToTLA(is.toString());
 					endCurrentLineOfTLA();
@@ -3406,10 +3411,6 @@ public class DistPcalTLAGen {
 		Vector tokens = new Vector();
 		tokens.addElement(tokenVec);
 		TLAExpr expr = new TLAExpr(tokens);
-//        expr.anchorTokens = new TLAToken[1];
-//        expr.anchorTokens[0] = selfToken;
-//        expr.anchorTokCol = new int[1];
-//        expr.anchorTokCol[0] = 0;
 		expr.normalize();
 		return expr;
 	}
@@ -3826,8 +3827,8 @@ public class DistPcalTLAGen {
 		
 		//TO MAKE SURE WE DON'T REWRITE NORMAL VARIABLES ONLY CHANNELS
 		if(decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel
-				&& (decl.val.toPlainString().contains("[") && decl.val.toPlainString().contains("]"))) {
-			RewriteVarDeclDimentions(decl);
+				&& ((Channel) decl).dimensions != null) {
+			RewriteVarDeclDimensions(((Channel)decl));
 		}
 		
 		addExprToTLA(decl.val);
@@ -3839,66 +3840,43 @@ public class DistPcalTLAGen {
 		endCurrentLineOfTLA();
 	}
 
-	private void RewriteVarDeclDimentions(VarDecl decl) {
-		List<String> dimentions = new ArrayList();
-
-		StringBuffer temp = new StringBuffer();
-		for (int i = 0; i < decl.val.toPlainString().length(); i++){
-			char c = decl.val.toPlainString().charAt(i);
-
-			if(c == '[') {
-
-				i++;
-				c = decl.val.toPlainString().charAt(i);
-				while(c != ']') {
-
-					if(c == ',') {
-
-						dimentions.add(temp.toString());
-						temp = new StringBuffer();
-						i++;
-						c = decl.val.toPlainString().charAt(i);
-					}
-
-					temp.append(c);
-					i++;
-					c = decl.val.toPlainString().charAt(i);
-				}
-				
-				dimentions.add(temp.toString());
-			}
-		}
+	private void RewriteVarDeclDimensions(Channel decl) {
 
 		TLAExpr expr = new TLAExpr();
 		expr.addLine();
-		for(int i = 0; i < dimentions.size(); i++) {
-			String dimention = dimentions.get(i);
-			String tempVarName = String.valueOf(dimention.toLowerCase().charAt(0)) + decl.line + decl.col;
+		
+		for(int i = 0; i < decl.dimensions.size(); i++) {
+			String dimension = (String) decl.dimensions.get(i);
+
+			String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
 
 			if(i == 0) {
 				expr.addToken(DistPcalTranslate.BuiltInToken("["));
 			}
 			expr.addToken(DistPcalTranslate.IdentToken(tempVarName));
 			expr.addToken(DistPcalTranslate.BuiltInToken(" \\in "));
-			expr.addToken(DistPcalTranslate.IdentToken(dimention));
+			expr.addToken(DistPcalTranslate.IdentToken(dimension));
 
 
-			if(dimentions.size() != 1 && i != dimentions.size() - 1) {
+			if(decl.dimensions.size() != 1 && i != decl.dimensions.size() - 1) {
 				expr.addToken(DistPcalTranslate.BuiltInToken(", "));
 			}
 		}
 
 		expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
-		expr.addToken(DistPcalTranslate.BuiltInToken("{"));
-		expr.addToken(DistPcalTranslate.BuiltInToken("}"));
+		
+		//TODO change this
+		if(decl instanceof AST.FIFOChannel) {
+			expr.addToken(DistPcalTranslate.BuiltInToken("<<"));
+			expr.addToken(DistPcalTranslate.BuiltInToken(">>"));
+		} else {
+			expr.addToken(DistPcalTranslate.BuiltInToken("{"));
+			expr.addToken(DistPcalTranslate.BuiltInToken("}"));
+		}
+		
 		expr.addToken(DistPcalTranslate.BuiltInToken("]"));
 
 		expr.setOrigin(decl.val.getOrigin());
-//		expr.(sdecl.val.getOrigin());
-		
-//		expr.anchorTokCol = decl.val.anchorTokCol;
-//		expr.anc = decl.val.anchorTokCol;
-
 		expr.normalize();
 		decl.val = expr;
 	}

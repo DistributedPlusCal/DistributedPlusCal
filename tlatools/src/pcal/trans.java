@@ -915,8 +915,6 @@ class trans {
 //          ", omitStutteringWhenDone = " + ParseAlgorithm.omitStutteringWhenDone);
 // }
 
-         PcalDebug.reportInfo("!!!!!!!!!! ast.toString() \n" + ast.toString());
-
         } catch (ParseAlgorithmException e)
         {
             PcalDebug.reportError(e);
