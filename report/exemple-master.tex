@@ -1,0 +1,159 @@
+% Exemple d'utilisation de la classe `thesul' pour un master.
+% D. Roegel, 3/4/2013
+%
+% Note : les couvertures de Master ne sont pas finalisées dans thesul.
+%        Indiquez-moi ce qu'il faut mettre.
+%
+\documentclass{thesul}
+
+
+
+
+%-------------------------------------------------------------------
+%                         Les références
+%-------------------------------------------------------------------
+
+\NoChapterNumberInRef
+\NoChapterPrefix
+
+
+\begin{document}
+
+      \OddHead={{\leftmark\rightmark}{\hfil\slshape\rightmark}}
+      \EvenHead={{\leftmark}{{\slshape\leftmark}\hfil}}
+      \OddFoot={\hfil\thepage}
+      \EvenFoot={\thepage\hfil}
+      \pagestyle{ThesisHeadingsII}
+
+%-------------------------------------------------------------------
+%            Réinitialisation de la numérotation des chapitres
+%-------------------------------------------------------------------
+
+% Si la commande suivante est présente,
+% elle doit figurer APRÈS \begin{document}
+% et avant la première commande \part
+\ResetChaptersAtParts 
+
+
+
+
+
+\MasterUL
+\ThesisTitle{Une première étude}
+\ThesisAuthor{Toto}
+\ThesisPresentedThe{soutenu le 23 septembre 2016}
+\President    = {Le pr\'esident}
+\Rapporteurs  = {Le rapporteur 1\\
+                 Le rapporteur 2\\
+                 Le rapporteur 3}
+\Examinateurs = {L'examinateur 1\\
+                 L'examinateur 2}
+
+\MakeThesisTitlePage
+
+
+%-------------------------------------------------------------------
+%                          remerciements
+%-------------------------------------------------------------------
+
+%\DontFrameThisInToc
+\begin{ThesisAcknowledgments}
+Les remerciements.
+\end{ThesisAcknowledgments}
+
+%-------------------------------------------------------------------
+%                            dédicace
+%-------------------------------------------------------------------
+
+\begin{ThesisDedication}
+Je dédie cette thèse\\
+à ma machine.\\
+Oui, à Pandore,\\
+qui fut la première de toutes.
+\end{ThesisDedication}
+
+
+%-------------------------------------------------------------------
+%                  écriture de `Chapitre' et `Partie' 
+%                      dans la table des matières
+%-------------------------------------------------------------------
+
+\WritePartLabelInToc
+\WriteChapterLabelInToc
+
+%-------------------------------------------------------------------
+%                        table des matières
+%-------------------------------------------------------------------
+
+\tableofcontents
+
+% Pour ne pas avoir le mot « Chapitre » au début de chaque chapitre.
+\NoChapterHead
+
+
+% La commande \mainmatter permet de passer
+% à la numérotation arabe (ce que fait \pagenumbering{arabic}) 
+% et de faire commencer la nouvelle page 1 sur une page impaire.
+% On évitera donc d'utiliser directement \pagenumbering{arabic}.
+\mainmatter
+
+
+\chapter{Introduction}
+%%============================
+This is a very nice thesis about TLA~\cite{tlabook}.
+
+\paragraph*{Motivations}
+
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+
+\paragraph*{Outline}
+
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+
+\chapter{Translation}
+%%============================
+
+\section{This is a section}
+%%============================
+
+aaaa
+
+\subsection{This is a subsection}
+%%============================
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+
+\subsection{This is another subsection}
+%%============================
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
+ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
+bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+
+\section{This is another section}
+%%============================
+
+\bibliographystyle{alpha}
+\bibliography{report}
+
+\end{document}
