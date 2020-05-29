@@ -3865,7 +3865,7 @@ public class DistPcalTLAGen {
 
 		expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
 		
-		//TODO change this
+		//TODO 
 		if(decl instanceof AST.FIFOChannel) {
 			expr.addToken(DistPcalTranslate.BuiltInToken("<<"));
 			expr.addToken(DistPcalTranslate.BuiltInToken(">>"));

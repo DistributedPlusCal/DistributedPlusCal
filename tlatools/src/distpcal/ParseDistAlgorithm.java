@@ -1280,6 +1280,9 @@ public class ParseDistAlgorithm {
 			} else if(nextTok.equals("receive")) {
 				DistPcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getReceiveFromChannelCall(nextTok);
+			} else if(nextTok.equals("clear")) {
+				DistPcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+				return getClearChannelCall(nextTok);
 			} else {
 				return GetMacroCall();
 			}
@@ -2058,6 +2061,32 @@ public class ParseDistAlgorithm {
 
 		result.targetVarName = GetAlgToken();
 		result.targetExp = GetExpr();
+
+		//if there is more than one parameter an error is thrown
+		GobbleThis(")");
+		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+		GobbleThis(";");
+
+		return result;
+	}
+
+	public static AST.ChannelClearCall getClearChannelCall(String nextTok) throws ParseDistAlgorithmException {
+		AST.ChannelClearCall result = new AST.ChannelClearCall();
+		result.name = GetAlgToken() ;
+		MustGobbleThis("(");
+
+		result.col = curTokCol[0] + 1;
+		result.line = curTokLine[0] + 1;
+		/******************************************************************
+		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+		 * LAT[0] contains the next token. *
+		 ******************************************************************/
+		DistPCalLocation beginLoc = null;
+		DistPCalLocation endLoc = null;
+		result.channelName = GetAlgToken();
+
+		beginLoc = GetLastLocationStart();
+		endLoc = GetLastLocationEnd();
 
 		//if there is more than one parameter an error is thrown
 		GobbleThis(")");
@@ -3017,6 +3046,15 @@ public class ParseDistAlgorithm {
 					j = j - 1;
 				}
 				i = i + expansion.size() - 1;
+			} else if (stmt.getClass().equals(AST.ChannelClearCall.getClass())) {
+				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls);
+				stmtseq.remove(i);
+				int j = expansion.size();
+				while (j > 0) {
+					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
+					j = j - 1;
+				}
+				i = i + expansion.size() - 1;
 			}
 			i = i + 1;
 		}
@@ -3119,7 +3157,6 @@ public class ParseDistAlgorithm {
 			throws ParseDistAlgorithmException {
 
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
-
 		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);
 
 		if(targetVar == null) {
@@ -3132,6 +3169,26 @@ public class ParseDistAlgorithm {
 		return result;
 	}
 
+	/**
+	 * 
+	 * @param call
+	 * @return
+	 * @throws ParseDistAlgorithmException
+	 */
+	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
+			throws ParseDistAlgorithmException {
+
+		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
+
+		if(chanVar == null) {
+			//throw and exception
+		}
+		
+		//construct body based on type 
+		Vector result = call.generateBodyTemplate((AST.Channel)chanVar);
+
+		return result;
+	}
 	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
 		VarDecl chanVar = null;
 		int i = 0;

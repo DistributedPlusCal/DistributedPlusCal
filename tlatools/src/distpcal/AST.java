@@ -114,7 +114,8 @@ public class AST
     public static AST.MacroCall    MacroCallObj    ;
     public static AST.ChannelSenderCall ChannelSenderObj;
     public static AST.ChannelReceiverCall ChannelReceiverObj;
-
+    public static AST.ChannelClearCall ChannelClearCall;
+    
     public static final String SELF = "slf";
     
     public int col ;
@@ -235,7 +236,7 @@ public class AST
         MacroCallObj    = new AST.MacroCall() ;
         ChannelSenderObj =  new AST.ChannelSenderCall();
         ChannelReceiverObj =  new AST.ChannelReceiverCall();
-
+        ChannelClearCall = new AST.ChannelClearCall();
       }
 
 
@@ -517,8 +518,8 @@ public class AST
     	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
     	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg) throws ParseDistAlgorithmException;
     	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseDistAlgorithmException;
+    	public abstract Vector clear(Channel channel) throws ParseDistAlgorithmException;
 
-    	//also add reset and head
     }
     
     public static class UnorderedChannel extends Channel{
@@ -994,6 +995,64 @@ public class AST
 			result.addElement(assign);
 			return result;
 		}
+
+		@Override
+		public Vector clear(Channel channel) throws ParseDistAlgorithmException {
+			Vector result = new Vector();
+
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+			sass.lhs.sub = new TLAExpr(new Vector());
+			
+			sass.setOrigin(this.getOrigin());
+
+			TLAExpr expr = new TLAExpr();
+			expr.addLine();
+
+			for(int i = 0; i < channel.dimensions.size(); i++) {
+				String dimension = (String) channel.dimensions.get(i);
+
+				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+
+				if(i == 0) {
+					expr.addToken(DistPcalTranslate.BuiltInToken("["));
+				}
+				expr.addToken(DistPcalTranslate.IdentToken(tempVarName));
+				expr.addToken(DistPcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(DistPcalTranslate.IdentToken(dimension));
+
+
+				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+					expr.addToken(DistPcalTranslate.BuiltInToken(", "));
+				}
+			}
+
+			expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
+
+			expr.addToken(DistPcalTranslate.BuiltInToken("{"));
+			expr.addToken(DistPcalTranslate.BuiltInToken("}"));
+
+			expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
+
+			return result;
+		}
     	
     }
     
@@ -1412,7 +1471,6 @@ public class AST
 			}
 			
 			expr.addToken(DistPcalTranslate.BuiltInToken(", "));
-			//HEBA
 
 			for(int i = 0; i < thenExp.tokens.size(); i++) {
 				
@@ -1454,6 +1512,64 @@ public class AST
 			assign.ass.addElement(sass);
 
 			result.addElement(assign);
+			return result;
+		}
+
+		@Override
+		public Vector clear(Channel channel) throws ParseDistAlgorithmException {
+			Vector result = new Vector();
+
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+			sass.lhs.sub = new TLAExpr(new Vector());
+					
+			sass.setOrigin(this.getOrigin());
+
+			TLAExpr expr = new TLAExpr();
+			expr.addLine();
+
+			for(int i = 0; i < channel.dimensions.size(); i++) {
+				String dimension = (String) channel.dimensions.get(i);
+
+				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+
+				if(i == 0) {
+					expr.addToken(DistPcalTranslate.BuiltInToken("["));
+				}
+				expr.addToken(DistPcalTranslate.IdentToken(tempVarName));
+				expr.addToken(DistPcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(DistPcalTranslate.IdentToken(dimension));
+
+
+				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+					expr.addToken(DistPcalTranslate.BuiltInToken(", "));
+				}
+			}
+
+			expr.addToken(DistPcalTranslate.BuiltInToken(" |-> "));
+
+			expr.addToken(DistPcalTranslate.BuiltInToken("<<"));
+			expr.addToken(DistPcalTranslate.BuiltInToken(">>"));
+
+			expr.addToken(DistPcalTranslate.BuiltInToken("]"));
+
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
+
 			return result;
 		}
     }
@@ -1989,11 +2105,26 @@ public class AST
     	public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
     		return channel.receive(channel, channelName, targetVar, callExp, targetExp);
     	}
-		/**
-		 * @param channel
-		 * @param targetVar
-		 * @return
-		 */
+    }
+
+    
+    public static class ChannelClearCall extends AST{
+    	public String name = "";
+    	public Channel channel = null;
+    	public String channelName = null;
+    	public ChannelClearCall() {};
+    	public String toString()
+    	{ return 
+    			Indent(lineCol()) + 
+    			"[type |-> \"ChannelClearCall\"," + NewLine() +
+    			Indent(" channel     |-> ") + channel.var + "]" +
+    			EndIndent() +
+    			EndIndent() ;
+    	}
+      	
+    	public Vector generateBodyTemplate(Channel channel) throws ParseDistAlgorithmException {
+    		return channel.clear(channel);
+    	}
     }
 
 /***************************** UTILITY METHODS ****************************/
