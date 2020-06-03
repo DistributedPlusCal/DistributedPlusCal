@@ -39,8 +39,8 @@
 
 
 \MasterUL
-\ThesisTitle{Une première étude}
-\ThesisAuthor{Toto}
+\ThesisTitle{Formal Verification of Distributed Algorithms using Distributed-PlusCal}
+\ThesisAuthor{Heba Al-kayed}
 \ThesisPresentedThe{soutenu le 23 septembre 2016}
 \President    = {Le pr\'esident}
 \Rapporteurs  = {Le rapporteur 1\\
@@ -103,56 +103,64 @@ qui fut la première de toutes.
 This is a very nice thesis about TLA~\cite{tlabook}.
 
 \paragraph*{Motivations}
-
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
+why this extension
 
 \paragraph*{Outline}
 
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
-tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr tttttt rrrrr
 
-\chapter{Translation}
+\chapter{Background info}
 %%============================
 
-\section{This is a section}
+a brief overview of ModelChecking, TLA and Pluscal possibly with an example to show why it's used or its advantages.
+maybe mention real life applications like amazon's AWS.
+
+
+\section{TLA+}
 %%============================
 
-aaaa
+\cite{tlabook}.
 
-\subsection{This is a subsection}
+\section{PlusCal algorithm language}
 %%============================
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+ 
 
-\subsection{This is another subsection}
+\chapter{Related work}
 %%============================
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb
-ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa
-bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
-aaaaa bbbbb ccccc aaaaa bbbbb ccccc aaaaa bbbbb ccccc
+position of our work compared with other work
 
-\section{This is another section}
-%%============================
+\section{PGO}
 
+\subsection{Modular PlusCal}
+
+\chapter{Distributed PlusCal}
+
+\section{Components}
+
+\subsection{Nodes}
+
+an example to show the nodes/threads.
+\subsection{Channels}
+\paragraph{Unordered channels}
+example with it's translation
+\paragraph{FIFO channels}
+example with it's translation
+\paragraph{Supported channel functions}
+expected syntax and limitations
+\section{Examples}
+our examples with their translations
+
+\chapter{Code Documentation}
+
+\section{general structure of the toolbox and it's components}
+try to describe the general flow
+
+\section{parsing and expansion process}
+
+\section{some software-based diagram}
+
+or maybe an AST description graph
+
+\chapter{Conclusion and future work}
 \bibliographystyle{alpha}
 \bibliography{report}
 
