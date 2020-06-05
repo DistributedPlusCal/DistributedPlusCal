@@ -535,7 +535,6 @@ public class AST
 			sass.col  = col;
 			sass.lhs.var = channel.var;
 
-			// heba better to call normalize here
 			TLAExpr expr = new TLAExpr();
 			
 			if(callExp.tokens != null) {
@@ -1079,7 +1078,6 @@ public class AST
 			
 			expr.addLine();
 			expr.addToken(DistPcalTranslate.BuiltInToken(" Append(@, "));
-			//HEBA
 
 			for(int i = 0; i < msg.tokens.size(); i++) {
 				
