@@ -651,13 +651,6 @@ public class DistPcalSymTab {
 					+ ", column " + ast.col;
 	}
 	
-//	private void ExtractChannelVarDecl(AST.ChannelVarDecl ast, String context) {
-//		int vtype = (context == "") ? GLOBAL : NODE;
-//		if (!InsertSym(vtype, ast.var, context, "node", ast.line, ast.col))
-//			errorReport = errorReport + "\n" + vtypeName[vtype] + " " + ast.var + " redefined at line " + ast.line
-//					+ ", column " + ast.col;
-//	}
-	
 	private void ExtractPVarDecl(AST.PVarDecl ast, String context) {
 		if (!InsertSym(PROCEDUREVAR, ast.var, context, "procedure", ast.line, ast.col))
 			errorReport = errorReport + "\nProcedure variable " + ast.var + " redefined at line " + ast.line

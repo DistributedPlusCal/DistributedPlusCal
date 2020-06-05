@@ -3013,6 +3013,8 @@ public class ParseDistAlgorithm {
 		while (i < stmtseq.size()) {
 			AST stmt = (AST) stmtseq.elementAt(i);
 
+			System.out.println("stmt " + stmt.getClass());
+
 			if (stmt.getClass().equals(AST.LabelIfObj.getClass())) {
 				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, globalDecls);
 				ExpandSendAndReceiveInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, globalDecls);

@@ -50,8 +50,6 @@ public class TLAToken
        * code.  Added 6 Dec 2011 for TLA to PlusCal mapping.               *
        ********************************************************************/    
 
-    public Integer threadIndex;
-    
        public static final int BUILTIN = 1 ;
          /******************************************************************
          * A built-in token.                                               *

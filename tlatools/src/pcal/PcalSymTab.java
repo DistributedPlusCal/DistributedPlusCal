@@ -68,6 +68,7 @@ package pcal;
 
 import java.util.Vector;
 
+import pcal.AST.Thread;
 import pcal.exception.PcalSymTabException;
 
 public class PcalSymTab {
@@ -77,10 +78,11 @@ public class PcalSymTab {
     public Vector disambiguateReport; // Vector of String (comments)
     public String errorReport;        // Accumulated errors
     public String iPC;                // initial pc value for unip algorithm
+    public Vector nodes; // Vector of NodeEntry
 
     // Symbol types. The order  determines priority in terms of constructing a
     // disambiguous name.
-    public static final int num_vtypes = 7;
+    public static final int num_vtypes = 8;
     public static final int GLOBAL = 0;   
     public static final int LABEL = 1;
     public static final int PROCEDURE = 2;
@@ -88,16 +90,19 @@ public class PcalSymTab {
     public static final int PROCESSVAR = 4;
     public static final int PROCEDUREVAR = 5;
     public static final int PARAMETER = 6;
+    
+    //for distributed pcal
+    public static final int NODE = 7;
 
     // The following two arrays need to be ordered wrt the constants above.
 
     // Prepend this type-specific string to name before disambiguation.
-    private static String typePrefix[ ] = { "", "", "", "", "", "", "" };
+    private static String typePrefix[ ] = { "", "", "", "", "", "", "" , "" };
 
     // For toString method.
     public static String vtypeName[ ] = {
         "Global variable", "Label", "Procedure", "Process", 
-        "Process variable", "Procedure variable", "Parameter"};
+        "Process variable", "Procedure variable", "Parameter", "Node"};
 
     /* NESTED CLASS: Symbol table entries */
     public class SymTabEntry {
@@ -203,6 +208,10 @@ public class PcalSymTab {
         procs = new Vector();
         processes = new Vector();
         errorReport = "";
+        
+        //For distributed pluscal 
+        nodes = new Vector();
+        
 // Following line removed by LL on 3 Feb 2006
 //        InsertSym(LABEL, "Done", "", "", 0, 0);
 
@@ -456,6 +465,10 @@ public class PcalSymTab {
             ExtractUniprocess((AST.Uniprocess) ast, context);
         else if (ast.getClass().equals(AST.MultiprocessObj.getClass()))
             ExtractMultiprocess((AST.Multiprocess) ast, context);
+        
+        //For distributed pluscal
+        else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
+			ExtractMultiNodes((AST.MultiNodes) ast, context);
         else PcalDebug.ReportBug("Unexpected AST type.");
     }
 
@@ -723,5 +736,99 @@ public class PcalSymTab {
        { throw new PcalSymTabException(errors) ; } ;
      return ;
     }
+
+   //for distributed pluscal
+   public class NodeEntry {
+		public String name; // name
+		public boolean isEq; // true means "=", false means "\\in"
+		public TLAExpr id; // set of identifiers or identifier
+		public Vector decls; // of ParDecl
+		public StringBuffer iPC; // Initial pc of this process
+		public AST.Node ast; // AST of the procedure
+		public Vector<Thread> threads = null;
+
+		public NodeEntry(AST.Node n) {
+			this.name = n.name;
+			this.isEq = n.isEq;
+			this.id = n.id;
+			this.decls = n.decls;
+			this.ast = n;
+			this.threads = n.threads;
+			if (n.body.size() == 0)
+				this.iPC = null;
+			else {
+				AST.LabeledStmt ls = (AST.LabeledStmt) n.body.elementAt(0);
+				
+				this.iPC = new StringBuffer();
+				this.iPC.append(ls.label);
+				
+				for(AST.Thread t : n.threads) {
+					ls = (AST.LabeledStmt) t.body.elementAt(0);
+					//assuming the main block cannot be empty of labels ?
+					this.iPC.append(", " + ls.label);
+				}
+			}
+		}
+	}
+   
+   /***************************************************
+	 * Insert node table entry. * TRUE if inserted; false if was already in table
+	 * *
+	 ***************************************************/
+	public boolean InsertNode(AST.Node n) {
+		int i = FindNodes(n.name);
+		if (i < nodes.size())
+			return false;
+		NodeEntry ne = new NodeEntry(n);
+		nodes.addElement(ne);
+		return true;
+	}
+	
+	/*********************************************************
+	 * Returns index of entry in process table. If it isn't * in the table, then
+	 * returns procs.size(). *
+	 *********************************************************/
+	public int FindNodes(String id) {
+		int i = 0;
+		while (i < nodes.size()) {
+			NodeEntry ne = (NodeEntry) nodes.elementAt(i);
+			if (ne.name.equals(id))
+				return i;
+			i = i + 1;
+		}
+		return i;
+	}
+   /**
+    * 
+    * @param ast
+    * @param context
+    */
+   private void ExtractMultiNodes(AST.MultiNodes ast, String context) {
+
+		if (ast.prcds.size() > 0)
+			InsertSym(GLOBAL, "stack", "", "", 0, 0);
+		for (int i = 0; i < ast.decls.size(); i++)
+				ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), "");
+		for (int i = 0; i < ast.prcds.size(); i++)
+			ExtractProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
+		for (int i = 0; i < ast.nodes.size(); i++)
+			ExtractNode((AST.Node) ast.nodes.elementAt(i), "");
+	}
+
+   /**
+    * 
+    * @param ast
+    * @param context
+    */
+	private void ExtractNode(AST.Node ast, String context) {
+		boolean b;
+		if (!InsertNode(ast))
+			errorReport = errorReport + "\nnODE " + ast.name + " redefined at line " + ast.line + ", column " + ast.col;
+		b = InsertSym(NODE, ast.name, context, "process", ast.line, ast.col);
+		for (int i = 0; i < ast.decls.size(); i++)
+			ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
+		for (int i = 0; i < ast.body.size(); i++)
+			ExtractLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name, "NODE");
+	}
 
 }

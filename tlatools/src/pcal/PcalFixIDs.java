@@ -77,7 +77,9 @@ public class PcalFixIDs {
             FixCallGoto((AST.CallGoto) ast, context);
         else if (ast.getClass().equals(AST.GotoObj.getClass()))
             FixGoto((AST.Goto) ast, context);
-
+        //For Distributed pluscal
+        else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
+            FixMultiNodes((AST.MultiNodes) ast, context);
         /*******************************************************************
         * Handling of Either and LabelEither added by LL on 24 Jan 2006.   *
         *******************************************************************/
@@ -491,7 +493,152 @@ public class PcalFixIDs {
             if (var.equals((String) v.elementAt(i))) return true;
         return false;
     }
+    
+    
+    //For Distributed pluscal
+    /**
+     * 
+     * @param ast
+     * @param context
+     * @throws PcalFixIDException
+     */
+    private static void FixMultiNodes (AST.MultiNodes ast, String context) throws PcalFixIDException {
+        for (int i = 0; i < ast.decls.size(); i++)
+            FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), "");
+        
+        // procedureNames and proceduresCalled represents the mapping
+        // from procedure Names to the set of names of procedures that
+        // they call.
+        Vector  procedureNames = new Vector();   // Vector of Strings
+        Vector  proceduresCalled = new Vector(); // Vector of Vectors of Strings
+        for (int i = 0; i < ast.prcds.size(); i++) {
+            AST.Procedure prcd = (AST.Procedure) ast.prcds.elementAt(i);
+            FixProcedure(prcd, "");
+            procedureNames.addElement(prcd.name);
+            proceduresCalled.addElement(prcd.proceduresCalled);
+        }
+        
+        int n = procedureNames.size();
+        boolean path[][] = new boolean[n][] ;
+        for (int i=0; i < n; i++) {
+            path[i] = new boolean[n];
+            // following commented out 2 Apr 2013
+            for (int j = 0; j < n; j++) {
+                String nm = (String) procedureNames.elementAt(j);
+                path[i][j] = (-1 != nameToNum(nm, (Vector) proceduresCalled.elementAt(i)));
+            }
+        }
+        
+        // Here is the main loop of the Floyd-Warshall algorithm.
+        for (int k = 0 ; k < n; k++) {
+            for (int i = 0; i < n ; i++) {
+                for (int j = 0; j < n; j++) {
+                    path[i][j] = path[i][j] || (path[i][k] && path[k][j]); 
+                }
+            }
+        }
+        
+        // We now set the procedures' proceduresCalled fields to the
+        // set of procedures called directly or indirectly.  This is
+        // unnecessary, and should be commented out.
+        for (int i = 0; i < ast.prcds.size(); i++) {
+            AST.Procedure prcd = (AST.Procedure) ast.prcds.elementAt(i);
+            Vector pCalled = new Vector();
+            for (int j = 0; j < n; j++) {
+                if (path[i][j]) {
+                    pCalled.addElement(procedureNames.elementAt(j));
+                }
+            }
+            prcd.proceduresCalled = pCalled;
+        }
+        
+        for (int i = 0; i < ast.nodes.size(); i++) {
+            AST.Node node = (AST.Node) ast.nodes.elementAt(i);
+            FixNode(node, "");
+            
+            // We now fix node.proceduresCalled by, for each procedure p in
+            // it, we add all the procedures that p calls.
+            Vector pCalled = node.proceduresCalled;
+            for (int j = 0; j < pCalled.size(); j++) {
+                // Set idx to the value such that pCalled.elementAt(j)
+                // is the name of the idx-th element in procedureNames.
+                String pName = (String) pCalled.elementAt(j);
+                int pNum = nameToNum(pName, procedureNames);
+                if (pNum == -1) {
+                    PcalDebug.reportError(
+                     "Could not find procedure name `" + pName +"'"
+                     // + "' in method FixMultiprocess"
+                     ) ;
+                    return ; // Added 30 Aug 2015 
 
+               }
+                // For each k such that path[pNum][k] is true
+                // (meaning that procedure number pNum calls
+                // procedure number k), add 
+                // procedureNames.elementAt(k) to proc.proceduresCalled
+                // if it is not already in it.
+                for (int k = 0; k < n; k++) {
+                  if (path[pNum][k]) {
+                      String callee = (String) procedureNames.elementAt(k);
+                      if (!InVector(callee, node.proceduresCalled)) {
+                          node.proceduresCalled.addElement(callee); 
+                      }
+                  }
+                }
+            }
+        }
+    }
+    
+    /**
+     * 
+     * @param ast
+     * @param context
+     * @throws PcalFixIDException
+     */
+    private static void FixNode(AST.Node ast, String context) throws PcalFixIDException {
+        for (int i = 0; i < ast.decls.size(); i++)
+            FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
+        for (int i = 0; i < ast.body.size(); i++)
+            FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
+
+        	for (AST.Thread thread : ast.threads) {
+        		for (int i = 0; i < thread.body.size(); i++) {
+        			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+        		}
+			}
+        
+        PcalSymTab.NodeEntry p = 
+            (PcalSymTab.NodeEntry)
+            st.nodes.elementAt(st.FindNodes(ast.name));
+        for (int i = 0; i < ast.plusLabels.size(); i++) {
+        	String lbl = (String) ast.plusLabels.elementAt(i);
+        	String newLbl = st.UseThis(PcalSymTab.LABEL, lbl, ast.name);
+        	ast.plusLabels.setElementAt(newLbl, i) ;
+        }
+       for (int i = 0; i < ast.minusLabels.size(); i++) {
+         String lbl = (String) ast.minusLabels.elementAt(i);
+         String newLbl = st.UseThis(PcalSymTab.LABEL, lbl, ast.name);
+         ast.minusLabels.setElementAt(newLbl, i) ;
+         }
+       
+       String temp = st.UseThis(PcalSymTab.LABEL, p.iPC.toString(), ast.name);
+
+       String[] stringArray = temp.split(",");
+       StringBuffer sb = new StringBuffer();
+       
+       for(int i = 0; i < stringArray.length; i++) {
+    	   String s = stringArray[i];
+    	   
+    	   if(i == 0) {
+    		   sb.append(s);
+    	   } else {
+    		   sb.append("," + s);
+    	   }
+       }
+        p.iPC = sb;
+        ast.name = st.UseThis(PcalSymTab.NODE, ast.name, "");
+        p.name = ast.name;
+   }
 }
 
 /***************************  the file FloydWarshall *************************************
