@@ -341,6 +341,7 @@ class trans {
          * by the previous run  
          */
         PcalParams.resetParams();
+        
         /*********************************************************************
         * Get and process arguments.                                         
         *********************************************************************/
@@ -399,7 +400,7 @@ class trans {
                     + PcalParams.TLAInputFile + ".old");
             return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
         }
-        ;
+        
         // }
 
         /*********************************************************************
@@ -615,9 +616,12 @@ class trans {
             {
                 ParseAlgorithm.FindToken("PlusCal", untabInputVec, searchLoc, "");
                 String line = ParseAlgorithm.GotoNextNonSpace(untabInputVec, searchLoc);
+
                 String restOfLine = line.substring(searchLoc.two);
+
                 if (restOfLine.startsWith("options"))
                 {
+
                     // The first string after "PlusCal" not starting with a
                     // space character is "options"
                     if (ParseAlgorithm.NextNonIdChar(restOfLine, 0) == 7)
@@ -1578,7 +1582,7 @@ class trans {
                 System.setProperty("line.separator", "\n");
             } else if (option.equals("-termination") || (inFile && option.equals("termination")))
             {
-                PcalParams.CheckTermination = true;
+                PcalParams.CheckTermination = true;                
             } else if (option.equals("-nocfg"))
             {
                 PcalParams.Nocfg = true;
@@ -1649,7 +1653,13 @@ class trans {
                     return CommandLineError("Label root must follow `-labelRoot' option");
                 }
                 PcalParams.LabelRoot = args[nextArg];
+                
+              //for distributed pluscal
+            } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
+            	PcalParams.distpcalFlag = true;
+                PcalDebug.reportInfo("Distributed pluscal option enabled");
             }
+            
             // else if (option.equals("-readOnly") || (pcal && option.equals("readOnly"))) {
             // PcalParams.readOnly = true;
             // }
@@ -1699,7 +1709,7 @@ class trans {
                     return CommandLineError("Unknown or illegal option in options statement: " + option);
                 }
             }
-            ;
+
             nextArg = nextArg + 1;
         } // END while (nextArg < maxArg)
 

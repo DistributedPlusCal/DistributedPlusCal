@@ -862,7 +862,7 @@ public class TLAExpr
     	   * should be unchanged.
     	   */
         TLAToken tok = this.tokenAt(coord) ;
-        Region tokSource= tok.source;
+        Region tokSource = tok.source;
         if (this.isOneToken())
           { TLAExpr cloned = expr.cloneAndNormalize() ;
             if (tokSource != null) {
@@ -1324,6 +1324,40 @@ public class TLAExpr
         PcalDebug.printIntArray(anchorTokCol, name + ".anchorTokCol") ;
       }
 
+    //for distributed pluscal
+    /**
+     * 
+     * @return
+     */
+    public String toPlainString() {
+    	String result = "" ;
+    	int i = 0;
+    	while (i < tokens.size() ){
+    		if (i > 0){
+    			result = result + "\n"; 
+    		}
+    		Vector curLine = (Vector) tokens.elementAt(i);
+    		int j = 0 ;
+    		while (j < curLine.size()){
+    			TLAToken tok = (TLAToken) curLine.elementAt(j) ;
+
+    			if (tok.type == TLAToken.STRING){
+    				result = result + "\"\\\"\", \"" + tok.string 
+    						+ "\", \"\\\"\"" ;
+    			}
+    			else if (tok.string.charAt(0) == '\\'){
+    				result = result + "\\" + tok.string;
+    			} else if (tok.string.equals("/\\")){
+    				result = result + "/\\\\";
+    			} else {
+    				result = result + tok.string;
+    			}
+    			j = j + 1;
+    		}
+    		i = i + 1;
+    	}
+    	return result;
+    }
 /***************************************************************************
 * Appending Vectors:                                                       *
 *                                                                          *

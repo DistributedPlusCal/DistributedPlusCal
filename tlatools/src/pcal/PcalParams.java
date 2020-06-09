@@ -54,7 +54,7 @@ public final class PcalParams
         PcalTLAGen.wrapColumn = 78;
         PcalTLAGen.ssWrapColumn = 45;
         tlaPcalMapping = null ;
-        
+        distpcalFlag = false;
     }
     
     
@@ -144,6 +144,12 @@ public final class PcalParams
      * The following parameter is set true if --fair algorithm is used.   *
      *********************************************************************/
     public static boolean FairAlgorithm = false ; 
+    
+    
+    public static boolean distpcalFlag = false ;
+    /*********************************************************************
+    * True iff the -distpcal option is chosen.                              *
+    *********************************************************************/
     
   /*************************************************************************
   * Parameters related to language definition.                             *
@@ -324,6 +330,35 @@ public final class PcalParams
       }
       inputVersionNumber = vnum;
       return true ;
+  }
+  
+  //for distributed pluscal
+  /*************************************************************************
+   * Parameters related to language definition.                             *
+   *************************************************************************/
+  public static TLAExpr DefaultChannelInit(){
+	  Vector<TLAToken> line = new Vector<TLAToken>() ;
+	  line.addElement(new TLAToken("{", 0, 0)) ;
+	  line.addElement(new TLAToken("}", 0, 0)) ;
+	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+	  vec.addElement(line) ;
+	  TLAExpr exp = new TLAExpr(vec) ;
+	  exp.normalize() ;
+	  return exp ;
+  }
+
+     /*************************************************************************
+      * Parameters related to language definition.                             *
+      *************************************************************************/
+  public static TLAExpr DefaultFifoInit(){
+	  Vector<TLAToken> line = new Vector<TLAToken>() ;
+	  line.addElement(new TLAToken("<<", 0, 0)) ;
+	  line.addElement(new TLAToken(">>", 0, 0)) ;
+	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+	  vec.addElement(line) ;
+	  TLAExpr exp = new TLAExpr(vec) ;
+	  exp.normalize() ;
+	  return exp ;
   }
  }  
 

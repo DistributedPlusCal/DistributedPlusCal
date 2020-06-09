@@ -1,10 +1,6 @@
 package distpcal;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Vector;
-
-import org.openjdk.jmh.annotations.Threads;
 
 import distpcal.AST.Channel;
 import distpcal.AST.MultiNodes;
@@ -12,8 +8,6 @@ import distpcal.AST.Node;
 import distpcal.AST.VarDecl;
 import distpcal.exception.DistPcalTLAGenException;
 import distpcal.exception.TLAExprException;
-import distpcal.AST;
-import distpcal.ParseDistAlgorithm;
 import util.TLAConstants;
 
 /****************************************************************************
@@ -528,6 +522,8 @@ public class DistPcalTLAGen {
 		} else
 			nextStep.addElement(node.name);
 
+		System.out.println("nextStepSelf : " + nextStepSelf);
+		System.out.println("nextStep : " + nextStep);
 		//TODO
 		for (int i = 0; i < node.body.size(); i++) {
 			AST.LabeledStmt stmt = (AST.LabeledStmt) node.body.elementAt(i);
@@ -1104,10 +1100,10 @@ public class DistPcalTLAGen {
 //						sb.append(sass.lhs.var);
 						sb.append(" EXCEPT ");
 						sb.append("![");
-						if(context.equals("node")) {
-							//then this is the main of a node
-							sb.append("1");
-						}else {
+//						if(context.equals("node")) {
+//							then this is the main of a node
+//							sb.append("1");
+//						}else {
 							
 							if(sass.lhs.threadIndex == null) {
 								sb.append(1);
@@ -1116,7 +1112,7 @@ public class DistPcalTLAGen {
 //								//case of PC
 								sb.append((sass.lhs.threadIndex + 1));
 							}
-						}
+//						}
 						
 						addOneTokenToTLA(sb.toString());
 						addOneTokenToTLA("]");
@@ -2581,7 +2577,6 @@ public class DistPcalTLAGen {
 		/* stack initial value */
 		if (procs != null && procs.size() > 0) {
 			if (mp)
-				//MAYBE MODIY HERE
 				is.append("/\\ stack = [self \\in NodeSet |-> << >>]");
 			else
 				is.append("/\\ stack = << >>");
