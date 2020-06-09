@@ -138,7 +138,7 @@ position of our work compared with other work
 
 Writing a distributed algorithm is not an easy task which is why most programming languages provide supporting primitives that make this process a bit easier for the programmer, in Distributed PlusCal we as well introduced some of these supporting primitives such as threads and communication channels.
 
-Both PlusCal and Distributed PlusCal translators expect a file with a '.tla' extension, an algorithm that starts with '--algorithm', and the decleration of variables and processes, so there are not many differences in the structure of the file itself, we have added an option to the options in PlusCal with the name 'distpcal', the presence of this option is considered the enabler of the Distributed PlusCal translator and once it's found in the options statement then our translator will be the one doing the parsing regardless of the actual content of the PlusCal statements present in the file.
+Both PlusCal and Distributed PlusCal translators expect a file with a '.tla' extension, an algorithm that starts with '--algorithm', and the decleration of variables and processes, so there are not many differences in the structure of the file itself, we have added an option to the options in PlusCal with the name 'distpcal', the presence of this option is considered to be the enabler of the Distributed PlusCal translator and once it's found in the options statement then our translator will be the one doing the parsing regardless of the actual content of the PlusCal statements present in the file.
 
 \section{Threads}
 
@@ -152,7 +152,7 @@ The body of a thread maintains all the same properties and syntax as the body of
 
 
 //to be rephrased \hfill\\
-Figure \ref{fig:process} shows the general structure of a Distributed PlusCal process written in C-Syntax, the differences between this structure and the structure of a process in PlusCal are the ability to define multiple threads and the fact that a 'process' can also hold the name 'node'.
+Figure \ref{fig:process} shows the general structure of a Distributed PlusCal process written in C-Syntax, the main differences between this structure and the structure of a process in PlusCal are the ability to define multiple threads and the fact that a 'process' can also hold the name 'node'.
 
 
 \begin{figure}[h!]
@@ -170,7 +170,7 @@ it's important to note that the threads are optional, meaning we can still parse
 
 Defining threads for processes had some effects on the translation to TLA+, because when you declare threads you are actually partitioning the process into multiple sub-parts, so later on whenever we are refering to a process we need to know not only which process it is but also which sub-thread.
 
-Figure \ref{fig:processtla} shows a part of the translation of the Two Phase Commit example.//to be changed to a simpler example 
+Figure \ref{fig:processtla} shows a part of the translation of the Two Phase Commit example.//to be changed to a simpler example then also show Next and Termination
 
 
 \begin{figure}[h!]
