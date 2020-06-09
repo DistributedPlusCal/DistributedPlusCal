@@ -1654,7 +1654,7 @@ class trans {
                 }
                 PcalParams.LabelRoot = args[nextArg];
                 
-              //for distributed pluscal
+            //For distributed pluscal
             } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
             	PcalParams.distpcalFlag = true;
                 PcalDebug.reportInfo("Distributed pluscal option enabled");

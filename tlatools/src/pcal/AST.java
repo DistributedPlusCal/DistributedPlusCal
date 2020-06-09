@@ -81,7 +81,7 @@ public class AST
     public static AST.Assign       AssignObj       ;
     public static AST.SingleAssign SingleAssignObj ;
     
-    //for parsing distributed pluscal
+    //For Distributed pluscal	
     public static AST.Node    	   NodeObj	       ;
     public static AST.MultiNodes MultiNodesObj     ;
       /*********************************************************************
@@ -114,7 +114,7 @@ public class AST
     public static AST.Macro        MacroObj        ;
     public static AST.MacroCall    MacroCallObj    ;
 
-    //for parsing distributed pluscal
+    //For Distributed pluscal	
     public static AST.ChannelSenderCall ChannelSenderObj;
     public static AST.ChannelReceiverCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearCall;
@@ -236,7 +236,7 @@ public class AST
         MacroObj        = new AST.Macro() ;
         MacroCallObj    = new AST.MacroCall() ;
         
-        //for parsing distributed pluscal
+        //For Distributed pluscal	
         MultiNodesObj   = new AST.MultiNodes();
         NodeObj         = new AST.Node();
         ChannelSenderObj =  new AST.ChannelSenderCall();
@@ -1073,6 +1073,8 @@ public class AST
    
    
    //classes for Distributed pluscal
+   
+   //For Distributed pluscal	
    public static class MultiNodes extends AST{
    	public String  name   = "" ;
        public Vector  decls  = null ; // of VarDecl 
@@ -1102,6 +1104,7 @@ public class AST
        }
      }
    
+   //For Distributed pluscal	
    public static abstract class Channel extends VarDecl{
 
    	public Channel() {};

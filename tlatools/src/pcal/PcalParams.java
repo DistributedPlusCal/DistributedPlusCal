@@ -332,7 +332,7 @@ public final class PcalParams
       return true ;
   }
   
-  //for distributed pluscal
+  //For Distributed pluscal	
   /*************************************************************************
    * Parameters related to language definition.                             *
    *************************************************************************/
@@ -347,9 +347,10 @@ public final class PcalParams
 	  return exp ;
   }
 
-     /*************************************************************************
-      * Parameters related to language definition.                             *
-      *************************************************************************/
+  //For Distributed pluscal	
+  /*************************************************************************
+   * Parameters related to language definition.                             *
+   *************************************************************************/
   public static TLAExpr DefaultFifoInit(){
 	  Vector<TLAToken> line = new Vector<TLAToken>() ;
 	  line.addElement(new TLAToken("<<", 0, 0)) ;
