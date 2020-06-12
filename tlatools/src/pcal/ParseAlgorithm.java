@@ -4700,6 +4700,7 @@ public class ParseAlgorithm
 				result.decls = new Vector();
 			}
 			result.decls.addAll(GetVarDecls());
+			//For Distributed pluscal	
 			result.decls.addAll(GetChannelDecls());
 		}
 		
@@ -4751,6 +4752,7 @@ public class ParseAlgorithm
 		return result;
 	}
 
+   //For Distributed pluscal	
    public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
@@ -4783,7 +4785,8 @@ public class ParseAlgorithm
 		}
 		return result;
 	}
-
+   
+   	//For Distributed pluscal	
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
 		AST.Channel pv;
