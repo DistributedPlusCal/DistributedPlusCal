@@ -2251,7 +2251,7 @@ public class AST
 	   { return 
 			   Indent(lineCol()) + 
 			   "[type |-> \"ChannelClearCall\"," + NewLine() +
-			   Indent(" channel     |-> ") + channel.var + "]" +
+			   Indent(" channel     |-> ") + channelName + "]" +
 			   EndIndent() +
 			   EndIndent() ;
 	   }
