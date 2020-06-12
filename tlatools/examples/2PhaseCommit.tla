@@ -16,7 +16,6 @@ State == {"unknown", "accept", "refuse", "commit", "abort"}
      
   fair process (a \in Agent)
   variable aState = "unknown"; {
-
 a1: if (aState = "unknown") {
         with(st \in {"accept", "refuse"}) {
           aState := st;
@@ -33,7 +32,6 @@ a1: if (aState = "unknown") {
     receive(agt[self], aState); 
 	clear(agt);
   }
-
   fair process (c = Coord) 
   variables cState = "unknown",
             commits = {}, msg = {};
@@ -47,7 +45,6 @@ a1: if (aState = "unknown") {
   } {
         
         while (cState \notin {"abort", "commit"}) {
-
         receive(coord, msg);
             if (msg.type = "refuse") {
                 cState := "abort";
