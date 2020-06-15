@@ -155,12 +155,15 @@ The models are above the code level, they can be considered a part of the design
 
 The importance of modeling systems specially concurrent and distributed systems is to make sure everything is working properly, working properly differs based on the system mentioned but it always means satisfying certain properties on individual executions, let's assume that by working properly we mean that the system should perform a certain task and generate a certain output, we can check that on some executions however, by using TLA+ we can check these properties on every possible execution.
  
+\hfill\\
 TLA+ revolves around thinking abstractly about the algorithm that we want to model, it uses state machines to describe the systems, TLA+ achieves this by considering the system to be a sequence of steps, where is a step is a change from one state to the next. TLA+ describes a state as an assignment of values to variables.
 
 TLA+ uses state machines to achieve abstraction, where a state machine is described by defining the variables, the possible initialization values for the variables, the relation between their values and the current state as well as their possible values in the following state, where a state is the assignment of values to variables.
 
+\hfill\\
 The listing 2.1 is the Semaphores example in TLA+, Semaphores are integer variables that are used to solve the critical section problem.
 
+\hfill\\
 Some of the keywords used in the example are \textit{EXTENDS} at line 5 which is used to import a TLA+ standard library,  \textit{VARIABLES} at line 12 defines our variables as they must be defined before they are used, \textit{CONSTANT} is used to define constants that are substituted for during modeling, constants maintain the same value through every execution.
 \hfill\\
 
@@ -168,12 +171,14 @@ Some of the keywords used in the example are \textit{EXTENDS} at line 5 which is
 
 \textit{start, enter, cs, exit} are our actions or steps, they are the states where we assign values to our variables, they are represented as a TLA+ conjunction because a state is a formula rather than a sequence of commands.
 
+\hfill\\
 The variable \textit{pc} is defined and used as a program control variable to represent the control state, its main job is to handle the navigation from one action to the other, for example at line 35 it is used to check if the the \textit{pc} variable value is "cs" and that the next value for the \textit{pc} variable is "exit". Specifying the next value to be given to a variable is done by using the primed version of a variable, for example the next value for the variable \textit{pc} is \textit{pc'}.
 
 \hfill\\
-The \textit{EXCEPT} construct used in the next state value of a variable is provided by TLA+, since \textit{pc} for example is a function whose domain consists of the elements of \textit{ProcSet} and range is initially "start" for all, then \textit{pc'= [pc EXCEPT ![self] = "exit"]} is a way of saying that we want to modify the function pc where domain value is \textit{[self]} to take the value "exit" and leave the values for the other domain entries unchanged, which can also be written as 
-[x $\in$ DOMAIN pc $\longmapsto$ if x = self then "exit" else pc[x]].
+The \textit{EXCEPT} construct used in the next state value of a variable is provided by TLA+, since \textit{pc} for example is a function whose domain consists of the elements of \textit{ProcSet} and range is initially "start" for all, then \textit{pc'= [pc EXCEPT ![self] = "exit"]} is a way of saying that we want to modify the function pc where the domain value is \textit{[self]} to take the range value "exit" and leave the values for the other domain entries unchanged, which can also be written as
 
+[x $\in$ DOMAIN pc $\longmapsto$ if x = self then "exit" else pc[x]].
+\hfill\\
 
 \textit{Spec} is a conjunction of the initial predicate \textit{Init} and the next-state relation \textit{Next}. The \textit{[][Next]\_{vars}} at line 50 means that the transition is described by either \textit{Next} or the values of \textit{sem} and \textit{pc} are unchanged which is known as a stuttering step.
 
@@ -278,7 +283,7 @@ process(p \in 1..N)
 \hfill\\
 The overall translation strategy is explained here \cite{pcalAlgo}.
 
-// maybe mention procedures and macros briefly
+// maybe mention procedures and macros
  
 
 \chapter{Related work}
