@@ -9,10 +9,13 @@
 \usepackage{capt-of}
 \usepackage{lipsum}% just to generate text for the example
 \usepackage{placeins}
+\usepackage[toc,page]{appendix}
+\usepackage{multirow}
 
 \usepackage{listings}
 
 \usepackage{color}
+\usepackage[T1]{fontenc}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -131,154 +134,272 @@ qui fut la première de toutes.
 
 \chapter{Introduction}
 %%============================
-This is a very nice thesis about TLA~\cite{tlabook}.
 
-\paragraph*{Motivations}
-why this extension
+- Model checking is a verification method that is automatic and model-based(system is represented by a model, a specification is represented as a formula and we check whether the model satisfies the formula ==> if not we have counter models), it is intended to be used for concurrent systems.
 
-\paragraph*{Outline}
+- distributed system bugs are difficult to find by testing, they tend to be non-reproducible or not covered by test-cases.
 
+- TLA+
+- 
 
 \chapter{Background info}
 %%============================
 
-a brief overview of ModelChecking, TLA and Pluscal possibly with an example to show why it's used or its advantages.
-maybe mention real life applications like amazon's AWS.
-
-
+This chapter is an overview of TLA+ and PlusCal.
 \section{TLA+}
 %%============================
 
-\cite{tlabook}.
+TLA+ is a formal specification language, that is designed to model digital systems, and verify them using tools like the TLC model checker.
+
+The models are above the code level, they can be considered a part of the design phase, they are less concerned with the implementation details and are used to describe the possible executions of a system abstractly.
+
+The importance of modeling systems specially concurrent and distributed systems is to make sure everything is working properly, working properly differs based on the system mentioned but it always means satisfying certain properties on individual executions, let's assume that by working properly we mean that the system should perform a certain task and generate a certain output, we can check that on some executions however, by using TLA+ we can check these properties on every possible execution.
+ 
+TLA+ revolves around thinking abstractly about the algorithm that we want to model, it uses state machines to describe the systems, TLA+ achieves this by considering the system to be a sequence of steps, where is a step is a change from one state to the next. TLA+ describes a state as an assignment of values to variables.
+
+TLA+ uses state machines to achieve abstraction, where a state machine is described by defining the variables, the possible initialization values for the variables, the relation between their values and the current state as well as their possible values in the following state, where a state is the assignment of values to variables.
+
+The listing 2.1 is the Semaphores example in TLA+, Semaphores are integer variables that are used to solve the critical section problem.
+
+Some of the keywords used in the example are \textit{EXTENDS} at line 5 which is used to import a TLA+ standard library,  \textit{VARIABLES} at line 12 defines our variables as they must be defined before they are used, \textit{CONSTANT} is used to define constants that are substituted for during modeling, constants maintain the same value through every execution.
+\hfill\\
+
+\textit{ProcSet} at line 16 is a set with the number of processes. \textit{Init} at line 19 initializes the defined variables.
+
+\textit{start, enter, cs, exit} are our actions or steps, they are the states where we assign values to our variables, they are represented as a TLA+ conjunction because a state is a formula rather than a sequence of commands.
+
+The variable \textit{pc} is defined and used as a program control variable to represent the control state, its main job is to handle the navigation from one action to the other, for example at line 35 it is used to check if the the \textit{pc} variable value is "cs" and that the next value for the \textit{pc} variable is "exit". Specifying the next value to be given to a variable is done by using the primed version of a variable, for example the next value for the variable \textit{pc} is \textit{pc'}.
+
+\hfill\\
+The \textit{EXCEPT} construct used in the next state value of a variable is provided by TLA+, since \textit{pc} for example is a function whose domain consists of the elements of \textit{ProcSet} and range is initially "start" for all, then \textit{pc'= [pc EXCEPT ![self] = "exit"]} is a way of saying that we want to modify the function pc where domain value is \textit{[self]} to take the value "exit" and leave the values for the other domain entries unchanged, which can also be written as 
+[x $\in$ DOMAIN pc $\longmapsto$ if x = self then "exit" else pc[x]].
+
+
+\textit{Spec} is a conjunction of the initial predicate \textit{Init} and the next-state relation \textit{Next}. The \textit{[][Next]\_{vars}} at line 50 means that the transition is described by either \textit{Next} or the values of \textit{sem} and \textit{pc} are unchanged which is known as a stuttering step.
+
+\begin{lstlisting}[caption = SemaphoreMutex in TLA+, frame = tlrb, firstnumber = 1]
+
+---------------------------- MODULE SemaphoreMutex ----------------------------
+
+EXTENDS Naturals \* Import operators
+
+CONSTANT N \* Value of N is the same through every behaviour
+
+ASSUME N \in Nat
+
+\* BEGIN TRANSLATION
+VARIABLES sem, pc \* Define the varibales
+
+vars == << sem, pc >> \* Sequence of variables
+
+ProcSet == (1..N) \* Number of Processes
+
+\* Possible Initialization for variables
+Init == (* Global variables *) 
+        /\ sem = 1
+        /\ pc = [self \in ProcSet |-> "start"]
+
+\* algorithm starting point, set next step to "enter"
+start(self) == /\ pc[self] = "start"
+            /\ pc' = [pc EXCEPT ![self] = "enter"]
+            /\ /\ UNCHANGED sem \* sem' = sem
+
+\* in this step prepare to enter cs, next value of sem will be sem - 1
+enter(self) == /\ pc[self] = "enter"
+               /\ (sem > 0)
+               /\ sem' = sem - 1
+               /\ pc' = [pc EXCEPT ![self] = "cs"]
+
+\* cs step, next step is to go to "exit" step
+cs(self) == /\ pc[self] = "cs"
+            /\ pc' = [pc EXCEPT ![self] = "exit"]
+            /\ /\ UNCHANGED sem \*sem' = sem
+
+\* set next value of sem to sem + 1 and next step to "start" again
+exit(self) == /\ pc[self] = "exit"
+              /\ sem' = sem + 1
+              /\ pc' = [pc EXCEPT ![self] = "st"]
+
+\* a disconjunction of the possible steps
+p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
+
+\* a next state is possible for at least one process
+Next == (\E self \in 1..N: p(self))
+
+Spec == Init /\ [][Next]_vars
+
+\* END TRANSLATION
+=============================================================================
+
+\end{lstlisting}
+
+For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
 
 \section{PlusCal algorithm language}
 %%============================
+
+PlusCal is a language used for writing algorithms, algorithm languages are responsible for describing algorithms rather than programs, the distinction here is that an algorithm is the program without an actual implementation.
+
+An algorithm language is used to focus on the aspects of the algorithm like data manipulation rather than irrelevant and distracting details such as programming-language objects and data structures.
+
+PlusCal can be used to describe both concurrent and sequential algorithms, it is based on TLA+ specification language, it was initially introduced to accompany TLA+ since TLA+ syntax may seem unfamiliar to most users, this enabled users to express their algorithms using a more familiar syntax. A PlusCal expression can be any TLA+ expression which make PlusCal more powerful and expressive than most algorithm languages like pseudo-code. 
+
+The TLA+ Toolbox can be used to translate PlusCal to the corresponding TLA+ code that is needed to check for the algorithm's correctness through the TLC model checker.
+
+\hfill\\
+PlusCal offers two syntax styles one called c-syntax resembling c programming style and a clearer but longer p-syntax(p for pascal), we can find many familiar constructs like \textit{if} statements and \textit{while} statements. A language manual is available on the PlusCal Web site for both syntaxes.
+
+PlusCal statements are placed within labels, labels are used to indicate atomicity between statements, where an atomic step starts at a label and ends at the next label, these atomic steps are translated into actions in TLA+.
+
+The specification 2.2 below is for the Semaphores example we discussed earlier, the PlusCal algorithm is placed inside a comment within the tla file, denoted by \textit{--algorithm} before the name of the algorithm at line 2. The TLA+ translation of this example is in listing 2.1.
+ 
+\begin{lstlisting}[caption = PlusCal, frame = tlrb, firstnumber = 1]
+(**********************
+--algorithm SemaphoreMutex{
+variables sem = 1;
+
+process(p \in 1..N)
+{
+ start : while (TRUE){
+         enter : when (sem > 0);
+                 sem := sem - 1;            
+            cs    : skip ;
+            exit  : sem := sem + 1 ;
+        }
+ }
+}
+***********************)
+
+\end{lstlisting}
+ 
+\hfill\\
+
+
+\hfill\\
+The overall translation strategy is explained here \cite{pcalAlgo}.
+
+// maybe mention procedures and macros briefly
  
 
 \chapter{Related work}
 %%============================
-position of our work compared with other work
+
+There have been other PlusCal extensions, we will be mentioning \ref{PGO}, a tool represented as a part of a master thesis, it aims to produce an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
 
 \section{PGO}
 
+PGo is a source to source compiler written in Java. It compiles specifications written in an extension of PlusCal, called Modular PlusCal to Go programs, PGo can compile Modular PlusCal to PlusCal, PlusCal to Go, and Modular PlusCal to Go.
+
 \subsection{Modular PlusCal}
+
+Modular PlusCal is an extension of PlusCal, using Modular PlusCal the user can separate the specification into two components, a system functionality specification concerned with what the algorithm is supposed to achieve and an environment specification concerned about how we may want it achieved.
+
+\hfill\\
+
+For example, if we consider a server/client based communication system, the system functionality can be a client requesting services, this is called system functionality, which is not related to how the client is requesting that service via a TCP connection for example, this is called an environment specification. Another added value for this separation is that the programmer can reuse concept defined in one specification in another specification since the environment specification isn't dependent on the functionality of the system.
+
+Modular PlusCal introduced Architypes, Mapping Macros, and Instances to achieve the modularization of the spec.
+
+\paragraph{\textbf{Architypes}}
+\hfill\\
+They are considered to be the blue print of a PlusCal process, they are used to specify the system behaviours. They have the same semantics except for the inability to access global variables unless passed to the architypes as arguments.
+
+Using the \textit{ref} keyword before a global variable that is sent as an argument lets us know that this architype can modify it.
+
+these restrictions provide the needed isolation between system and environment behaviours.
+
+\paragraph{Mapping Macros}
+
+They specify the environment, they define interfaces for reading and writing on a global variable that represents a network.
+like pluscal macros they cannot contain any labels inside them, all statements are apart of the same step.
+
+Modeling mapping macros independently from system functionality allows the user to reuse the mapping macros.
+
+\paragraph{Instances}
+
+Instances are the glue that holds the archtypes and mapping macros together.
+instantiates a process or a group of processes using the specified architype, each argument passed is bound with a mapping macro to control read and write functions on it.
+
+- show a smaller example or grammer
 
 \chapter{Distributed PlusCal}
 
 Distributed PlusCal is an extension of PlusCal, they are algorithm languages meant for writing algorithms not programs. they are both translated to TLA+. 
 
-Since distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level, and TLA+ provides a flexibility and an expressiveness that makes it able to specify and verify those algorithms. One of the popular examples of incorporating TLA+ to verify distributed algorithms is it's usage at Amazon Web Services \cite{amazon}.
-
-Initially PlusCal was introduced to accompany TLA+ since TLA+ syntax may seem unfamiliar to most users, this enabled users to express their algorithms using a well known syntax and then use the translator provided with the TLA+ Toolbox to generate the corresponding TLA+ code that is needed to check for the algorithm's correctness through the TLC model checker.
-\hfill\\
-PlusCal offers two syntax styles one called c-syntax resembling c programming style and p-syntax(p for prolix), A language manual is available on the PlusCal Web site for both syntaxes.
-
-As an example on the translation process lets look at labels in PlusCal, labels are used to indicate atomicity between statements where an atomic step starts at a label and ends at the next label, these atomic steps are translated into actions in TLA+ as shown in the example below where A and B are labels within the same process.
-
- 
-\noindent\begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption = PlusCal, frame = tlrb, firstnumber = 1]
-(* --algorithm foo{
-variables x = 0;
-process (c \in 1..3)
-    {
-  A:x := x + 1;
-  B:x := 0;
-  }
-} *)
-
-\end{lstlisting}
-\end{minipage}\hfill
-\begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption = TLA+ Translation, frame = tlrb, firstnumber = 1]
-
-A(self) == /\ pc[self] = "A"
-           /\ x' = x + 1
-           /\ pc' = [pc EXCEPT ![self] = "B"]
-
-	B(self) == /\ pc[self] = "B"
-           /\ x' = 0
-           /\ pc' = [pc EXCEPT ![self] = "Done"]
-\end{lstlisting}
-\end{minipage}
-  
- 
-\hfill\\
-The translation also introduces a variable \textit{pc} to represent the control state, it's main job is to handle the navigation from one action to the other, as seen in the above example the first line of any action is setting the \textit{pc} variable to that action, then before the action finishes running it's statements it must indicate what action (for the same process) needs to be executed next, we notice that action A specifies that the next action to be executed is action B, and B specifies the next action is "Done" indicating that the entire process has actually finished its execution.
-
-Distributed algorithms are concerned with fault tolerance and consistency between multiple elements, PlusCal helps to verify liveness properties such as weak fairness by using the keyword \textit{fair} before a process as shown in the example below.
-
- 
-\noindent\begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption = PlusCal, frame = tlrb, firstnumber = 1]
-(* --algorithm foo{
-variables x = 0;
-    fair process (c \in 1..3)
-    {
-     A:
-       x := x + 1;
-     B:
-      x := 0;
-    }
-} *)
-
-\end{lstlisting}
-\end{minipage}\hfill
-\begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption = TLA+ Translation, frame = tlrb, firstnumber = 1]
-c(self) == A(self) \/ B(self)
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..3 : WF_vars(c(self))
-\end{lstlisting}
-\end{minipage}
-  
-the translation consists of adding a disconjunction of the actions corresponding to the labels of the process and then adding the condition \textit{WF\_vars} to the \textit{Spec} to verify if the newly added action remains continuously enabled.
-
-\hfill\\
-The overall translation strategy is explained here \cite{pcalAlgo}, and since we extended the same translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own.
+Since distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level, and TLA+ provides a flexibility and an expressiveness that makes it able to specify and verify those algorithms. One of the popular examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
 Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we wanted a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms such as sub-processes and communication channels.
 
+Since we extended the existing PluCal translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own which can be found in the figure below.
 
-In the sections to follow we will be explaining what we implemented,why it is needed and how it is translated into TLA+, for this we will be doing a walkthrough on the two phase commit example. 
+\begin{figure}[!h]
 
-\section{Channels}
-\subsection{Unordered channels}
+$\langle$ Process $\rangle$ $\models$ \textit{process} ($\langle$ variable decleration $\rangle$)$\langle$ local-variables $\rangle$ 
+$\langle$ body $\rangle$\{$\langle$ body $\rangle$\}
+
+$\langle$ local-variables $\rangle$ $\models$ \O  
+|\textit{variables} $\langle$declaration-list$\rangle$ 
+|\textit{channels} $\langle$declaration-list$\rangle$ 
+|\textit{FIFOs} $\langle$declaration-list$\rangle$ 
+
+$\langle$ declaration-list $\rangle$ $\models$ 
+$\langle$ variable-declaration $\rangle$ | 
+$\langle$ variable-declaration $\rangle$, $\langle$ decleration-list$\rangle$
+
+$\langle$ body $\rangle$ $\models$ 
+$\langle$ labeled-statement-list $\rangle$
+
+\caption{Grammar for Distributed PlusCal}
+
+\end{figure}
+
+\hfill\\
+In the sections that follow we will be explaining what we implemented, why it is needed and how it is translated into TLA+, for this we will be doing a walk-through on the two phase commit example, the two phase commit is a protocol used for distributed transactions that consist of multiple operations, performed at multiple sites, the goal of it is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well and the transaction is rolled back, and in order to actually commit all elements must agree and be able to commit.
+
+\section{Communication Channels}
+
+PlusCal enables the user to define variables with TLA+ syntax, the variable types can be sets, sequence, sequence of sets etc, 
+
+- differentiate sets and sequences and mentions the operators of each with small examples
+
+
+\subsection{channels}
+-set based 
 example with it's translation
 \subsection{FIFO channels}
+-sequence based
 example with it's translation
 \subsection{Supported channel functions}
 expected syntax and limitations
-
+- send, receive, broadcast, multicast, clear
 \section{Sub-Processes}
 
-A PlusCal process has a block that holds the body of the process, Distributed PlusCal gives each process the opportunity to define more than one block where each block has a body, This enables the process to be executing multiple tasks in parallel, for example a sub-process can be used to send/receive data to/from other processes asynchronously while the another sub-process is executing it's statement not concerned by such commands.
+A PlusCal process has a block that holds the body of the process, Distributed PlusCal gives each process the opportunity to define more than one block where each block has a body of labeled statements, This enables the process to be executing multiple tasks in parallel, for example a sub-process can be used to send date to other processes while another sub-process can be responsible for receiving data asynchronously, the programmer can divide tasks between sub-processes and give a sub-process a theme  if needed, that is by dividing the algorithm into multiple sub-processes where each sub-process works independently, this is to some extent a form of modularization.
+
+//i've tried saying this modularization thing in different ways by now not sure if the idea is clear or if this is even a 'big deal' for modeling a spec!
 
 // more on the benefits of this for distributed algorithms especially
 
 \hfill\\
-The body of a sub-process maintains the same syntax as the body of a PlusCal process, all the sub-processes share the same variables declared for the process making communication between them possible if needed.
+The body of a sub-process maintains the same syntax as the body of a PlusCal process, all the sub-processes share the same variables declared for the process, this makes communication between them possible if needed.
 
-The example below shows the sub-processes defined for the two phase commit algorithm, the example is written in c-syntax and the sub-processes are surrounded by curly braces.
+The example below shows the sub-processes are defined for the two phase commit algorithm, the example is written in c-syntax and the sub-processes are surrounded by curly braces.
 
 \hfill\\\hfill\\
 \begin{lstlisting}[caption = Distributed PlusCal Sub-Processes, frame = tlrb, firstnumber = 1]
-EXTENDS Sequences, Naturals
-
-CONSTANTS Coord, Agent
-
-(* PlusCal options (-distpcal, -label) *)
+    
+(* PlusCal options (-distpcal) *)
 
 (***
 --algorithm TPC {
+ 
   \* message channels
-  channels coord,agt[Agent];
-  
-fair process (a \in Agent)
-  variable aState = "unknown"; { \* sub-process
+  channels coord, agt[Agent];
+     
+  fair process (a \in Agent)
+  variable aState = "unknown"; {
 
-    a1: if (aState = "unknown") {
+a1: if (aState = "unknown") {
         with(st \in {"accept", "refuse"}) {
           aState := st;
           send(coord, [type |-> st, agent |-> self]);
@@ -286,27 +407,25 @@ fair process (a \in Agent)
     };
     a2: await(aState \in {"commit", "abort"})
     
-  } { \* sub-process
-    await (aState # "unknown");
+  } {
     
-    \* asynchronous message reception
-    receive(agt[self], aState); 
-    clear(agt);
+    a3:await (aState # "unknown");
+       receive(agt[self], aState); 
+       
+    a4:clear(agt);
   }
 
-  \* second process
-  fair node (c = Coord) 
+  fair process (c = Coord) 
   variables cState = "unknown",
             commits = {}, msg = {};
              \* agents that agree to commit
-  { \*sub process
-    c1: await(cState \in {"commit", "abort"});
-     
-    broadcast(agt, [ag \in Agent|-> cState]);
-  } { \* sub process
-  
-        while (cState \notin {"abort", "commit"}) {
-            receive(coord, msg);
+  {
+    c1: await(cState \in {"commit", "abort"});    
+        broadcast(agt, [ag \in Agent|-> cState]);
+  } {
+        
+     c2:while (cState \notin {"abort", "commit"}) {
+        receive(coord, msg);
             if (msg.type = "refuse") {
                 cState := "abort";
             }
@@ -319,32 +438,71 @@ fair process (a \in Agent)
         }
   }
  }
-}
+***)
 \end{lstlisting}
 
 \hfill\\
 
-if we zoom in on the first process for example we'll see that it consists of two sub-processes, the first one contains the labels a1 and a2 and the second one's body consists of the statements between the second pair of curly braces.
+The first process consists of two sub-processes, the first one contains the labels (a1, a2) and the second one contains (a3, a4).
 
 //The send, receive and clear and broadcast would've been explained already //in the previous section.
 
-we can notice that the variable \textit{aState} is shared between the sub-processes in fact it is used for communication between them, label a2 holds an \textit{await} statement that is waiting for aState to have the value of either \textit{"commit"} or \textit{"abort"}, and the variable is being set to one of these values by the second sub-process by the receive function.
+The variable \textit{aState} is shared between the sub-processes, in fact it is used for communication between them, label a2 holds an \textit{await} statement at line 19 that is waiting for aState to have the value of either \textit{"commit"} or \textit{"abort"}, the variable is being set to one of these values by a3 in the second sub-process by the receive function at line 24.
 
 it's important to note that the sub-processes do not allow variable declarations they only use variables declared for the entire process.
 
+\subsection{TLA+ Translation}
+
 Defining sub-processes had some effects on the translation to TLA+, because when you declare sub-processes you are actually partitioning the process, so now whenever we are referring to a process we need to know not only which process it is but also which sub-process are we referring to.
  
+The entire TLA+ translation of the two phase commit example can be found in appendix \ref{appendix:examples}, now we will be focusing on elements that we introduced to the general structure of the TLA+ file.
+
+\hfill\\
+\begin{itemize}
+
+\item \textbf{SubProcSet}
+\hfill\\
+
+SubProcSet is the set of all the sub-process identifiers per process.
+
 \begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
-
-\* BEGIN TRANSLATION
-VARIABLES coord, agt, pc, aState, cState, commits, msg
-
-vars == << coord, agt, pc, aState, cState, commits, msg >>
 
 ProcSet == (Agent) \cup {Coord}
 
-ThreadSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
+SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
                              ELSE (**Coord**) 1..2]
+
+\end{lstlisting}
+
+\item \textbf{pc variable}
+\hfill\\
+
+The \textit{pc} variable in TLA+ that is used to indicate the current point of execution and the next statement to be executed with respect to a process, now it has to indicate also which sub-process is involved.
+ 	
+The pc variable is initialized to a sequence of actions depending on the type of the process, for example if \textit{self} is in Agent, this means it's a process of type Agent that has the following actions associated with it (a1, a2, a3, a4), However, a1 is considered the entry point for the first sub-process and a3 for the second one. so we need to initialize pc variable to look something like this
+
+\hfill\\
+\begin{center}
+\begin{tabular}{ |c|c|c| } 
+\hline
+\textbf{Process Type} & \textbf{Sub-Process} & \textbf{Entry Point} \\
+\hline
+Agent & 1 & a1 \\ 
+		& 2 & a3 \\ 
+\hline
+Coord & 1 & c1 \\ 
+	  & 2 & c2 \\ 
+\hline
+\end{tabular}
+\end{center}
+
+\hfill\\
+
+In TLA+ a function with domain 1..n for some n in Nat is a sequence, so the pc values consist of sequences to represent the above table, so we initialize pc in the listing 4.3 to have pc[Agent] = <"a1", "a3"> and pc[Coord] = <"c1", "c2">.
+
+//sequences and sets would've been explained in the previous section for the channels
+
+\begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
 
 Init == (* Global variables *)
         /\ coord = {}
@@ -355,8 +513,14 @@ Init == (* Global variables *)
         /\ cState = "unknown"
         /\ commits = {}
         /\ msg = {}
-        /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","Lbl_1">>
-                                        [] self = Coord -> <<"c1","Lbl_3">>]
+        /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
+                                        [] self = Coord -> <<"c1","c2">>]
+\end{lstlisting}
+
+\hfill\\
+The example in listing 4.4 shows how the \textit{pc} variable is used, the second pair of brackets that is added when accessing the \textit{pc} variable is used to indicate the sub-process, at line 3 we check that the sub-process is currently at this action, then at line 10 we specify that the next action to be executed for the sub-process is action a2.
+
+\begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
 
 \* Process 1 Sub-Process 1 : an action with the statements in a1 label
 a1(self) == /\ pc[self] [1] = "a1"
@@ -369,101 +533,7 @@ a1(self) == /\ pc[self] [1] = "a1"
             /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "a2"]]
             /\ UNCHANGED << agt, cState, commits, msg >>
 
-\* Process 1 Sub-Process 1 : an action with the statements in a2 label
-a2(self) == /\ pc[self] [1] = "a2"
-            /\ (aState[self] \in {"commit", "abort"})
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "Done"]]
-            /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
-
-\* Process 1 Sub-Process 2 :an action for the statements of await and receive
-Lbl_1(self) == /\ pc[self] [2] = "Lbl_1"
-               /\ (aState[self] # "unknown")
-               /\ \E a1318 \in agt[self]:
-                    /\ aState' = [aState EXCEPT ![self] = a1318]
-                    /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1318}]
-               /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Lbl_2"]]
-               /\ UNCHANGED << coord, cState, commits, msg >>
-
-\* Process 1 Sub-Process 2 :an action created for the clear function
-Lbl_2(self) == /\ pc[self] [2] = "Lbl_2"
-               /\ agt' = [a0 \in Agent |-> {}]
-               /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
-               /\ UNCHANGED << coord, aState, cState, commits, msg >>
-
-\* created for the fairness condition
-a(self) == a1(self) \/ a2(self) \/ Lbl_1(self) \/ Lbl_2(self)
-
-
-\* Process 2 Sub-Process 1 :an action for the statements in label c1
-c1 == /\ pc[Coord] [1] = "c1"
-      /\ (cState \in {"commit", "abort"})
-      /\ agt' = [ag \in Agent |-> agt[ag] \cup  {cState} ]
-      /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![1] = "Done"]]
-      /\ UNCHANGED << coord, aState, cState, commits, msg >>
-
-\* Process 2 Sub-Process 2 :an action for the statements in the sub-process
-Lbl_3 == /\ pc[Coord] [2] = "Lbl_3"
-         /\ IF cState \notin {"abort", "commit"}
-               THEN /\ \E c1312 \in coord:
-                         /\ coord' = coord \ {c1312}
-                         /\ msg' = c1312
-                    /\ IF msg'.type = "refuse"
-                          THEN /\ cState' = "abort"
-                               /\ UNCHANGED commits
-                          ELSE /\ IF msg'.type = "accept"
-                                     THEN /\ commits' = (commits \cup {msg'.agent})
-                                          /\ IF commits' = Agent
-                                                THEN /\ cState' = "commit"
-                                                ELSE /\ TRUE
-                                                     /\ UNCHANGED cState
-                                     ELSE /\ TRUE
-                                          /\ UNCHANGED << cState, commits >>
-                    /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Lbl_3"]]
-               ELSE /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Done"]]
-                    /\ UNCHANGED << coord, cState, commits, msg >>
-         /\ UNCHANGED << agt, aState >>
-
-\* created for the fairness condition
-c == c1 \/ Lbl_3
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A thread \in ThreadSet[self]: pc[self][thread] = "Done"
-               /\ UNCHANGED vars
-
-Next == c
-           \/ (\E self \in Agent: a(self))
-           \/ Terminating
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in Agent : WF_vars(a(self))
-        /\ WF_vars(c)
-
-Termination == <>(\A self \in ProcSet: \A thread \in ThreadSet[self] : pc[self][thread] = "Done")
-
-\* END TRANSLATION 
 \end{lstlisting}
-
-\hfill\\
-In the translation above, every label is transformed into an action, some actions are also created when needed, for example the receive function and the clean function in process 1 sub-process 2 both modify the same channel and it would be wrong to place the two assignments in the same atomic step thus an auxiliary action is created to hold the body of the clear function.
-
-\hfill\\
-
-The affected areas of the translation include the following:
-\begin{itemize}
-
-\item \textbf{ThreadSet}
-\hfill\\
-A set called ThreadSet can be found at line 9, it is the set of all the thread identifiers per process.
-
-\item \textbf{pc variable}
-\hfill\\
-The \textit{pc} variable in TLA+ that is used to indicate the current point of execution and the next statement to be executed with respect to a process now has to indicate also which sub-process of that process is involved.
-\hfill\\
-\hfill\\
-At line 21 the pc variable is initialized to a sequence of actions depending on the type of the process, for example if \textit{self} is in Agent, this means it's a process of type Agent that has the following actions associated with it (a1, a2, Lbl\_1, Lbl\_2), However if we think about the sub-processes for processes of type Agent we'll see that for the first sub-process we have one action that is considered to be the entry point and that is action a1, and for the second sub-process there is also one entry point action and that is Lbl\_1, so initially the pc for a process of type Agent will be at either one of these entry point actions.
-\hfill\\
-\hfill\\
-After the initialization, the pc variable is used as follows \textbf{pc[ProcessIdentifier][Sub-Process]}, the modification here is the addition of the second pair of brackets, lines like 25 for example specify that we are currently at the first sub-process of the process, same thing once we want to move to the next action at line 32 we state that we want the execution of the first sub-process of this process to move on to action a2.
 
 \end{itemize}
 
@@ -481,6 +551,182 @@ try to describe the general flow
 or maybe an AST description graph
 
 \chapter{Conclusion and future work}
+
+\begin{appendices}
+\chapter{Distributed PlusCal to TLA+ Examples}
+\section{Two Phase Commit}
+\label{appendix:examples}
+
+\begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
+
+----------------------------- MODULE 2pc -----------------------------
+EXTENDS Sequences, Naturals
+
+CONSTANTS Coord, Agent
+
+State == {"unknown", "accept", "refuse", "commit", "abort"}
+
+    
+(* PlusCal options (-distpcal) *)
+
+(***
+--algorithm TPC {
+ 
+  \* message channels
+  channels coord, agt[Agent];
+     
+  fair process (a \in Agent)
+  variable aState = "unknown"; {
+
+a1: if (aState = "unknown") {
+        with(st \in {"accept", "refuse"}) {
+          aState := st;
+          send(coord, [type |-> st, agent |-> self]);
+        };
+    };
+    a2: await(aState \in {"commit", "abort"})
+    
+  } {
+    
+    a3:await (aState # "unknown");
+       receive(agt[self], aState); 
+       
+    a4:clear(agt);
+  }
+
+  fair process (c = Coord) 
+  variables cState = "unknown",
+            commits = {}, msg = {};
+             \* agents that agree to commit
+  {
+    c1: await(cState \in {"commit", "abort"});    
+        broadcast(agt, [ag \in Agent|-> cState]);
+  } {
+        
+     c2:while (cState \notin {"abort", "commit"}) {
+        receive(coord, msg);
+            if (msg.type = "refuse") {
+                cState := "abort";
+            }
+            else if (msg.type = "accept") {
+                commits := commits \cup {msg.agent};
+                 if (commits = Agent) {
+                    cState := "commit";
+                 }
+              }
+        }
+  }
+ }
+***)
+\* BEGIN TRANSLATION
+VARIABLES coord, agt, pc, aState, cState, commits, msg
+
+vars == << coord, agt, pc, aState, cState, commits, msg >>
+
+ProcSet == (Agent) \cup {Coord}
+
+SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
+                             ELSE (**Coord**) 1..2]
+
+Init == (* Global variables *)
+        /\ coord = {}
+        /\ agt = [a0 \in Agent |-> {}]
+        (* Node a *)
+        /\ aState = [self \in Agent |-> "unknown"]
+        (* Node c *)
+        /\ cState = "unknown"
+        /\ commits = {}
+        /\ msg = {}
+        /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
+                                        [] self = Coord -> <<"c1","c2">>]
+
+a1(self) == /\ pc[self] [1] = "a1"
+            /\ IF aState[self] = "unknown"
+                  THEN /\ \E st \in {"accept", "refuse"}:
+                            /\ aState' = [aState EXCEPT ![self] = st]
+                            /\ coord' = (coord \cup {[type |-> st, agent |-> self]})
+                  ELSE /\ TRUE
+                       /\ UNCHANGED << coord, aState >>
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "a2"]]
+            /\ UNCHANGED << agt, cState, commits, msg >>
+
+a2(self) == /\ pc[self] [1] = "a2"
+            /\ (aState[self] \in {"commit", "abort"})
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "Done"]]
+            /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
+
+a3(self) == /\ pc[self] [2] = "a3"
+            /\ (aState[self] # "unknown")
+            /\ \E a1519 \in agt[self]:
+                 /\ aState' = [aState EXCEPT ![self] = a1519]
+                 /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1519}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "a4"]]
+            /\ UNCHANGED << coord, cState, commits, msg >>
+
+a4(self) == /\ pc[self] [2] = "a4"
+            /\ agt' = [a0 \in Agent |-> {}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
+            /\ UNCHANGED << coord, aState, cState, commits, msg >>
+
+a(self) == a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
+
+c1 == /\ pc[Coord] [1] = "c1"
+      /\ (cState \in {"commit", "abort"})
+      /\ agt' = [ag \in Agent |-> agt[ag] \cup  {cState} ]
+      /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![1] = "Done"]]
+      /\ UNCHANGED << coord, aState, cState, commits, msg >>
+
+c2 == /\ pc[Coord] [2] = "c2"
+      /\ IF cState \notin {"abort", "commit"}
+            THEN /\ \E c1512 \in coord:
+                      /\ coord' = coord \ {c1512}
+                      /\ msg' = c1512
+                 /\ IF msg'.type = "refuse"
+                       THEN /\ cState' = "abort"
+                            /\ UNCHANGED commits
+                       ELSE /\ IF msg'.type = "accept"
+                                  THEN /\ commits' = (commits \cup {msg'.agent})
+                                       /\ IF commits' = Agent
+                                             THEN /\ cState' = "commit"
+                                             ELSE /\ TRUE
+                                                  /\ UNCHANGED cState
+                                  ELSE /\ TRUE
+                                       /\ UNCHANGED << cState, commits >>
+                 /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "c2"]]
+            ELSE /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Done"]]
+                 /\ UNCHANGED << coord, cState, commits, msg >>
+      /\ UNCHANGED << agt, aState >>
+
+c == c1 \/ c2
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
+
+Next == c
+           \/ (\E self \in Agent: a(self))
+           \/ Terminating
+
+Spec == /\ Init /\ [][Next]_vars
+        /\ \A self \in Agent : WF_vars(a(self))
+        /\ WF_vars(c)
+
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION
+=============================================================================
+
+\end{lstlisting}
+
+In the translation above, every label is transformed into an action, some actions are also created when needed, for example the receive function and the clear function in process 1 sub-process 2 both modify the same channel and it would be wrong to place the two assignments in the same atomic step thus an auxiliary action is created to hold the body of the clear function.
+
+- insert labels in example, before await and also for receive and clear then modify the example
+
+
+\section{Lamport Mutex}
+
+\end{appendices}
+
 \bibliographystyle{alpha}
 \bibliography{report}
 
