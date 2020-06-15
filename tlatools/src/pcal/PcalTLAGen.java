@@ -2255,12 +2255,7 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                        //For distributed pluscal
-                        if(PcalParams.distpcalFlag) {
-                        	is.append("[ self \\in NodeSet |-> ");
-                        } else {
-                        	is.append("[ self \\in ProcSet |-> ");
-                        }
+                        is.append("[ self \\in ProcSet |-> ");
 //                    }
                         addOneTokenToTLA(is.toString());
                         addLeftParen(decl.val.getOrigin());
@@ -2331,12 +2326,7 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                        //For distributed pluscal
-                        if(PcalParams.distpcalFlag) {
-                        	is.append("[ self \\in NodeSet |-> ");
-                        } else {
-                        	is.append("[ self \\in ProcSet |-> ");
-                        }
+                        is.append("[ self \\in ProcSet |-> ");
 //                    }
                         addOneTokenToTLA(is.toString());
                         addLeftParen(decl.val.getOrigin());
@@ -2762,12 +2752,7 @@ public class PcalTLAGen
         if (procs != null && procs.size() > 0)
         {
         	if (mp) {
-        		//For distributed pluscal
-        		if(PcalParams.distpcalFlag) {
-        			is.append("/\\ stack = [self \\in NodeSet |-> << >>]");
-        		} else {
-        			is.append("/\\ stack = [self \\in ProcSet |-> << >>]");
-        		}
+        		is.append("/\\ stack = [self \\in ProcSet |-> << >>]");
         	}else
                 is.append("/\\ stack = << >>");
 //            tlacode.addElement(is.toString());
@@ -2783,9 +2768,9 @@ public class PcalTLAGen
     				boolean useCase = st.nodes.size() != 1;
     				
     				if (useCase) {
-    					is.append("/\\ pc = [self \\in NodeSet |-> CASE ");
+    					is.append("/\\ pc = [self \\in ProcSet |-> CASE ");
     				} else {
-    					is.append("/\\ pc = [self \\in NodeSet |-> ");
+    					is.append("/\\ pc = [self \\in ProcSet |-> ");
     				}
     				int colPC = is.length();
     				if (boxUnderCASE)
@@ -3027,7 +3012,7 @@ public class PcalTLAGen
         	  
         	  //For distributed pluscal
               if(PcalParams.distpcalFlag) {
-    			  sb.append("/\\ \\A self \\in NodeSet : \\A thread \\in ThreadSet[self]: pc[self][thread] = \"Done\"");
+    			  sb.append("/\\ \\A self \\in ProcSet : \\A sub \\in SubProcSet[self]: pc[self][sub] = \"Done\"");
               } else {
                   sb.append("/\\ \\A self \\in ProcSet: pc[self] = \"Done\"");
               }
@@ -3065,11 +3050,6 @@ public class PcalTLAGen
         Vector nextSS = new Vector();
 
         String nextSSstart = "(\\E self \\in ProcSet: ";
-        
-        //For distributed pluscal
-        if(PcalParams.distpcalFlag) {
-        	nextSSstart = "(\\E self \\in NodeSet: ";
-        }
         
         sb = new StringBuffer();
         
@@ -3736,7 +3716,7 @@ public class PcalTLAGen
         if (mp) {
         	//For distributed pluscal
         	if(PcalParams.distpcalFlag) {
-        		sb.append("\\A self \\in NodeSet: \\A thread \\in ThreadSet[self] : pc[self][thread]");
+        		sb.append("\\A self \\in ProcSet: \\A sub \\in SubProcSet[self] : pc[self][sub]");
         	} else {
             	sb.append("\\A self \\in ProcSet: pc[self]");
             }
@@ -4964,7 +4944,7 @@ public class PcalTLAGen
 		mp = true;
 		GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, ast.nodes);
 		GenNodeSet();
-		GenThreadSet();
+		GenSubProcSet();
 		GenInit(ast.decls, ast.prcds, null, ast.nodes);
 		for (int i = 0; i < ast.prcds.size(); i++)
 			GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -4976,7 +4956,7 @@ public class PcalTLAGen
 	}
 	
 	/**
-	 * Generates the "NodeSet == ..." output. It is just a union of all the node
+	 * Generates the "ProcSet == ..." output. It is just a union of all the node
 	 * sets, all on one line (except if a process set is a multi-line expression).
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
@@ -4985,7 +4965,7 @@ public class PcalTLAGen
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
-		addOneTokenToTLA("NodeSet == ");
+		addOneTokenToTLA("ProcSet == ");
 		for (int i = 0; i < st.nodes.size(); i++) {
 			PcalSymTab.NodeEntry node = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
 			if (i > 0) {
@@ -5013,17 +4993,17 @@ public class PcalTLAGen
 	}
 
 	/**
-	 * Generates the "NodeSet == ..." output. It is just a union of all the node
+	 * Generates the "ProcSet == ..." output. It is just a union of all the node
 	 * sets, all on one line (except if a process set is a multi-line expression).
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
 	 */
-	public void GenThreadSet() {
+	public void GenSubProcSet() {
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
-		ps.append("ThreadSet == [n \\in NodeSet |-> ");
-		int col = "ThreadSet == ".length();
+		ps.append("SubProcSet == [n \\in ProcSet |-> ");
+		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
 		//if there is only one node
