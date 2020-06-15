@@ -2999,8 +2999,8 @@ public class ParseAlgorithm
        */
       if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl ;
-          first.lblLocation = call.lblLocation ;
+          first.lbl = call.lbl;
+          first.lblLocation = call.lblLocation;
           Region callOrigin = call.getOrigin();
           if (callOrigin != null) {
               first.macroOriginBegin = callOrigin.getBegin();
@@ -5023,6 +5023,18 @@ public class ParseAlgorithm
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
 
+		if (result.size() > 0) 
+        { AST first = (AST) result.elementAt(0) ;
+          first.lbl = call.lbl;
+          first.lblLocation = call.lblLocation;
+          Region callOrigin = call.getOrigin();
+          if (callOrigin != null) {
+              first.macroOriginBegin = callOrigin.getBegin();
+              AST last = (AST) result.elementAt(result.size() - 1) ;
+              last.macroOriginEnd = callOrigin.getEnd();
+          }
+        };
+        
 		return result;
 	}
 
@@ -5045,6 +5057,18 @@ public class ParseAlgorithm
 		//construct body based on type 
 		Vector result = call.generateBodyTemplate((AST.Channel)chanVar, targetVar);
 
+		if (result.size() > 0) 
+        { AST first = (AST) result.elementAt(0) ;
+          first.lbl = call.lbl;
+          first.lblLocation = call.lblLocation;
+          Region callOrigin = call.getOrigin();
+          if (callOrigin != null) {
+              first.macroOriginBegin = callOrigin.getBegin();
+              AST last = (AST) result.elementAt(result.size() - 1) ;
+              last.macroOriginEnd = callOrigin.getEnd();
+          }
+        };
+        
 		return result;
 	}
 
@@ -5066,6 +5090,18 @@ public class ParseAlgorithm
 		//construct body based on type 
 		Vector result = call.generateBodyTemplate((AST.Channel)chanVar);
 
+		if (result.size() > 0) 
+        { AST first = (AST) result.elementAt(0) ;
+          first.lbl = call.lbl;
+          first.lblLocation = call.lblLocation;
+          Region callOrigin = call.getOrigin();
+          if (callOrigin != null) {
+              first.macroOriginBegin = callOrigin.getBegin();
+              AST last = (AST) result.elementAt(result.size() - 1) ;
+              last.macroOriginEnd = callOrigin.getEnd();
+          }
+        };
+        
 		return result;
 	}
 	

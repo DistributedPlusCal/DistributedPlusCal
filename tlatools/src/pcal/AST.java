@@ -1124,73 +1124,73 @@ public class AST
    	@Override
    	public Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) {
    		Vector result = new Vector();
+
+   		AST.SingleAssign sass = new AST.SingleAssign();
+   		sass.line = line;
+   		sass.col  = col;
+   		sass.lhs.var = channel.var;
+
+   		TLAExpr expr = new TLAExpr();
+
+   		if(callExp.tokens != null) {
+   			sass.lhs.sub = callExp;
+   		}else {
+   			sass.lhs.sub = new TLAExpr(new Vector());
+   		}
+
+   		expr = new TLAExpr();
+   		expr.addLine();
+   		expr.addToken(PcalTranslate.IdentToken(channelName));
+
+   		if(callExp.tokens != null) {
+   			for(int i = 0; i < callExp.tokens.size(); i++) {
+
+   				Vector tv = (Vector) callExp.tokens.elementAt(i);
+   				for (int j = 0; j < tv.size(); j++) {
+   					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+   					expr.addToken(tok);
+   				}
+   			}
+   		}
+
+   		expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
+   		expr.addToken(PcalTranslate.BuiltInToken("{"));
+
+   		for(int i = 0; i < msg.tokens.size(); i++) {
+
+   			Vector tv = (Vector) msg.tokens.elementAt(i);
+   			for (int j = 0; j < tv.size(); j++) {
+   				TLAToken tok = (TLAToken) tv.elementAt(j);
+
+   				expr.addToken(tok);
+   			}
+   		}
+
+   		expr.addToken(PcalTranslate.BuiltInToken("}"));
+   		sass.rhs = expr;
+
+   		sass.setOrigin(this.getOrigin());
+
+   		AST.Assign assign = new AST.Assign();
+   		assign.ass = new Vector();
+   		assign.line = line ;
+   		assign.col  = col ;
+   		assign.setOrigin(this.getOrigin());
    		
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
+   		assign.ass.addElement(sass);
 
-			TLAExpr expr = new TLAExpr();
-			
-			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp;
-			}else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-			
-			expr = new TLAExpr();
-			expr.addLine();
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			
-			if(callExp.tokens != null) {
-				for(int i = 0; i < callExp.tokens.size(); i++) {
+   		result.addElement(assign);
 
-					Vector tv = (Vector) callExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-
-						expr.addToken(tok);
-					}
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-
-			for(int i = 0; i < msg.tokens.size(); i++) {
-				
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-					expr.addToken(tok);
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-			sass.rhs = expr;
-
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-			
-			return result;
-		}
+   		return result;
+   	}
 
 
 		@Override
 		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-			System.out.println("varDecl is of type UnorderedChannel : " + channel.var);
+			PcalDebug.reportInfo("varDecl is of type Unordered Channel : " + channel.var);
 
 			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
 
@@ -2251,7 +2251,7 @@ public class AST
 	   { return 
 			   Indent(lineCol()) + 
 			   "[type |-> \"ChannelClearCall\"," + NewLine() +
-			   Indent(" channel     |-> ") + channel.var + "]" +
+			   Indent(" channel     |-> ") + channelName + "]" +
 			   EndIndent() +
 			   EndIndent() ;
 	   }

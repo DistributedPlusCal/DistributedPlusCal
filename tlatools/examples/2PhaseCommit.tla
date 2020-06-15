@@ -6,16 +6,17 @@ CONSTANTS Coord, Agent
 State == {"unknown", "accept", "refuse", "commit", "abort"}
 
 	
-(* PlusCal options (-distpcal, -label) *)
+(* PlusCal options (-distpcal) *)
 
 (***
 --algorithm TPC {
  
   \* message channels
-  channels coord,agt[Agent];
+  channels coord, agt[Agent];
      
   fair process (a \in Agent)
   variable aState = "unknown"; {
+
 a1: if (aState = "unknown") {
         with(st \in {"accept", "refuse"}) {
           aState := st;
@@ -26,25 +27,22 @@ a1: if (aState = "unknown") {
     
   } {
     
-    await (aState # "unknown");
-    
-    \* asynchronous message reception
-    receive(agt[self], aState); 
-	clear(agt);
+    a3:await (aState # "unknown");
+       receive(agt[self], aState); 
+	   
+	a4:clear(agt);
   }
+
   fair process (c = Coord) 
   variables cState = "unknown",
             commits = {}, msg = {};
              \* agents that agree to commit
   {
-    c1: await(cState \in {"commit", "abort"});
-    
-    
-    broadcast(agt, [ag \in Agent|-> cState]);
-    \* multicast(agt, [ag \in Agent |-> cState])
+    c1: await(cState \in {"commit", "abort"});    
+		broadcast(agt, [ag \in Agent|-> cState]);
   } {
         
-        while (cState \notin {"abort", "commit"}) {
+     c2:while (cState \notin {"abort", "commit"}) {
         receive(coord, msg);
             if (msg.type = "refuse") {
                 cState := "abort";
@@ -59,14 +57,14 @@ a1: if (aState = "unknown") {
   }
  }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-ab3a94ac41b59cab280fd5445644e423
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9996db68e02f1c4b6e8dd415760c926a
 VARIABLES coord, agt, pc, aState, cState, commits, msg
 
 vars == << coord, agt, pc, aState, cState, commits, msg >>
 
-NodeSet == (Agent) \cup {Coord}
+ProcSet == (Agent) \cup {Coord}
 
-ThreadSet == [n \in NodeSet |-> IF n \in Agent THEN 1..2
+SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
                              ELSE (**Coord**) 1..2]
 
 Init == (* Global variables *)
@@ -78,8 +76,8 @@ Init == (* Global variables *)
         /\ cState = "unknown"
         /\ commits = {}
         /\ msg = {}
-        /\ pc = [self \in NodeSet |-> CASE self \in Agent -> <<"a1","Lbl_1">>
-                                        [] self = Coord -> <<"c1","Lbl_3">>]
+        /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
+                                        [] self = Coord -> <<"c1","c2">>]
 
 a1(self) == /\ pc[self] [1] = "a1"
             /\ IF aState[self] = "unknown"
@@ -96,20 +94,20 @@ a2(self) == /\ pc[self] [1] = "a2"
             /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "Done"]]
             /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
 
-Lbl_1(self) == /\ pc[self] [2] = "Lbl_1"
-               /\ (aState[self] # "unknown")
-               /\ \E a1518 \in agt[self]:
-                    /\ aState' = [aState EXCEPT ![self] = a1518]
-                    /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1518}]
-               /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Lbl_2"]]
-               /\ UNCHANGED << coord, cState, commits, msg >>
+a3(self) == /\ pc[self] [2] = "a3"
+            /\ (aState[self] # "unknown")
+            /\ \E a1519 \in agt[self]:
+                 /\ aState' = [aState EXCEPT ![self] = a1519]
+                 /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1519}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "a4"]]
+            /\ UNCHANGED << coord, cState, commits, msg >>
 
-Lbl_2(self) == /\ pc[self] [2] = "Lbl_2"
-               /\ agt' = [a0 \in Agent |-> {}]
-               /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
-               /\ UNCHANGED << coord, aState, cState, commits, msg >>
+a4(self) == /\ pc[self] [2] = "a4"
+            /\ agt' = [a0 \in Agent |-> {}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
+            /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-a(self) == a1(self) \/ a2(self) \/ Lbl_1(self) \/ Lbl_2(self)
+a(self) == a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
 
 c1 == /\ pc[Coord] [1] = "c1"
       /\ (cState \in {"commit", "abort"})
@@ -117,31 +115,31 @@ c1 == /\ pc[Coord] [1] = "c1"
       /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![1] = "Done"]]
       /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-Lbl_3 == /\ pc[Coord] [2] = "Lbl_3"
-         /\ IF cState \notin {"abort", "commit"}
-               THEN /\ \E c1512 \in coord:
-                         /\ coord' = coord \ {c1512}
-                         /\ msg' = c1512
-                    /\ IF msg'.type = "refuse"
-                          THEN /\ cState' = "abort"
-                               /\ UNCHANGED commits
-                          ELSE /\ IF msg'.type = "accept"
-                                     THEN /\ commits' = (commits \cup {msg'.agent})
-                                          /\ IF commits' = Agent
-                                                THEN /\ cState' = "commit"
-                                                ELSE /\ TRUE
-                                                     /\ UNCHANGED cState
-                                     ELSE /\ TRUE
-                                          /\ UNCHANGED << cState, commits >>
-                    /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Lbl_3"]]
-               ELSE /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Done"]]
-                    /\ UNCHANGED << coord, cState, commits, msg >>
-         /\ UNCHANGED << agt, aState >>
+c2 == /\ pc[Coord] [2] = "c2"
+      /\ IF cState \notin {"abort", "commit"}
+            THEN /\ \E c1512 \in coord:
+                      /\ coord' = coord \ {c1512}
+                      /\ msg' = c1512
+                 /\ IF msg'.type = "refuse"
+                       THEN /\ cState' = "abort"
+                            /\ UNCHANGED commits
+                       ELSE /\ IF msg'.type = "accept"
+                                  THEN /\ commits' = (commits \cup {msg'.agent})
+                                       /\ IF commits' = Agent
+                                             THEN /\ cState' = "commit"
+                                             ELSE /\ TRUE
+                                                  /\ UNCHANGED cState
+                                  ELSE /\ TRUE
+                                       /\ UNCHANGED << cState, commits >>
+                 /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "c2"]]
+            ELSE /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Done"]]
+                 /\ UNCHANGED << coord, cState, commits, msg >>
+      /\ UNCHANGED << agt, aState >>
 
-c == c1 \/ Lbl_3
+c == c1 \/ c2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in NodeSet : \A thread \in ThreadSet[self]: pc[self][thread] = "Done"
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
                /\ UNCHANGED vars
 
 Next == c
@@ -152,8 +150,8 @@ Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Agent : WF_vars(a(self))
         /\ WF_vars(c)
 
-Termination == <>(\A self \in NodeSet: \A thread \in ThreadSet[self] : pc[self][thread] = "Done")
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-90aa8e9d424dca09c2a66ab927d80549
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0fd06c388a589f07d1bb571b4efd366b
 
 =============================================================================
