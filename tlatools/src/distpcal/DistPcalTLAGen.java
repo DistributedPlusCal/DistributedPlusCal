@@ -300,7 +300,7 @@ public class DistPcalTLAGen {
 		mp = true;
 		GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, ast.nodes);
 		GenNodeSet();
-		GenThreadSet();
+		GenSubProcSet();
 		GenInit(ast.decls, ast.prcds, null, ast.nodes);
 		for (int i = 0; i < ast.prcds.size(); i++)
 			GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -2114,7 +2114,7 @@ public class DistPcalTLAGen {
 	}
 
 	/**
-	 * Generates the "NodeSet == ..." output. It is just a union of all the node
+	 * Generates the "ProcSet == ..." output. It is just a union of all the node
 	 * sets, all on one line (except if a process set is a multi-line expression).
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
@@ -2123,7 +2123,7 @@ public class DistPcalTLAGen {
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
-		addOneTokenToTLA("NodeSet == ");
+		addOneTokenToTLA("ProcSet == ");
 		for (int i = 0; i < st.nodes.size(); i++) {
 			DistPcalSymTab.NodeEntry node = (DistPcalSymTab.NodeEntry) st.nodes.elementAt(i);
 			if (i > 0) {
@@ -2151,17 +2151,17 @@ public class DistPcalTLAGen {
 	}
 
 	/**
-	 * Generates the "NodeSet == ..." output. It is just a union of all the node
+	 * Generates the "ProcSet == ..." output. It is just a union of all the node
 	 * sets, all on one line (except if a process set is a multi-line expression).
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
 	 */
-	public void GenThreadSet() {
+	public void GenSubProcSet() {
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
-		ps.append("ThreadSet == [n \\in NodeSet |-> ");
-		int col = "ThreadSet == ".length();
+		ps.append("SubProcSet == [n \\in ProcSet |-> ");
+		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
 		//if there is only one node
@@ -2282,7 +2282,7 @@ public class DistPcalTLAGen {
 						is.append(" = ");
 
 
-						is.append("[ self \\in NodeSet |-> ");
+						is.append("[ self \\in ProcSet |-> ");
 						//MODIFY HERE TO INCLUDE THREADSET
 						addOneTokenToTLA(is.toString());
 						addLeftParen(decl.val.getOrigin());
@@ -2319,8 +2319,8 @@ public class DistPcalTLAGen {
 						DistPcalDebug.Assert(decl.isEq);
 						is.append(" = ");
 
-						//MODIFY HERE FOR THREADSET
-						is.append("[ self \\in NodeSet |-> ");
+						//TODO
+						is.append("[ self \\in ProcSet |-> ");
 						addOneTokenToTLA(is.toString());
 						addLeftParen(decl.val.getOrigin());
 						addExprToTLA(
@@ -2577,7 +2577,7 @@ public class DistPcalTLAGen {
 		/* stack initial value */
 		if (procs != null && procs.size() > 0) {
 			if (mp)
-				is.append("/\\ stack = [self \\in NodeSet |-> << >>]");
+				is.append("/\\ stack = [self \\in ProcSet |-> << >>]");
 			else
 				is.append("/\\ stack = << >>");
 			addOneLineOfTLA(is.toString());
@@ -2593,9 +2593,9 @@ public class DistPcalTLAGen {
 				
 				//heba add thread count here
 				if (useCase) {
-					is.append("/\\ pc = [self \\in NodeSet |-> CASE ");
+					is.append("/\\ pc = [self \\in ProcSet |-> CASE ");
 				} else {
-					is.append("/\\ pc = [self \\in NodeSet |-> ");
+					is.append("/\\ pc = [self \\in ProcSet |-> ");
 				}
 				int colPC = is.length();
 				if (boxUnderCASE)
@@ -2769,10 +2769,10 @@ public class DistPcalTLAGen {
 			if (mp) {
 				/************************************************************
 				 * Bug fix by LL on 6 Sep 2007. Added parentheses to * change * * (*) \A self
-				 * \in NodeSet: ... /\ UNCHANGED vars * * to * * (**) (\A self \in ProcSet: ...)
+				 * \in ProcSet: ... /\ UNCHANGED vars * * to * * (**) (\A self \in ProcSet: ...)
 				 * /\ UNCHANGED vars * * thus moving the UNCHANGED vars outside the quantifier.
 				 * * Since self does not appear in UNCHANGED vars, the two * expressions are
-				 * equivalent except when NodeSet is the * empty set, in which case (*) equals
+				 * equivalent except when ProcSet is the * empty set, in which case (*) equals
 				 * TRUE and (**) equals * UNCHANGED vars. *
 				 ************************************************************/
 				/************************************************************
@@ -2791,7 +2791,7 @@ public class DistPcalTLAGen {
 				 * generate no (distinct) successor states instead, which * is perfectly correct
 				 * and easy to understand. *
 				 ************************************************************/
-				sb.append("/\\ \\A self \\in NodeSet : \\A thread \\in ThreadSet[self]: pc[self][thread] = \"Done\"");
+				sb.append("/\\ \\A self \\in ProcSet : \\A sub \\in SubProcSet[self]: pc[self][thread] = \"Done\"");
 				addOneLineOfTLA(sb.toString());
 				sb = new StringBuffer(NSpaces("Terminating == ".length()));
 				sb.append("/\\ UNCHANGED vars");
@@ -2820,13 +2820,13 @@ public class DistPcalTLAGen {
 		if (sb.length() > 0)
 			nextS.addElement(sb.toString());
 
-		// Steps with (self) from NodeSet
+		// Steps with (self) from ProcSet
 		// These are procedures in a multiprocess algorithm
 		Vector nextSS = new Vector();
 		//MODIFY HERE
-		String nextSSstart = "(\\E self \\in NodeSet: ";
+		String nextSSstart = "(\\E self \\in ProcSet: ";
 		sb = new StringBuffer();
-		max = wrapColumn - ("Next == \\/ (\\E self \\in NodeSet: \\/ ".length());
+		max = wrapColumn - ("Next == \\/ (\\E self \\in ProcSet: \\/ ".length());
 		if (mp && st.procs.size() > 0) {
 			for (int i = 0; i < st.procs.size(); i++) {
 				DistPcalSymTab.ProcedureEntry p = (DistPcalSymTab.ProcedureEntry) st.procs.elementAt(i);
@@ -3185,7 +3185,7 @@ public class DistPcalTLAGen {
 		StringBuffer sb = new StringBuffer();
 		sb.append("Termination == <>(");
 		if (mp)
-			sb.append("\\A self \\in NodeSet: \\A thread \\in ThreadSet[self] : pc[self][thread]");
+			sb.append("\\A self \\in ProcSet: \\A sub \\in SubProcSet[self] : pc[self][thread]");
 		else
 			sb.append("pc");
 		sb.append(" = \"Done\")");

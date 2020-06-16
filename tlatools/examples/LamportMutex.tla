@@ -91,9 +91,9 @@ VARIABLES clock, req, ack, sndr, msg
 
 vars == << network, pc, clock, req, ack, sndr, msg >>
 
-NodeSet == (Nodes)
+ProcSet == (Nodes)
 
-ThreadSet == [n \in NodeSet |-> 1..2]
+SubProcSet == [n \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
         /\ network = [n0 \in Nodes, n1 \in Nodes |-> <<>>]
@@ -103,7 +103,7 @@ Init == (* Global variables *)
         /\ ack = [self \in Nodes |-> {}]
         /\ sndr = [self \in Nodes |-> defaultInitValue]
         /\ msg = [self \in Nodes |-> defaultInitValue]
-        /\ pc = [self \in NodeSet |-> <<"p0","rcv">>]
+        /\ pc = [self \in ProcSet |-> <<"p0","rcv">>]
 
 p0(self) == /\ pc[self] [1] = "p0"
             /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p1"]]
@@ -179,7 +179,7 @@ Next == (\E self \in Nodes: n(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-36a73cff8974d64609a72552526687d8
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-13dd55fbf79a70a8b6a5b18b10ccc792
 
 StateConstraint == 
   /\ \A x \in Nodes : clock[x] < 4
