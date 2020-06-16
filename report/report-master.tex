@@ -7,10 +7,12 @@
 \documentclass{thesul}
 
 \usepackage{capt-of}
-\usepackage{lipsum}% just to generate text for the example
+%\usepackage{lipsum}% just to generate text for the example
 \usepackage{placeins}
 \usepackage[toc,page]{appendix}
 \usepackage{multirow}
+\usepackage{xspace}
+\usepackage{latexsym}
 
 \usepackage{listings}
 
@@ -21,7 +23,6 @@
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
 \definecolor{orange}{rgb}{1.0,0.49,0.0}
-
 
 \lstset{frame=single,
   language={Java},
@@ -40,10 +41,61 @@
   morecomment=[l]{\\*},
   morekeywords={fair}
 }
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
 
+\newcommand{\tlaplus}{TLA\textsuperscript{+}\xspace}
+\newcommand{\EXCEPT}{\textsc{except}}
 
+%% make TeX use text italic font in math environments
+\makeatletter
+\newcounter{abr@ctr}
+\newcommand{\abr@c}{\c@abr@ctr\advance\c@abr@ctr\@ne}
 
-%-------------------------------------------------------------------
+\DeclareSymbolFont{tlaitalics}{\encodingdefault}{cmr}{m}{it}
+\let\itfam\symtlaitalics
+
+\newcommand{\noTeXmath}{%
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7061\relax
+\mathcode`a=\abr@c\mathcode`b=\abr@c\mathcode`c=\abr@c\mathcode`d=\abr@c
+\mathcode`e=\abr@c\mathcode`f=\abr@c\mathcode`g=\abr@c\mathcode`h=\abr@c
+\mathcode`i=\abr@c\mathcode`j=\abr@c\mathcode`k=\abr@c\mathcode`l=\abr@c
+\mathcode`m=\abr@c\mathcode`n=\abr@c\mathcode`o=\abr@c\mathcode`p=\abr@c
+\mathcode`q=\abr@c\mathcode`r=\abr@c\mathcode`s=\abr@c\mathcode`t=\abr@c
+\mathcode`u=\abr@c\mathcode`v=\abr@c\mathcode`w=\abr@c\mathcode`x=\abr@c
+\mathcode`y=\abr@c\mathcode`z=\abr@c
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7041\relax
+\mathcode`A=\abr@c\mathcode`B=\abr@c\mathcode`C=\abr@c\mathcode`D=\abr@c
+\mathcode`E=\abr@c\mathcode`F=\abr@c\mathcode`G=\abr@c\mathcode`H=\abr@c
+\mathcode`I=\abr@c\mathcode`J=\abr@c\mathcode`K=\abr@c\mathcode`L=\abr@c
+\mathcode`M=\abr@c\mathcode`N=\abr@c\mathcode`O=\abr@c\mathcode`P=\abr@c
+\mathcode`Q=\abr@c\mathcode`R=\abr@c\mathcode`S=\abr@c\mathcode`T=\abr@c
+\mathcode`U=\abr@c\mathcode`V=\abr@c\mathcode`W=\abr@c\mathcode`X=\abr@c
+\mathcode`Y=\abr@c\mathcode`Z=\abr@c}
+
+\newcommand{\TeXmath}{%
+\mathcode`a="7161\mathcode`b="7162\mathcode`c="7163\mathcode`d="7164%
+\mathcode`e="7165\mathcode`f="7166\mathcode`g="7167\mathcode`h="7168%
+\mathcode`i="7169\mathcode`j="716A\mathcode`k="716B\mathcode`l="716C%
+\mathcode`m="716D\mathcode`n="716E\mathcode`o="716F\mathcode`p="7170%
+\mathcode`q="7171\mathcode`r="7172\mathcode`s="7173\mathcode`t="7174%
+\mathcode`u="7175\mathcode`v="7176\mathcode`w="7177\mathcode`x="7178%
+\mathcode`y="7179\mathcode`z="717A\mathcode`A="7141\mathcode`B="7142%
+\mathcode`C="7143\mathcode`D="7144\mathcode`E="7145\mathcode`F="7146%
+\mathcode`G="7147\mathcode`H="7148\mathcode`I="7149\mathcode`J="714A%
+\mathcode`K="714B\mathcode`L="714C\mathcode`M="714D\mathcode`N="714E%
+\mathcode`O="714F\mathcode`P="7150\mathcode`Q="7151\mathcode`R="7152%
+\mathcode`S="7153\mathcode`T="7154\mathcode`U="7155\mathcode`V="7156%
+\mathcode`W="7157\mathcode`X="7158\mathcode`Y="7159\mathcode`Z="715A}
+
+\noTeXmath
+\makeatother
+
+% -------------------------------------------------------------------
 %                         Les références
 %-------------------------------------------------------------------
 
@@ -146,9 +198,69 @@ qui fut la première de toutes.
 %%============================
 
 This chapter is an overview of TLA+ and PlusCal.
-\section{TLA+}
+\section{\tlaplus}
 %%============================
 
+\tlaplus is a formal specification language in which algorithms and systems can be described at a high level of abstraction and can be formally verified using the model checker TLC or the interactive proof assistant TLAPS. \tlaplus is based on mathematical set theory for describing data structures in terms of sets and functions, and on the Temporal Logic of Actions TLA for specifying their executions as state machines. \tlaplus specifications usually have the form
+\[
+  Init \land \Box[Next]_{vars} \land L
+\]
+where $Init$ is a predicate describing the possible initial states, $Next$ is a predicate that constrains the possible state transitions, $vars$ is the tuple of all state variables that appear in the specification, and $L$ is a liveness or fairness property expressed as a formula of temporal logic. Transition formulas such as $Next$, also called \emph{actions}, are at the core of \tlaplus, and represent instantaneous state changes. They contain unprimed state variables denoting the value of the variable before the transition as well as primed state variables that denote the value after the transition.
+
+\begin{figure}
+\begin{lstlisting}% [caption = A memory specification in \tlaplus., frame = tlrb, firstnumber =  1,label=memory-tla]
+
+---------------------------- MODULE SimpleMemory ----------------------------
+CONSTANTS Address, Value, InitValue, NoValue
+
+ASSUME 
+  /\ InitValue \in Value
+  /\ NoValue \notin Value
+
+VARIABLES chan, mem
+
+\* initial condition
+Init == 
+  /\ chan = NoValue
+  /\ mem = [a \in Address |-> InitValue]
+
+\* transitions: reading and writing
+Read(a) == 
+  /\ chan' = mem[a]
+  /\ mem' = mem
+
+Write(a,v) ==
+  /\ mem' = [mem EXCEPT ![a] = v]
+  /\ chan' = NoValue
+
+Next ==
+  \/ \E a \in Address : Read(a)
+  \/ \E a \in Address, v \in Value : Write(a,v)
+
+\* overall specification
+Spec == Init /\ [][Next]_<<chan,mem>>
+
+\* predicate specifying type correctness
+TypeOK == 
+  /\ chan \in Value \cup {NoValue}
+  /\ mem \in [Address -> Value] 
+=============================================================================
+\end{lstlisting}
+\caption{A memory specification in \tlaplus.}
+\label{memory-tla}
+\end{figure}
+
+For example, figure~\ref{memory-tla} shows a \tlaplus specification of a simple memory. It declares four constant parameters $Address$, $Value$, $InitValue$, and $NoValue$, and states a hypothesis on the values that these parameters can be instantiated with. The state space of the specification is represented by the two variables $chan$ and $mem$. Intuitively, $mem$ holds the current memory, whereas $chan$ is an output channel that reflects the result of the preceding operation.
+
+The remainder of the \tlaplus module contains operator definitions that represent parts of the specification and of correctness properties. The state predicate $Init$ fixes the initial values of the two variables. The actions $Read(a)$ and $Write(a,v)$ represent reading the value at memory address $a$ and writing value $v$ to memory address $a$, respectively. In this specification, the memory is modeled as a function mapping addresses to values. The \tlaplus expression $[x \in S \mapsto e]$ denotes the function with domain $S$ such that every element $x$ of $S$ is mapped to $e$. This is reminiscent of a $\lambda$-expression but also makes explicit the domain of the function. Function application $f[x]$ is written using square brackets. Finally, the expression $[f\ \EXCEPT\ ![x] = e]$ denotes the function that is similar to $f$, except that argument $x$ is mapped to $e$, one can think of it as a function overwrite.
+
+The action $Next$ defines the possible state transitions as the disjunction of $Read$ and $Write$ actions, and $Spec$ represents the overall specification of the memory.
+
+\tlaplus is an untyped language. Type correctness can be verified as a property of the specification. For our example, the predicate $TypeOK$ indicates the possible values that the variables $chan$ and $mem$ are expected to hold at any state of the specification. Formally, the implication $Spec \Rightarrow \Box TypeOK$ can be established as a theorem.
+
+\bigskip
+
+%%% previous text starts here
 TLA+ is a formal specification language, that is designed to model digital systems, and verify them using tools like the TLC model checker.
 
 The models are above the code level, they can be considered a part of the design phase, they are less concerned with the implementation details and are used to describe the possible executions of a system abstractly.

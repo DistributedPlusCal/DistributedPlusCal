@@ -1696,7 +1696,7 @@
      }
 \newcommand{\TUL}{{\normalfont\textsf{thesul}}}
 \errorcontextlines5
-\newcommand\@removefromreset[2]{\let\@tempb\@elt
+\renewcommand\@removefromreset[2]{\let\@tempb\@elt
    \def\@tempa#1{@&#1}\expandafter\let\csname @*#1*\endcsname\@tempa
    \def\@elt##1{\expandafter\ifx\csname @*##1*\endcsname\@tempa\else
                 \noexpand\@elt{##1}\fi}%
