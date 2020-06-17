@@ -39,7 +39,7 @@
   breakatwhitespace=true,
   tabsize=1,
   morecomment=[l]{\\*},
-  morekeywords={fair}
+  morekeywords={fair, process, macro, procedure, define, algorithm, variables}
 }
 \renewcommand{\floatpagefraction}{.99}
 \renewcommand{\textfraction}{.01}
@@ -93,6 +93,14 @@
 \mathcode`W="7157\mathcode`X="7158\mathcode`Y="7159\mathcode`Z="715A}
 
 \noTeXmath
+\makeatother
+
+\makeatletter
+\newcommand*{\centerfloat}{%
+  \parindent \z@
+  \leftskip \z@ \@plus 1fil \@minus \textwidth
+  \rightskip\leftskip
+  \parfillskip \z@skip}
 \makeatother
 
 % -------------------------------------------------------------------
@@ -189,6 +197,16 @@ qui fut la première de toutes.
 
 - Model checking is a verification method that is automatic and model-based(system is represented by a model, a specification is represented as a formula and we check whether the model satisfies the formula ==> if not we have counter models), it is intended to be used for concurrent systems.
 
+- The purpose of a modeling language is to describe what a system must perform,
+not how a system must perform.
+- the users of these modeling languages are algorithm designers who
+are responsible for describing the functionality of the system in terms of algorithms
+before actual implementation. Thus, these languages should be simple so that the
+users can learn and use the language constructs easily.
+
+- PlusCal language by Leslie Lamport provides simple pseudo-code like interface
+for the user to express concurrent systems.
+
 - distributed system bugs are difficult to find by testing, they tend to be non-reproducible or not covered by test-cases.
 
 - TLA+
@@ -260,148 +278,199 @@ The action $Next$ defines the possible state transitions as the disjunction of $
 
 \bigskip
 
-%%% previous text starts here
-TLA+ is a formal specification language, that is designed to model digital systems, and verify them using tools like the TLC model checker.
-
-The models are above the code level, they can be considered a part of the design phase, they are less concerned with the implementation details and are used to describe the possible executions of a system abstractly.
-
-The importance of modeling systems specially concurrent and distributed systems is to make sure everything is working properly, working properly differs based on the system mentioned but it always means satisfying certain properties on individual executions, let's assume that by working properly we mean that the system should perform a certain task and generate a certain output, we can check that on some executions however, by using TLA+ we can check these properties on every possible execution.
- 
 \hfill\\
-TLA+ revolves around thinking abstractly about the algorithm that we want to model, it uses state machines to describe the systems, TLA+ achieves this by considering the system to be a sequence of steps, where is a step is a change from one state to the next. TLA+ describes a state as an assignment of values to variables.
-
-TLA+ uses state machines to achieve abstraction, where a state machine is described by defining the variables, the possible initialization values for the variables, the relation between their values and the current state as well as their possible values in the following state, where a state is the assignment of values to variables.
-
-\hfill\\
-The listing 2.1 is the Semaphores example in TLA+, Semaphores are integer variables that are used to solve the critical section problem.
-
-\hfill\\
-Some of the keywords used in the example are \textit{EXTENDS} at line 5 which is used to import a TLA+ standard library,  \textit{VARIABLES} at line 12 defines our variables as they must be defined before they are used, \textit{CONSTANT} is used to define constants that are substituted for during modeling, constants maintain the same value through every execution.
-\hfill\\
-
-\textit{ProcSet} at line 16 is a set with the number of processes. \textit{Init} at line 19 initializes the defined variables.
-
-\textit{start, enter, cs, exit} are our actions or steps, they are the states where we assign values to our variables, they are represented as a TLA+ conjunction because a state is a formula rather than a sequence of commands.
-
-\hfill\\
-The variable \textit{pc} is defined and used as a program control variable to represent the control state, its main job is to handle the navigation from one action to the other, for example at line 35 it is used to check if the the \textit{pc} variable value is "cs" and that the next value for the \textit{pc} variable is "exit". Specifying the next value to be given to a variable is done by using the primed version of a variable, for example the next value for the variable \textit{pc} is \textit{pc'}.
-
-\hfill\\
-The \textit{EXCEPT} construct used in the next state value of a variable is provided by TLA+, since \textit{pc} for example is a function whose domain consists of the elements of \textit{ProcSet} and range is initially "start" for all, then \textit{pc'= [pc EXCEPT ![self] = "exit"]} is a way of saying that we want to modify the function pc where the domain value is \textit{[self]} to take the range value "exit" and leave the values for the other domain entries unchanged, which can also be written as
-
-[x $\in$ DOMAIN pc $\longmapsto$ if x = self then "exit" else pc[x]].
-\hfill\\
-
-\textit{Spec} is a conjunction of the initial predicate \textit{Init} and the next-state relation \textit{Next}. The \textit{[][Next]\_{vars}} at line 50 means that the transition is described by either \textit{Next} or the values of \textit{sem} and \textit{pc} are unchanged which is known as a stuttering step.
-
-\begin{lstlisting}[caption = SemaphoreMutex in TLA+, frame = tlrb, firstnumber = 1]
-
----------------------------- MODULE SemaphoreMutex ----------------------------
-
-EXTENDS Naturals \* Import operators
-
-CONSTANT N \* Value of N is the same through every behaviour
-
-ASSUME N \in Nat
-
-\* BEGIN TRANSLATION
-VARIABLES sem, pc \* Define the varibales
-
-vars == << sem, pc >> \* Sequence of variables
-
-ProcSet == (1..N) \* Number of Processes
-
-\* Possible Initialization for variables
-Init == (* Global variables *) 
-        /\ sem = 1
-        /\ pc = [self \in ProcSet |-> "start"]
-
-\* algorithm starting point, set next step to "enter"
-start(self) == /\ pc[self] = "start"
-            /\ pc' = [pc EXCEPT ![self] = "enter"]
-            /\ /\ UNCHANGED sem \* sem' = sem
-
-\* in this step prepare to enter cs, next value of sem will be sem - 1
-enter(self) == /\ pc[self] = "enter"
-               /\ (sem > 0)
-               /\ sem' = sem - 1
-               /\ pc' = [pc EXCEPT ![self] = "cs"]
-
-\* cs step, next step is to go to "exit" step
-cs(self) == /\ pc[self] = "cs"
-            /\ pc' = [pc EXCEPT ![self] = "exit"]
-            /\ /\ UNCHANGED sem \*sem' = sem
-
-\* set next value of sem to sem + 1 and next step to "start" again
-exit(self) == /\ pc[self] = "exit"
-              /\ sem' = sem + 1
-              /\ pc' = [pc EXCEPT ![self] = "st"]
-
-\* a disconjunction of the possible steps
-p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
-
-\* a next state is possible for at least one process
-Next == (\E self \in 1..N: p(self))
-
-Spec == Init /\ [][Next]_vars
-
-\* END TRANSLATION
-=============================================================================
-
-\end{lstlisting}
 
 For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
 
 \section{PlusCal algorithm language}
 %%============================
 
-PlusCal is a language used for writing algorithms, algorithm languages are responsible for describing algorithms rather than programs, the distinction here is that an algorithm is the program without an actual implementation.
+\tlaplus is a specification formalism not a programming language, in order for a user to incorporate it properly the user must possess knowledge about mathematical set theory, this is uncustomary among users who write programs and algorithms, Thus PlusCal was proposed to accompany TLA+, for the reason that PlusCal used conventional program constructs.
 
-An algorithm language is used to focus on the aspects of the algorithm like data manipulation rather than irrelevant and distracting details such as programming-language objects and data structures.
+An algorithm language is used to focus on aspects of the algorithm such as data manipulation rather than irrelevant and distracting details that involve programming-language objects and data structures.
 
-PlusCal can be used to describe both concurrent and sequential algorithms, it is based on TLA+ specification language, it was initially introduced to accompany TLA+ since TLA+ syntax may seem unfamiliar to most users, this enabled users to express their algorithms using a more familiar syntax. A PlusCal expression can be any TLA+ expression which make PlusCal more powerful and expressive than most algorithm languages like pseudo-code. 
+PlusCal is an algorithm language that describes both concurrent and sequential algorithms, it maintains the powerful expressiveness of \tlaplus as well as representing atomicity conveniently.
 
-The TLA+ Toolbox can be used to translate PlusCal to the corresponding TLA+ code that is needed to check for the algorithm's correctness through the TLC model checker.
+The TLA+ Toolbox provides a platform where algorithm designers can model their algorithms using PlusCal, translate them to the corresponding TLA+ specifications and check for the algorithm's correctness through the TLC model checker.
 
-\hfill\\
-PlusCal offers two syntax styles one called c-syntax resembling c programming style and a clearer but longer p-syntax(p for pascal), we can find many familiar constructs like \textit{if} statements and \textit{while} statements. A language manual is available on the PlusCal Web site for both syntaxes.
+A PlusCal algorithm is located in a comment statement within the tla file, the general structure of a PlusCal algorithm is shown in Figure \ref{pluscal-struct}.
 
-PlusCal statements are placed within labels, labels are used to indicate atomicity between statements, where an atomic step starts at a label and ends at the next label, these atomic steps are translated into actions in TLA+.
+\begin{figure}[!h]
+\begin{lstlisting}% [caption = General structure of a PlusCal algorithm, frame = tlrb, firstnumber =  1,label=pluscal-struct]
 
-The specification 2.2 below is for the Semaphores example we discussed earlier, the PlusCal algorithm is placed inside a comment within the tla file, denoted by \textit{--algorithm} before the name of the algorithm at line 2. The TLA+ translation of this example is in listing 2.1.
+(* algorithm <algorithm name>
+
+(* Declaration section *)
+variables <variable declarations>
+
+(* Definition section *)
+define <definition name> == <definition description>
+
+(* Macro section *)
+macro <name>(var1, ...)
+ <macro-body of statements>
+
+(* Procedure section *)
+procedure <name>(arg1, ...)
+ variables <local variable declarations>
+ <procedure body of statements>
+
+(* Processes section *)
+process (<name> [=|\in] <Expr>))
+  variables <variable declarations>
+  <process body of statements>
+
+
+***********************)
+
+\end{lstlisting}
+\caption{General structure of a PlusCal algorithm}
+\label{pluscal-struct}
+\end{figure}
+
+The \textbf{Declaration section} is where the user declares global variables that are shared among all the components of the algorithm. The \textbf{Definition section} allows the user to write TLA+ definitions of operators that depend on the algorithm's global variables.
+The \textbf{Macro section} holds macros whose bodies are expanded at translation time incorporating the parameters passed from the calling statement, macros have the same expansion behavior as C pre-processing macros. \textbf{Procedure} in PlusCal take a number of arguments, can define their own local variables and can modify the global variables, however they have no return value.A \textbf{Process} begins in one of two ways: 
+\begin{center}
+$process (ProcName \in IdSet)$ \\
+$process (ProcName = Id)$
+
+\end{center}
+
+The first form begins a process set, the second an individual process. these statements are optionally followed by declaration of local variables. The process body is a sequence of statements, Within the body of a process set, $self$ equals the current process's identifier.
+
+All PlusCal statements must be within a label, where statements within the same label are executed atomically.
+PlusCal enforces a strict ordering of its blocks. The define block has to come before any macros, which has to come before any procedures, which has to come before any processes. The full grammar of the PlusCal algorithm language can be found at appendix A of the PlusCal manual[\cite{pcalAlgo}].
+
+The Figure \ref{semaphoreEx} shows the modeling of a semaphore mutex example in PlusCal, Semaphores are integer variables that are used to solve the critical section problem.
  
-\begin{lstlisting}[caption = PlusCal, frame = tlrb, firstnumber = 1]
-(**********************
+\begin{figure}[!h]
+
+\begin{lstlisting}[frame = tlrb, firstnumber = 1]
+(*
 --algorithm SemaphoreMutex{
 variables sem = 1;
 
 process(p \in 1..N)
 {
  start : while (TRUE){
-         enter : when (sem > 0);
+            enter : when (sem > 0);
                  sem := sem - 1;            
             cs    : skip ;
             exit  : sem := sem + 1 ;
         }
  }
 }
-***********************)
+*)
 
 \end{lstlisting}
- 
+\caption{Semaphore mutex example in PlusCal}
+\label{semaphoreEx}
+\end{figure} 
 \hfill\\
 
+\textbf{The translation process} is carried out by the compiler  expecting the structure we described as well as some semantic rules, for instance the first statement of any process or procedure as this statement marks the starting point of that entity, and macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
+
+The compiler generates the translation by carrying on the following tasks:
+\begin{enumerate}
+
+\item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
+
+\begin{figure}[!h]
+\begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
+\* BEGIN TRANSLATION
+VARIABLES sem, pc
+
+vars == << sem, pc >>
+
+\end{lstlisting}
+\caption{Translation of definitions and variables}
+\label{genDefAndVar}
+\end{figure} 
+
+\item Generate $ProcSet$ which is a set that contains all the process identifiers.
+
+\begin{figure}[!h]
+\begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
+ProcSet == (1..N)
+
+\end{lstlisting}
+\caption{Generate $ProcSet$}
+\label{GenProcSet}
+\end{figure} 
+
+\item  Generate $Init$, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
+The translator produces a variable $pc$ that is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the predicate that represents the entry point of execution for the process.
+
+\begin{figure}[!h]
+\begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
+Init == (* Global variables *)
+        /\ sem = 1
+        /\ pc = [self \in ProcSet |-> "st"]
+
+\end{lstlisting}
+
+\caption{Generate $Init$}
+\label{GenInit}
+\end{figure} 
+
+
+\item Define a \tlaplus action for each atomic operation of the algorithm. In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
+The definition is parameterized by the identifier self ,
+which represents the current process’s identifier.
+The $pc$ variable is used to indicate the navigation between the actions for a process.
+
+\begin{figure}[!h]
+\centering
+\begin{lstlisting}[frame = tlrb, firstnumber = 1]
+st(self) == /\ pc[self] = "st"
+            /\ pc' = [pc EXCEPT ![self] = "enter"]
+            /\ UNCHANGED sem
+
+enter(self) == /\ pc[self] = "enter"
+               /\ (sem > 0)
+               /\ sem' = sem - 1
+               /\ pc' = [pc EXCEPT ![self] = "cs"]
+
+cs(self) == /\ pc[self] = "cs"
+            /\ TRUE
+            /\ pc' = [pc EXCEPT ![self] = "exit"]
+            /\ UNCHANGED sem
+
+exit(self) == /\ pc[self] = "exit"
+              /\ sem' = sem + 1
+              /\ pc' = [pc EXCEPT ![self] = "st"]
+              
+p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
+
+\end{lstlisting}
+\caption{Translation of PlusCal labels into TLA+}
+\label{GenActions}
+\end{figure} 
+
+\item Generate the next-state action $Next$ and the complete specification $Spec$.
+
+\begin{figure}[!h]
+\begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
+Next == (\E self \in 1..N: p(self))
+
+Spec == Init /\ [][Next]_vars
+
+\end{lstlisting}
+
+\caption{Generate $Next$ and $Spec$}
+\label{GenNextSpec}
+\end{figure} 
+
+\end{enumerate}
 
 \hfill\\
-The overall translation strategy is explained here \cite{pcalAlgo}.
-
-// maybe mention procedures and macros
- 
+The overall translation strategy can be found \cite{pcalAlgo}.
 
 \chapter{Related work}
 %%============================
 
-There have been other PlusCal extensions, we will be mentioning \ref{PGO}, a tool represented as a part of a master thesis, it aims to produce an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
+- pluscal extensions for generation code to make sure thatverified spec isn't lost while being implemented
+- \ref{PGO} a tool represented as a part of a master thesis, it aims to produce an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
 
 \section{PGO}
 
@@ -419,7 +488,7 @@ Modular PlusCal introduced Architypes, Mapping Macros, and Instances to achieve 
 
 \paragraph{\textbf{Architypes}}
 \hfill\\
-They are considered to be the blue print of a PlusCal process, they are used to specify the system behaviours. They have the same semantics except for the inability to access global variables unless passed to the architypes as arguments.
+They are considered to be the blue print of a PlusCal process, they are used to specify the system behaviors. They have the same semantics except for the inability to access global variables unless passed to the architypes as arguments.
 
 Using the \textit{ref} keyword before a global variable that is sent as an argument lets us know that this architype can modify it.
 
