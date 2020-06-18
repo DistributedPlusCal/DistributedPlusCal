@@ -419,7 +419,8 @@ Init == (* Global variables *)
 \end{figure} 
 \FloatBarrier
 
-\item Define a \tlaplus action for each atomic operation of the algorithm. In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
+\item Transform PlusCal labels into \tlaplus actions where an action is the TLA+ representation of the atomic operation beginning at that label. 
+In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
 The definition is parameterized by the identifier self ,
 which represents the current process’s identifier.
 The $pc$ variable is used to indicate the navigation between the actions for a process.
@@ -521,7 +522,7 @@ instantiates a process or a group of processes using the specified architype, ea
 
 Distributed PlusCal is an extension of PlusCal, they are algorithm languages meant for writing algorithms not programs. they are both translated to TLA+. 
 
-Since distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level, and TLA+ provides a flexibility and an expressiveness that makes it able to specify and verify those algorithms. One of the popular examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
+Distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level, and TLA+ provides a flexibility and an expressiveness that makes it able to specify and verify those algorithms. One of the popular examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
 Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we wanted a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms such as sub-processes and communication channels.
 
