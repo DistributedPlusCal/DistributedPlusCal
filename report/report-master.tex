@@ -278,7 +278,6 @@ The action $Next$ defines the possible state transitions as the disjunction of $
 
 \bigskip
 
-\hfill\\
 
 For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
 
@@ -336,15 +335,15 @@ $process (ProcName = Id)$
 
 \end{center}
 
-The first form begins a process set, the second an individual process. these statements are optionally followed by declaration of local variables. The process body is a sequence of statements, Within the body of a process set, $self$ equals the current process's identifier.
+The first form begins a process set, the second an individual process. these statements are optionally followed by declaration of local variables. The process body is a sequence of statements, within the body of a process set, $self$ equals the current process's identifier.
 
 All PlusCal statements must be within a label, where statements within the same label are executed atomically.
 PlusCal enforces a strict ordering of its blocks. The define block has to come before any macros, which has to come before any procedures, which has to come before any processes. The full grammar of the PlusCal algorithm language can be found at appendix A of the PlusCal manual[\cite{pcalAlgo}].
 
 The Figure \ref{semaphoreEx} shows the modeling of a semaphore mutex example in PlusCal, Semaphores are integer variables that are used to solve the critical section problem.
- 
-\begin{figure}[!h]
 
+\FloatBarrier 
+\begin{figure}
 \begin{lstlisting}[frame = tlrb, firstnumber = 1]
 (*
 --algorithm SemaphoreMutex{
@@ -366,15 +365,17 @@ process(p \in 1..N)
 \caption{Semaphore mutex example in PlusCal}
 \label{semaphoreEx}
 \end{figure} 
+\FloatBarrier
 \hfill\\
 
-\textbf{The translation process} is carried out by the compiler  expecting the structure we described as well as some semantic rules, for instance the first statement of any process or procedure as this statement marks the starting point of that entity, and macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
+\textbf{The translation process} is carried out by the compiler  expecting the structure we described as well as some semantic rules, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, and macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
 
-The compiler generates the translation by carrying on the following tasks:
+The translator parses the PlusCal algorithm and generates a translation by carrying on the following tasks:
 \begin{enumerate}
 
 \item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
 
+\FloatBarrier
 \begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 \* BEGIN TRANSLATION
@@ -386,9 +387,11 @@ vars == << sem, pc >>
 \caption{Translation of definitions and variables}
 \label{genDefAndVar}
 \end{figure} 
+\FloatBarrier
 
 \item Generate $ProcSet$ which is a set that contains all the process identifiers.
 
+\FloatBarrier
 \begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 ProcSet == (1..N)
@@ -397,10 +400,12 @@ ProcSet == (1..N)
 \caption{Generate $ProcSet$}
 \label{GenProcSet}
 \end{figure} 
+\FloatBarrier
 
 \item  Generate $Init$, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
 The translator produces a variable $pc$ that is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the predicate that represents the entry point of execution for the process.
 
+\FloatBarrier
 \begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 Init == (* Global variables *)
@@ -412,13 +417,14 @@ Init == (* Global variables *)
 \caption{Generate $Init$}
 \label{GenInit}
 \end{figure} 
-
+\FloatBarrier
 
 \item Define a \tlaplus action for each atomic operation of the algorithm. In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
 The definition is parameterized by the identifier self ,
 which represents the current process’s identifier.
 The $pc$ variable is used to indicate the navigation between the actions for a process.
 
+\FloatBarrier
 \begin{figure}[!h]
 \centering
 \begin{lstlisting}[frame = tlrb, firstnumber = 1]
@@ -446,9 +452,11 @@ p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
 \caption{Translation of PlusCal labels into TLA+}
 \label{GenActions}
 \end{figure} 
+\FloatBarrier
 
 \item Generate the next-state action $Next$ and the complete specification $Spec$.
 
+\FloatBarrier
 \begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 Next == (\E self \in 1..N: p(self))
@@ -460,6 +468,7 @@ Spec == Init /\ [][Next]_vars
 \caption{Generate $Next$ and $Spec$}
 \label{GenNextSpec}
 \end{figure} 
+\FloatBarrier
 
 \end{enumerate}
 
@@ -518,26 +527,6 @@ Our motivations for creating Disrtibuted PlusCal are quite similar to the motiva
 
 Since we extended the existing PluCal translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own which can be found in the figure below.
 
-\begin{figure}[!h]
-
-$\langle$ Process $\rangle$ $\models$ \textit{process} ($\langle$ variable decleration $\rangle$)$\langle$ local-variables $\rangle$ 
-$\langle$ body $\rangle$\{$\langle$ body $\rangle$\}
-
-$\langle$ local-variables $\rangle$ $\models$ \O  
-|\textit{variables} $\langle$declaration-list$\rangle$ 
-|\textit{channels} $\langle$declaration-list$\rangle$ 
-|\textit{FIFOs} $\langle$declaration-list$\rangle$ 
-
-$\langle$ declaration-list $\rangle$ $\models$ 
-$\langle$ variable-declaration $\rangle$ | 
-$\langle$ variable-declaration $\rangle$, $\langle$ decleration-list$\rangle$
-
-$\langle$ body $\rangle$ $\models$ 
-$\langle$ labeled-statement-list $\rangle$
-
-\caption{Grammar for Distributed PlusCal}
-
-\end{figure}
 
 \hfill\\
 In the sections that follow we will be explaining what we implemented, why it is needed and how it is translated into TLA+, for this we will be doing a walk-through on the two phase commit example, the two phase commit is a protocol used for distributed transactions that consist of multiple operations, performed at multiple sites, the goal of it is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well and the transaction is rolled back, and in order to actually commit all elements must agree and be able to commit.
