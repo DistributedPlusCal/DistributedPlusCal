@@ -287,20 +287,20 @@ For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
 \section{PlusCal algorithm language}
 %%============================
 
-\tlaplus is a specification formalism not a programming language, it uses expressions that might appear unfamiliar to most programmers, Thus PlusCal was proposed to accompany TLA+, for the reason that PlusCal used conventional program constructs.
+\tlaplus is a specification formalism not a programming language. It relies on mathematical logic and formulas for structuring specifications, which may discourage programmers from using it. PlusCal~\cite{pcalAlgo} was designed as an algorithm language with a more familiar syntax that can be translated into \tlaplus specifications and then be verified using the familiar \tlaplus tools.
 
 An algorithm language is used to focus on aspects of the algorithm such as data manipulation rather than irrelevant and distracting details that involve programming-language objects and data structures.
 
-PlusCal is an algorithm language that describes both concurrent and sequential algorithms, it maintains the powerful expressiveness of \tlaplus as well as representing atomicity conveniently.
+PlusCal is an algorithm language that describes both concurrent and sequential algorithms, it maintains the expressiveness of \tlaplus as well as representing atomicity conveniently.
 
-The TLA+ Toolbox provides a platform where algorithm designers can model their algorithms using PlusCal, translate them to the corresponding TLA+ specifications and check for the algorithm's correctness through the TLC model checker.
+The TLA+ Toolbox provides a platform where algorithm designers can model their algorithms using PlusCal, translate them to the corresponding \tlaplus specifications and check for the algorithm's correctness through the TLC model checker.
 
-A PlusCal algorithm is located in a comment statement within the tla file, the general structure of a PlusCal algorithm is shown in Figure \ref{pluscal-struct}.
+A PlusCal algorithm is located in a comment statement within the \tlaplus module. The general structure of a PlusCal algorithm is shown in Figure \ref{pluscal-struct}.
 
 \begin{figure}[!h]
 \begin{lstlisting}% [caption = General structure of a PlusCal algorithm, frame = tlrb, firstnumber =  1,label=pluscal-struct]
 
-(* algorithm <algorithm name>
+(** algorithm <algorithm name>
 
 (* Declaration section *)
 variables <variable declarations>
@@ -310,7 +310,7 @@ define <definition name> == <definition description>
 
 (* Macro section *)
 macro <name>(var1, ...)
- <macro-body of statements>
+ <macro body of statements>
 
 (* Procedure section *)
 procedure <name>(arg1, ...)
@@ -318,49 +318,47 @@ procedure <name>(arg1, ...)
  <procedure body of statements>
 
 (* Processes section *)
-process (<name> [=|\in] <Expr>))
+process (<name> [=|\in] <expr>))
   variables <variable declarations>
   <process body of statements>
 
-
-***********************)
+**)
 
 \end{lstlisting}
 \caption{General structure of a PlusCal algorithm}
 \label{pluscal-struct}
 \end{figure}
 
-The \textbf{Declaration section} is where the user declares global variables that are shared among all the components of the algorithm. The \textbf{Definition section} allows the user to write TLA+ definitions of operators that depend on the algorithm's global variables.
-The \textbf{Macro section} holds macros whose bodies are expanded at translation time incorporating the parameters passed from the calling statement, macros have the same expansion behavior as C pre-processing macros. \textbf{Procedure} in PlusCal take a number of arguments, can define their own local variables and can modify the global variables, however they have no return value.A \textbf{Process} begins in one of two ways: 
+The \textbf{Declaration section} is where the user declares global variables that are shared among all the components of the algorithm. The \textbf{Definition section} allows the user to write TLA+ definitions of operators that may refer to the algorithm's global variables.
+The \textbf{Macro section} holds macros whose bodies are expanded at translation time incorporating the parameters passed from the calling statement, similar to the expansion of C pre-processing macros. A \textbf{procedure} in PlusCal take a number of arguments, can declare local variables, and can modify the global variables; it does not return a result. A \textbf{process} begins in one of two ways: 
 \begin{center}
 $process (ProcName \in IdSet)$ \\
 $process (ProcName = Id)$
-
 \end{center}
 
-The first form begins a process set, the second an individual process. these statements are optionally followed by declaration of local variables. The process body is a sequence of statements, within the body of a process set, $self$ equals the current process's identifier.
+The first form declares a set of processes, the second an individual process. these statements are optionally followed by declarations of local variables. The process body is a sequence of statements, within the body of a process set, $self$ equals the current process's identifier.
 
-All PlusCal statements must be within a label, where statements within the same label are executed atomically.
-PlusCal enforces a strict ordering of its blocks. The define block has to come before any macros, which has to come before any procedures, which has to come before any processes. The full grammar of the PlusCal algorithm language can be found at appendix A of the PlusCal manual[\cite{pcalAlgo}].
+Procedure and process bodies may contain labels. All PlusCal statements appearing between two labels are executed atomically, and certain rules determine where labels must and may not appear.
+PlusCal enforces a strict ordering of its blocks. The define block has to come before any macros, which has to come before any procedures, which has to come before any processes. The full grammar of the PlusCal algorithm language can be found in appendix A of the PlusCal manual~\cite{pcalAlgo}.
 
-The Figure \ref{semaphoreEx} shows the modeling of a semaphore mutex example in PlusCal, Semaphores are integer variables that are used to solve the critical section problem.
+Figure \ref{semaphoreEx} shows the modeling of a semaphore mutex example in PlusCal, Semaphores are integer variables that are used to solve the critical section problem.
 
 \FloatBarrier 
 \begin{figure}
 \begin{lstlisting}[frame = tlrb, firstnumber = 1]
 (*
---algorithm SemaphoreMutex{
+--algorithm SemaphoreMutex {
 variables sem = 1;
 
-process(p \in 1..N)
-{
- start : while (TRUE){
-            enter : when (sem > 0);
-                 sem := sem - 1;            
-            cs    : skip ;
-            exit  : sem := sem + 1 ;
-        }
- }
+  process(p \in 1..N)
+  {
+  start : while (TRUE){
+  enter :    when (sem > 0);
+                  sem := sem - 1;            
+  cs :       skip ;
+  exit :     sem := sem + 1 ;
+          }
+  }
 }
 *)
 
@@ -368,19 +366,20 @@ process(p \in 1..N)
 \caption{Semaphore mutex example in PlusCal}
 \label{semaphoreEx}
 \end{figure} 
-\FloatBarrier
-\hfill\\
+%\FloatBarrier
 
-\textbf{The translation process} is carried out by the compiler  expecting the structure we described. Semantic rules are also expected, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
+\paragraph{Translation to \tlaplus.}
+The PlusCal translator expects as input a PlusCal algorithm following the structure described previously.
+% \textbf{The translation process} is carried out by the compiler expecting the structure we described. Semantic rules are also expected, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
+%
+% The translator
+It parses the PlusCal algorithm and generates the corresponding \tlaplus specification in roughly the following steps.
 
-The translator parses the PlusCal algorithm and generates a translation by carrying on the following tasks:
 \begin{enumerate}
-
 \item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
-The $pc$ variable is introduced by the translator to indicate the navigation between the actions for a process.
+The $pc$ variable is introduced by the translator to track the control flow of processes.
 
 \FloatBarrier
-\begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 \* BEGIN TRANSLATION
 VARIABLES sem, pc
@@ -388,29 +387,17 @@ VARIABLES sem, pc
 vars == << sem, pc >>
 
 \end{lstlisting}
-\caption{Translation of definitions and variables}
-\label{genDefAndVar}
-\end{figure} 
-\FloatBarrier
 
 \item Generate $ProcSet$ which is a set that contains all the process identifiers.
 
-\FloatBarrier
-\begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 ProcSet == (1..N)
 
 \end{lstlisting}
-\caption{Generate $ProcSet$}
-\label{GenProcSet}
-\end{figure} 
-\FloatBarrier
 
 \item  Generate $Init$, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
-The variable $pc$ is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the predicate that represents the entry point of execution for the process.
+The variable $pc$ is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the entry label of the process.
 
-\FloatBarrier
-\begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 Init == (* Global variables *)
         /\ sem = 1
@@ -418,50 +405,49 @@ Init == (* Global variables *)
 
 \end{lstlisting}
 
-\caption{Generate $Init$}
-\label{GenInit}
-\end{figure} 
-\FloatBarrier
-
-\item Transform PlusCal labels into \tlaplus actions where an action is the TLA+ representation of the atomic operation beginning at that label. 
+\item For each PlusCal label, generate a \tlaplus action that represents the atomic operation beginning at that label. 
 In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
 The definition is parameterized by the identifier self ,
-which represents the current process's identifier.
+which represents the current process's identifier. For example, the following action is generated for label \texttt{start} of the semaphore algorithm.
 
-\FloatBarrier
-\begin{figure}[!h]
-\centering
-\begin{lstlisting}[frame = tlrb, firstnumber = 1]
-st(self) == /\ pc[self] = "st"
-            /\ pc' = [pc EXCEPT ![self] = "enter"]
-            /\ UNCHANGED sem
-
+\begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 enter(self) == /\ pc[self] = "enter"
                /\ (sem > 0)
                /\ sem' = sem - 1
                /\ pc' = [pc EXCEPT ![self] = "cs"]
-
-cs(self) == /\ pc[self] = "cs"
-            /\ TRUE
-            /\ pc' = [pc EXCEPT ![self] = "exit"]
-            /\ UNCHANGED sem
-
-exit(self) == /\ pc[self] = "exit"
-              /\ sem' = sem + 1
-              /\ pc' = [pc EXCEPT ![self] = "st"]
-              
-p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
-
 \end{lstlisting}
-\caption{Translation of PlusCal labels into TLA+}
-\label{GenActions}
-\end{figure} 
-\FloatBarrier
+
+% \begin{lstlisting}[frame = tlrb, firstnumber = 1]
+% start(self) == /\ pc[self] = "start"
+%                /\ pc' = [pc EXCEPT ![self] = "enter"]
+%                /\ UNCHANGED sem
+
+% enter(self) == /\ pc[self] = "enter"
+%                /\ (sem > 0)
+%                /\ sem' = sem - 1
+%                /\ pc' = [pc EXCEPT ![self] = "cs"]
+
+% cs(self) == /\ pc[self] = "cs"
+%             /\ TRUE
+%             /\ pc' = [pc EXCEPT ![self] = "exit"]
+%             /\ UNCHANGED sem
+
+% exit(self) == /\ pc[self] = "exit"
+%               /\ sem' = sem + 1
+%               /\ pc' = [pc EXCEPT ![self] = "st"]
+              
+% p(self) == start(self) \/ enter(self) \/ cs(self) \/ exit(self)
+
+% \end{lstlisting}
+
+Moreover, the PlusCal translator generates an action that corresponds to the disjunction of the actions for the individual labels and that represents the transition relation of a process.
+
+\begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.05\textwidth, xrightmargin=.05\textwidth]
+p(self) == start(self) \/ enter(self) \/ cs(self) \/ exit(self)
+\end{lstlisting}
 
 \item Generate the next-state action $Next$ that constrains the possible state transitions, and the complete specification $Spec$.
 
-\FloatBarrier
-\begin{figure}[!h]
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 Next == (\E self \in 1..N: p(self))
 
@@ -469,15 +455,9 @@ Spec == Init /\ [][Next]_vars
 
 \end{lstlisting}
 
-\caption{Generate $Next$ and $Spec$}
-\label{GenNextSpec}
-\end{figure} 
-\FloatBarrier
-
 \end{enumerate}
 
-\hfill\\
-The overall translation strategy can be found \cite{pcalAlgo}.
+A more detailed description of the translation strategy can be found in \cite{pcalAlgo}.
 
 \chapter{Related work}
 %%============================
