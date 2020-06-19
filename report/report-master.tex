@@ -24,6 +24,9 @@
 \definecolor{mauve}{rgb}{0.58,0,0.82}
 \definecolor{orange}{rgb}{1.0,0.49,0.0}
 
+\usepackage{enumitem}
+\usepackage{pifont}
+
 \lstset{frame=single,
   language={Java},
   aboveskip=3mm,
@@ -368,12 +371,13 @@ process(p \in 1..N)
 \FloatBarrier
 \hfill\\
 
-\textbf{The translation process} is carried out by the compiler  expecting the structure we described as well as some semantic rules, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, and macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
+\textbf{The translation process} is carried out by the compiler  expecting the structure we described. Semantic rules are also expected, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
 
 The translator parses the PlusCal algorithm and generates a translation by carrying on the following tasks:
 \begin{enumerate}
 
 \item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
+The $pc$ variable is introduced by the translator to indicate the navigation between the actions for a process.
 
 \FloatBarrier
 \begin{figure}[!h]
@@ -403,7 +407,7 @@ ProcSet == (1..N)
 \FloatBarrier
 
 \item  Generate $Init$, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
-The translator produces a variable $pc$ that is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the predicate that represents the entry point of execution for the process.
+The variable $pc$ is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the predicate that represents the entry point of execution for the process.
 
 \FloatBarrier
 \begin{figure}[!h]
@@ -422,8 +426,7 @@ Init == (* Global variables *)
 \item Transform PlusCal labels into \tlaplus actions where an action is the TLA+ representation of the atomic operation beginning at that label. 
 In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
 The definition is parameterized by the identifier self ,
-which represents the current process’s identifier.
-The $pc$ variable is used to indicate the navigation between the actions for a process.
+which represents the current process's identifier.
 
 \FloatBarrier
 \begin{figure}[!h]
@@ -455,7 +458,7 @@ p(self) == st(self) \/ enter(self) \/ cs(self) \/ exit(self)
 \end{figure} 
 \FloatBarrier
 
-\item Generate the next-state action $Next$ and the complete specification $Spec$.
+\item Generate the next-state action $Next$ that constrains the possible state transitions, and the complete specification $Spec$.
 
 \FloatBarrier
 \begin{figure}[!h]
@@ -520,25 +523,71 @@ instantiates a process or a group of processes using the specified architype, ea
 
 \chapter{Distributed PlusCal}
 
-Distributed PlusCal is an extension of PlusCal, they are algorithm languages meant for writing algorithms not programs. they are both translated to TLA+. 
 
-Distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level, and TLA+ provides a flexibility and an expressiveness that makes it able to specify and verify those algorithms. One of the popular examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
+Distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level.
+TLA+ provides a flexibility and an expressiveness that enables it specify and verify those algorithms. One of the popular modern examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
-Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we wanted a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms such as sub-processes and communication channels.
+Distributed PlusCal is a language used to describe distributed algorithms, it extends PlusCal. 
+Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we want a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms.
 
-Since we extended the existing PluCal translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own which can be found in the figure below.
+Since we extended the existing PluCal translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own.
+
+\section{Structure of an algorithm}
+
+The general structure and organization of a Distributed PlusCal algorithm is shown in Figure \ref{dpluscal-struct}.
+
+\FloatBarrier
+\begin{figure}
+\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+
+(* PlusCal options section *)
+(* PlusCal options (-distpcal) *)
+
+(* algorithm <algorithm name>
+
+(* Declaration section *)
+variables | channels | FIFOs <variable declarations>
+
+(* Definition section *)
+define <definition name> == <definition description>
+
+(* Macro section *)
+macro <name>(var1, ...)
+ <macro-body of statements>
+
+(* Procedure section *)
+procedure <name>(arg1, ...)
+ variables | channels | FIFOs <local variable declarations>
+ <procedure body of statements>
+
+(* Processes section *)
+process (<name> [=|\in] <Expr>))
+  variables | channels | FIFOs <variable declarations>
+  <sub-processes>
+
+*)
+
+\end{lstlisting}
+\caption{General structure of a Distributed PlusCal algorithm}
+\label{dpluscal-struct}
+\end{figure}
+\FloatBarrier
+
+\textbf{PlusCal options section} holds options to be passed to the translator, for example adding $-label$ to the PlusCal options turns on the automatic labeling of the algorithm by the translator. Since we extended the PlusCal translator we notify the translator to parse a Distributed PlusCal algorithm by passing the $-distpcal$ option.
+
+Figure \ref{dpluscal-struct} resembles figure \ref{pluscal-struct}, however the variable declarations in \textbf{declarations, procedures, and processes} sections enables the user to declare primitive constructs such as non-ordered channels and FIFO based channels in addition to PlusCal variables.More details on the communication channels are available in section \ref{comChannels}.
+
+In the \textbf{Process Section} the process can hold multiple sub-processes each with it's own body of statements.More details on the sub-processes are available in section \ref{subProcess}.
 
 
 \hfill\\
-In the sections that follow we will be explaining what we implemented, why it is needed and how it is translated into TLA+, for this we will be doing a walk-through on the two phase commit example, the two phase commit is a protocol used for distributed transactions that consist of multiple operations, performed at multiple sites, the goal of it is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well and the transaction is rolled back, and in order to actually commit all elements must agree and be able to commit.
+In the sections that follow we will be doing a walk-through on the two phase commit protocol \ref{appendix:examples}, it is used in distributed transactions that consist of multiple operations, performed at multiple sites. The goal of the protocol is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well, and the transaction is rolled back.
 
 \section{Communication Channels}
+\label{comChannels}
 
-PlusCal enables the user to define variables with TLA+ syntax, the variable types can be sets, sequence, sequence of sets etc, 
-
-- differentiate sets and sequences and mentions the operators of each with small examples
-
-
+- why important for distributed algorithms
+- defining channels with 'dimensions'
 \subsection{channels}
 -set based 
 example with it's translation
@@ -549,31 +598,22 @@ example with it's translation
 expected syntax and limitations
 - send, receive, broadcast, multicast, clear
 \section{Sub-Processes}
+\label{subProcess}
 
-A PlusCal process has a block that holds the body of the process, Distributed PlusCal gives each process the opportunity to define more than one block where each block has a body of labeled statements, This enables the process to be executing multiple tasks in parallel, for example a sub-process can be used to send date to other processes while another sub-process can be responsible for receiving data asynchronously, the programmer can divide tasks between sub-processes and give a sub-process a theme  if needed, that is by dividing the algorithm into multiple sub-processes where each sub-process works independently, this is to some extent a form of modularization.
+Distributed PlusCal gives the user the opportunity to define multiple sub-processes per process. Each sub-process consists of labeled statements. Essentially this enables the process execute multiple tasks in parallel.
 
-//i've tried saying this modularization thing in different ways by now not sure if the idea is clear or if this is even a 'big deal' for modeling a spec!
+The body of a sub-process maintains the same syntax as the body of a PlusCal process. All the sub-processes share the same variables declared for the process, this makes communication between them possible if needed.
 
-// more on the benefits of this for distributed algorithms especially
+The Figure \ref{2pcSub} shows a sub-process defined for the two phase commit algorithm, the example is written in c-syntax and the sub-processes are surrounded by curly braces.
+The entire algorithm is in Appendix \ref{appendix:examples}.
 
-\hfill\\
-The body of a sub-process maintains the same syntax as the body of a PlusCal process, all the sub-processes share the same variables declared for the process, this makes communication between them possible if needed.
-
-The example below shows the sub-processes are defined for the two phase commit algorithm, the example is written in c-syntax and the sub-processes are surrounded by curly braces.
-
-\hfill\\\hfill\\
+\FloatBarrier
+\begin{figure}[!h]
+\label{2pcSub}
 \begin{lstlisting}[caption = Distributed PlusCal Sub-Processes, frame = tlrb, firstnumber = 1]
-    
-(* PlusCal options (-distpcal) *)
-
-(***
---algorithm TPC {
- 
-  \* message channels
-  channels coord, agt[Agent];
-     
+   
   fair process (a \in Agent)
-  variable aState = "unknown"; {
+  variable aState = "unknown"; { \* sub-process
 
 a1: if (aState = "unknown") {
         with(st \in {"accept", "refuse"}) {
@@ -583,7 +623,7 @@ a1: if (aState = "unknown") {
     };
     a2: await(aState \in {"commit", "abort"})
     
-  } {
+  } { \* sub-process
     
     a3:await (aState # "unknown");
        receive(agt[self], aState); 
@@ -591,111 +631,86 @@ a1: if (aState = "unknown") {
     a4:clear(agt);
   }
 
-  fair process (c = Coord) 
-  variables cState = "unknown",
-            commits = {}, msg = {};
-             \* agents that agree to commit
-  {
-    c1: await(cState \in {"commit", "abort"});    
-        broadcast(agt, [ag \in Agent|-> cState]);
-  } {
-        
-     c2:while (cState \notin {"abort", "commit"}) {
-        receive(coord, msg);
-            if (msg.type = "refuse") {
-                cState := "abort";
-            }
-            else if (msg.type = "accept") {
-                commits := commits \cup {msg.agent};
-                 if (commits = Agent) {
-                    cState := "commit";
-                 }
-              }
-        }
-  }
- }
-***)
 \end{lstlisting}
+\end{figure}
+\FloatBarrier
 
 \hfill\\
 
-The first process consists of two sub-processes, the first one contains the labels (a1, a2) and the second one contains (a3, a4).
-
-//The send, receive and clear and broadcast would've been explained already //in the previous section.
-
-The variable \textit{aState} is shared between the sub-processes, in fact it is used for communication between them, label a2 holds an \textit{await} statement at line 19 that is waiting for aState to have the value of either \textit{"commit"} or \textit{"abort"}, the variable is being set to one of these values by a3 in the second sub-process by the receive function at line 24.
+The process represents an Agent process that communicates with a coordinator in order to apply a decision. The process consists of two sub-processes, where the first sub-process contains the atomic labels <<a1, a2>> and the second sub-process contains <<a3, a4>>.
 
 it's important to note that the sub-processes do not allow variable declarations they only use variables declared for the entire process.
 
 \subsection{TLA+ Translation}
 
-Defining sub-processes had some effects on the translation to TLA+, because when you declare sub-processes you are actually partitioning the process, so now whenever we are referring to a process we need to know not only which process it is but also which sub-process are we referring to.
- 
-The entire TLA+ translation of the two phase commit example can be found in appendix \ref{appendix:examples}, now we will be focusing on elements that we introduced to the general structure of the TLA+ file.
+The translation of a Distributed PlusCal process into TLA+ meant having to introduce structures and sets that refer to the sub-processes as well as the processes.
+
+Initially a set \textbf{SubProcSet} was added to hold all the sub-process identifiers, with respect to which process they belonged to.
+
+\[
+SubProcSet == [P \in ProcSet |-> IF P \in IdSet  THEN  1..n
+								  ELSE  1..m ]
+\]						  
+
+The value of the \textbf{pc} variable in PlusCal is a single string equal to the label of the next statement to be executed with respect to a process. In Distributed PlusCal we extended the definition to indicate which sub-process is involved as well.
+
+Since in \tlaplus a function with domain 1..n for some n in Nat is a sequence, the \textbf{pc} variable in Distributed PlusCal is initialized as :
+
+\[
+pc = [self \in ProcSet |-> self \in IdSet -> <<"action",...>>]
+\]	
+
+where actions in the sequence are the entry point actions for sub-process respectively. 
+
+The \textbf{pc} is referenced within the produced \tlaplus translation as \[ pc[Process Id][SubProcess Index] \].
+		  
+The entire TLA+ translation of the two phase commit example can be found in appendix \ref{appendix:examples}, now we will be focusing on the translation of the process in figure \ref{2pcSub}.
 
 \hfill\\
-\begin{itemize}
+\begin{enumerate}
 
-\item \textbf{SubProcSet}
-\hfill\\
+\item Generate the set $SubProcSet$ that identifies the sub-processes based on the process type.
+In our example we have two process types, one for Agents and the other for Coordinators, both process types have two sub-processes.
 
-SubProcSet is the set of all the sub-process identifiers per process.
-
-\begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
-
-ProcSet == (Agent) \cup {Coord}
-
+\FloatBarrier
+\begin{figure}[!h]
+\label{2pcSubTla}
+\begin{lstlisting}[caption = Distributed PlusCal Translation- SubProcSet, frame = tlrb, firstnumber = 1]
 SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
                              ELSE (**Coord**) 1..2]
 
 \end{lstlisting}
+\end{figure}
+\FloatBarrier
 
-\item \textbf{pc variable}
+\item Generate the set $pc$ variable to as a point of control for the processes and sub-processes.
+In our example, for processes of type Agent we have two sub-processes. The first sub-process begins execution at action "a1", and the second one begins at action "a3".
 \hfill\\
 
-The \textit{pc} variable in TLA+ that is used to indicate the current point of execution and the next statement to be executed with respect to a process, now it has to indicate also which sub-process is involved.
- 	
-The pc variable is initialized to a sequence of actions depending on the type of the process, for example if \textit{self} is in Agent, this means it's a process of type Agent that has the following actions associated with it (a1, a2, a3, a4), However, a1 is considered the entry point for the first sub-process and a3 for the second one. so we need to initialize pc variable to look something like this
-
-\hfill\\
-\begin{center}
-\begin{tabular}{ |c|c|c| } 
-\hline
-\textbf{Process Type} & \textbf{Sub-Process} & \textbf{Entry Point} \\
-\hline
-Agent & 1 & a1 \\ 
-		& 2 & a3 \\ 
-\hline
-Coord & 1 & c1 \\ 
-	  & 2 & c2 \\ 
-\hline
-\end{tabular}
-\end{center}
-
-\hfill\\
-
-In TLA+ a function with domain 1..n for some n in Nat is a sequence, so the pc values consist of sequences to represent the above table, so we initialize pc in the listing 4.3 to have pc[Agent] = <"a1", "a3"> and pc[Coord] = <"c1", "c2">.
-
-//sequences and sets would've been explained in the previous section for the channels
-
+\FloatBarrier
+\begin{figure}[!h]
 \begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
 
 Init == (* Global variables *)
         /\ coord = {}
         /\ agt = [a0 \in Agent |-> {}]
-        (* Node a *)
+        (* Process a *)
         /\ aState = [self \in Agent |-> "unknown"]
-        (* Node c *)
+        (* Process c *)
         /\ cState = "unknown"
         /\ commits = {}
         /\ msg = {}
         /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
                                         [] self = Coord -> <<"c1","c2">>]
 \end{lstlisting}
+\end{figure}
+\FloatBarrier
 
-\hfill\\
-The example in listing 4.4 shows how the \textit{pc} variable is used, the second pair of brackets that is added when accessing the \textit{pc} variable is used to indicate the sub-process, at line 3 we check that the sub-process is currently at this action, then at line 10 we specify that the next action to be executed for the sub-process is action a2.
+\item Translate the process labels into \tlaplus actions, verifying the pc variable at each action based on both the process identifier and the sub-process identifier.
+In our example, when the $pc$ variable is accessed in <<"a1", "a2">> the sub-process ID is 1, and from <<"a3", "a4">> the the sub-process ID is 2.
 
+\FloatBarrier
+\begin{figure}
 \begin{lstlisting}[caption = TLA+ translation for Sub-Processes, frame = tlrb, firstnumber = 1]
 
 \* Process 1 Sub-Process 1 : an action with the statements in a1 label
@@ -709,11 +724,28 @@ a1(self) == /\ pc[self] [1] = "a1"
             /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "a2"]]
             /\ UNCHANGED << agt, cState, commits, msg >>
 
+a2(self) == /\ pc[self] [1] = "a2"
+            /\ (aState[self] \in {"commit", "abort"})
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "Done"]]
+            /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
+
+a3(self) == /\ pc[self] [2] = "a3"
+            /\ (aState[self] # "unknown")
+            /\ \E a1519 \in agt[self]:
+                 /\ aState' = [aState EXCEPT ![self] = a1519]
+                 /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1519}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "a4"]]
+            /\ UNCHANGED << coord, cState, commits, msg >>
+
+a4(self) == /\ pc[self] [2] = "a4"
+            /\ agt' = [a0 \in Agent |-> {}]
+            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
+            /\ UNCHANGED << coord, aState, cState, commits, msg >>
 \end{lstlisting}
+\end{figure}
+\FloatBarrier
 
-\end{itemize}
-
-\hfill\\
+\end{enumerate}
 
 \chapter{Code Documentation}
 
