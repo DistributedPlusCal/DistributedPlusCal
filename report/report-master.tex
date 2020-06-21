@@ -7,13 +7,12 @@
 \documentclass{thesul}
 
 \usepackage{capt-of}
-%\usepackage{lipsum}% just to generate text for the example
 \usepackage{placeins}
 \usepackage[toc,page]{appendix}
 \usepackage{multirow}
 \usepackage{xspace}
 \usepackage{latexsym}
-
+\usepackage{amssymb}
 \usepackage{listings}
 
 \usepackage{color}
@@ -44,6 +43,7 @@
   morecomment=[l]{\\*},
   morekeywords={fair, process, macro, procedure, define, algorithm, variables}
 }
+\newcommand\tab[1][1cm]{\hspace*{#1}}
 \renewcommand{\floatpagefraction}{.99}
 \renewcommand{\textfraction}{.01}
 
@@ -134,11 +134,10 @@
 
 
 
-
 \MasterUL
 \ThesisTitle{Formal Verification of Distributed Algorithms using Distributed-PlusCal}
 \ThesisAuthor{Heba Al-kayed}
-\ThesisPresentedThe{soutenu le 23 septembre 2016}
+\ThesisPresentedThe{soutenu le 26 juin 2020}
 \President    = {Le pr\'esident}
 \Rapporteurs  = {Le rapporteur 1\\
                  Le rapporteur 2\\
@@ -366,12 +365,10 @@ variables sem = 1;
 \caption{Semaphore mutex example in PlusCal}
 \label{semaphoreEx}
 \end{figure} 
-%\FloatBarrier
 
 \paragraph{Translation to \tlaplus.}
 The PlusCal translator expects as input a PlusCal algorithm following the structure described previously.
-% \textbf{The translation process} is carried out by the compiler expecting the structure we described. Semantic rules are also expected, for instance the first statement of any process or procedure must be labeled as this statement marks the starting point of that entity, macros are not allowed to contain any labels since all the statements in the body are executed as a part of the same atomic step.
-%
+
 % The translator
 It parses the PlusCal algorithm and generates the corresponding \tlaplus specification in roughly the following steps.
 
@@ -417,29 +414,6 @@ enter(self) == /\ pc[self] = "enter"
                /\ pc' = [pc EXCEPT ![self] = "cs"]
 \end{lstlisting}
 
-% \begin{lstlisting}[frame = tlrb, firstnumber = 1]
-% start(self) == /\ pc[self] = "start"
-%                /\ pc' = [pc EXCEPT ![self] = "enter"]
-%                /\ UNCHANGED sem
-
-% enter(self) == /\ pc[self] = "enter"
-%                /\ (sem > 0)
-%                /\ sem' = sem - 1
-%                /\ pc' = [pc EXCEPT ![self] = "cs"]
-
-% cs(self) == /\ pc[self] = "cs"
-%             /\ TRUE
-%             /\ pc' = [pc EXCEPT ![self] = "exit"]
-%             /\ UNCHANGED sem
-
-% exit(self) == /\ pc[self] = "exit"
-%               /\ sem' = sem + 1
-%               /\ pc' = [pc EXCEPT ![self] = "st"]
-              
-% p(self) == start(self) \/ enter(self) \/ cs(self) \/ exit(self)
-
-% \end{lstlisting}
-
 Moreover, the PlusCal translator generates an action that corresponds to the disjunction of the actions for the individual labels and that represents the transition relation of a process.
 
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.05\textwidth, xrightmargin=.05\textwidth]
@@ -462,7 +436,7 @@ A more detailed description of the translation strategy can be found in \cite{pc
 \chapter{Related work}
 %%============================
 
-- pluscal extensions for generation code to make sure thatverified spec isn't lost while being implemented
+- pluscal extensions for generating code to make sure that verified spec isn't lost while being implemented
 - \ref{PGO} a tool represented as a part of a master thesis, it aims to produce an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
 
 \section{PGO}
@@ -516,7 +490,7 @@ Since we extended the existing PluCal translator responsible for parsing PlusCal
 
 The general structure and organization of a Distributed PlusCal algorithm is shown in Figure \ref{dpluscal-struct}.
 
-\FloatBarrier
+
 \begin{figure}
 \begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
 
@@ -551,7 +525,6 @@ process (<name> [=|\in] <Expr>))
 \caption{General structure of a Distributed PlusCal algorithm}
 \label{dpluscal-struct}
 \end{figure}
-\FloatBarrier
 
 \textbf{PlusCal options section} holds options to be passed to the translator, for example adding $-label$ to the PlusCal options turns on the automatic labeling of the algorithm by the translator. Since we extended the PlusCal translator we notify the translator to parse a Distributed PlusCal algorithm by passing the $-distpcal$ option.
 
@@ -563,20 +536,328 @@ In the \textbf{Process Section} the process can hold multiple sub-processes each
 \hfill\\
 In the sections that follow we will be doing a walk-through on the two phase commit protocol \ref{appendix:examples}, it is used in distributed transactions that consist of multiple operations, performed at multiple sites. The goal of the protocol is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well, and the transaction is rolled back.
 
-\section{Communication Channels}
+\FloatBarrier
+\section{Communication Primitives}
 \label{comChannels}
 
-- why important for distributed algorithms
-- defining channels with 'dimensions'
-\subsection{channels}
--set based 
-example with it's translation
+Distributed algorithms composed of multiple processes communicate by exchanging messages through channels. Channels provide communication and coordination for distributed applications. They are classified by the way they handle the addition and removal of messages from their collections. 
+
+For some algorithms message ordering is critical, for example if a message is sent to subscribe in a service and another is send to unsubscribe, it is crucial that the first message is received and handled before the second. However, some algorithms are not dependent on ordering. Distributed PlusCal offers two types of channels, unordered channels as well as FIFO based channels.
+
+Channels in Distributed PlusCal are unbounded , meaning there is no maximum capacity for the messages they can hold.
+
+The sections to follow explain how to define and use the channels as well as their \tlaplus translations. 
+
+
+- Distributed PlusCal offers communication primitives 
+- Channels provide communication and coordination for distributed applications.
+- can significantly simplify coding of decoupled applications
+
+\subsection{Unordered Channels}
+
+\tlaplus enables the user to define complex variable with expressions, our channel can be considered folded complex variable declarations with controlled access through the channel functions.
+
+Unordered channel are represented by \tlaplus sets.\tlaplus sets are the basic construct for representing data. Sets are not concerned with the order of elements within their collection.
+
+\tlaplus sets can handle complex structures for example you can have a set of strings, integers or even a set of sets. \{ \} represents an empty set. 
+
+Set operators include $\in$ which is written as \lstinline|\in| in \tlaplus checks whether an element is a part of a set, $\cup$ is written as \lstinline|\cup| adds an element to the set.
+
+The general structure for channel declaration is shown below. An unordered channel is declared with the keyword $channel$ or $channels$. 
+
+\[
+ channel <identifier>[<dimentions>];
+\]
+
+
+The dimensions are \tlaplus sets that are defined in the \tlaplus file, they represent the keys of the channel, Figure \ref{unorderedtla} shows the corresponding translation of the unordered channel deceleration with N dimensions.
+
+
+\FloatBarrier
+\begin{figure}[!h]
+\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+
+<channel-identifier> = [s1 \in IdSet1, s2 \in IdSet2, ..., sN \in IdSetN |-> {}]
+
+\end{lstlisting}
+\caption{Unordered channel declaration - TLA+ translation}
+\label{unorderedtla}
+\end{figure}
+\FloatBarrier
+
+
+In our two phase commit example, we have two unordered channels $coord$ and $agt$, their Distributed PlusCal declarations and \tlaplus translation are in Figure \ref{2pcchannels}.
+
+\FloatBarrier
+\begin{figure}[!h]
+\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+
+(***
+----------------------------- MODULE 2pc -----------------------------
+EXTENDS Sequences, Naturals
+CONSTANTS Coord, Agent
+(* PlusCal options (-distpcal) *)
+  
+--algorithm TPC { 
+
+  \* message channels
+  channels coord, agt[Agent];
+  .
+  .
+  .
+ }
+*)
+  
+  \* BEGIN TRANSLATION 
+  .
+  .
+  .
+  Init == (* Global variables *)
+        /\ coord = {}
+        /\ agt = [a0 \in Agent |-> {}]
+  .
+  .
+  .      
+  \* END TRANSLATION 
+***)
+
+\end{lstlisting}
+\caption{Unordered channel declaration - TLA+ translation}
+\label{2pcchannels}
+\end{figure}
+\FloatBarrier
+
+Distributed PlusCal extended PlusCals allowed statements within a body to include channel operators.
+The list below shows the syntax of the channel operators and their \tlaplus translations, to simplify the examples assume we are dealing with a one dimensional channel with the identifier $chan$.
+
+\begin{itemize}
+\item[$\Diamond$]  \textbf{send} The $send$ operator carries two parameters, the channel $chan$ and the message $msg$. The purpose of this operator is to add the message $msg$ to
+the given channel. Since the unordered channel is represented using a \tlaplus set, addition to a set is performed using the set operator $\cup$ which is written in \tlaplus as \lstinline|\cup|.
+
+
+\begin{minipage}{.3\textwidth}
+
+\lstinline|send(chan[element], msg)| $\triangleq$\\
+\end{minipage}\hfill
+\begin{minipage}{.7\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = [chan EXCEPT ![element] = chan[element] \cup {msg}]
+\end{lstlisting}
+
+\end{minipage}\hfill
+where $element \in IdSet$.
+\item[$\Diamond$]  \textbf{broadcast}
+
+The $broadcast$ operator handles two parameters, the channel $chan$ and the message $msg$. The purpose of this operator is to add the message $msg$ to every element of the given channel.
+
+\begin{minipage}{.25\textwidth}
+
+\lstinline|broadcast(chan, msg)| $\triangleq$
+\end{minipage}\hfill
+\begin{minipage}{.7\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = [el \in IdSet ->chan[el] \cup {msg}]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+Note that we don't specify an element when referring to the channel in the first argunemt, as the message is meant to be sent to all element.
+\item[$\Diamond$] \textbf{multicast}
+
+The $multicast$ operator handles two parameters, the channel $chan$ and a \tlaplus expression. The second parameter specifies the intended recipients in the channel and the message. The purpose of this operator is to identify the recipients such that if they fall within the required subset, the message is added to their sets; otherwise, their sets remain unchanged.
+
+\begin{minipage}{.44\textwidth}
+
+\lstinline|multicast(chan, [a \in sub -> msg])| $\triangleq$\\\\\\
+\end{minipage}\hfill
+\begin{minipage}{.6\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan'=[el \in DOMAIN chan 
+			|-> IF el \in sub 
+       THEN chan[el] \cup {msg} 
+       ELSE chan[el]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+\item[$\Diamond$]  \textbf{receive}
+The $receive$ operator has two parameters, the channel $chan$ and a \tlaplus variable $var$. The purpose of this operator is to remove an element from the channel and add it to the variable sent in the second argument.
+
+\begin{minipage}{.35\textwidth}
+
+\lstinline|receive(chan[element], var)| $\triangleq$\\\\\\
+\end{minipage}\hfill
+\begin{minipage}{.6\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = \E el \in chan[element]:
+        /\ var' = el
+        /\ chan' = [chan EXCEPT ![element] = chan[element] \ {el}]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+\item[$\Diamond$]  \textbf{clear}
+The $clear$ operator empties the channel $chan$.
+
+\lstinline|clear(chan)| $\triangleq$
+\lstinline|chan' = [el \in IdSet -> {}]|
+
+\end{itemize}
+
+The two phase commit example in \ref{appendix:examples} includes the functions $send$, $broadcast$, $receive$ and $clear$ with their \tlaplus translations.
+
+%example for multicast%
 \subsection{FIFO channels}
--sequence based
-example with it's translation
-\subsection{Supported channel functions}
-expected syntax and limitations
-- send, receive, broadcast, multicast, clear
+
+\tlaplus sequences contain operators that enables iterating over all their elements and keeping track of the order between the elements. For instance, adding to a sequence corresponds to appending at the end of the sequence with the $Append$ operator, and removing the first element of a sequence can be accomplished with the $Tail$ operation. FIFO channels are represented as \tlaplus sequences. We take advantage of these operators to maintain the order in the FIFO channels.
+
+All sequences are \tlaplus functions, where $<<>>$ represents an empty sequence.
+
+The general structure for channel declaration is shown below. A FIFO channel is declared with the keyword $fifo$ or $fifos$. 
+
+\begin{minipage}{.35\textwidth}
+
+\lstinline|fifo <identifier>[<dimentions>]| $\triangleq$
+\end{minipage}\hfill
+\begin{minipage}{.65\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+
+<identifier> = [s1 \in IdSet1, s2 \in IdSet2,...,
+					 sN \in IdSetN |-> <<>>]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+%dimensions already explained%
+
+Appendix \ref{appendix:examples} includes an example for  modeling Lamport's Mutual Exclusion algorithm, an algorithm that uses time-stamp to order critical section requests and to resolve any conflict between requests. the example introduces a FIFO channel $network$ and performs the supported FIFO channel operations. \\
+
+The Distributed PlusCal declaration and the \tlaplus translation of the $network$ FIFO channel are in Figure \ref{fifochannels}.
+
+\FloatBarrier
+\begin{figure}[!h]
+\begin{lstlisting}% [frame = tlrb, firstnumber =  1]
+
+(***
+----------------------------- MODULE LamportMutex -----------------------------
+EXTENDS Sequences, Naturals, TLC
+CONSTANT N
+ASSUME N \in Nat 
+Nodes == 1 .. N
+
+(* PlusCal options (-distpcal) *)
+  
+--algorithm LamportMutex { 
+
+  fifo network[Nodes, Nodes];
+  .
+  .
+  .
+ }
+*)
+  
+  \* BEGIN TRANSLATION 
+  .
+  .
+  .
+  Init == (* Global variables *)
+        /\ network = [n0 \in Nodes, n1 \in Nodes |-> <<>>]
+  .
+  .
+  .      
+  \* END TRANSLATION 
+***)
+
+\end{lstlisting}
+\caption{FIFO channel declaration - TLA+ translation}
+\label{fifochannels}
+\end{figure}
+\FloatBarrier
+
+
+Distributed PlusCal extended PlusCals allowed statements within a body to include functions that are applied on channels.
+The list below shows the syntax of the channel operators and their \tlaplus translations, to simplify the examples assume we are dealing with a one dimensional channel with the identifier $chan$.
+
+\begin{itemize}
+
+\item[$\Diamond$]  \textbf{send} The $send$ operator carries two parameters, the channel $chan$ and the message $msg$. The purpose of this operator is to add the message $msg$ to
+the given channel. Since the FIFO channel is represented using a \tlaplus sequence, addition to a sequence is performed using the operator $Append$ which adds to the tail of the sequence.
+
+\begin{minipage}{.3\textwidth}
+
+\lstinline|send(chan[element], msg)| $\triangleq$
+\end{minipage}\hfill
+\begin{minipage}{.7\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = [chan EXCEPT ![element] = Append(@, msg)]\end{lstlisting}
+
+\end{minipage}\hfill
+where $element \in IdSet$.
+
+
+\item[$\Diamond$]  \textbf{broadcast}
+The $broadcast$ operator handles two parameters, the channel $chan$ and the message $msg$. The purpose of this operator is to add the message $msg$ to every element of the given channel.
+
+\begin{minipage}{.25\textwidth}
+
+\lstinline|broadcast(chan, msg) | $\triangleq$
+\end{minipage}\hfill
+\begin{minipage}{.7\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = [el \in IdSet -> Append(chan[el], msg)]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+\item[$\Diamond$] \textbf{multicast}
+
+The $multicast$ operator handles two parameters, the channel $chan$ and a \tlaplus expression. The second parameter specifies the intended recipients in the channel and the message. The purpose of this operator is to identify the recipients such that if they fall within the required subset, the message is added to their sets; otherwise, their sets remain unchanged.
+
+\begin{minipage}{.44\textwidth}
+
+\lstinline|multicast(chan, [a \in sub -> msg])| $\triangleq$\\\\\\
+\end{minipage}\hfill
+\begin{minipage}{.6\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan'=[el \in DOMAIN chan 
+			|-> IF el \in sub 
+       THEN Append(chan[el], msg)
+       ELSE chan[el]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+
+\item[$\Diamond$]  \textbf{receive}
+
+The $receive$ operator has two parameters, the channel $chan$ and a \tlaplus variable $var$. The purpose of this operator is to remove the first element from the channel using the $Head$ and $Tail$ operators and add it to the variable sent in the second argument.
+
+\begin{minipage}{.3\textwidth}
+
+\lstinline|receive(chan[element],var)| $\triangleq$\\\\
+\end{minipage}\hfill
+\begin{minipage}{.7\textwidth}
+\begin{lstlisting}[frame = none, numbers = none]
+chan' = Len(chan[element]) > 0 
+        /\ var' = [Head(chan[element])]
+        /\ chan' = [chan EXCEPT ![element] =  Tail(@) ]
+\end{lstlisting}
+
+\end{minipage}\hfill
+
+\item[$\Diamond$]  \textbf{clear}
+The $clear$ operator empties the channel $chan$.
+
+\begin{center}
+
+\lstinline|clear(chan)| $\triangleq$
+\lstinline|chan' = [el \in IdSet -> <<>>]|
+
+\end{center}
+\end{itemize}
+
+The Lamport Mutex example in \ref{appendix:examples} includes the operators $send$, $multicast$, $receive$ and $clear$ with their \tlaplus translations.
+
 \section{Sub-Processes}
 \label{subProcess}
 
@@ -587,7 +868,6 @@ The body of a sub-process maintains the same syntax as the body of a PlusCal pro
 The Figure \ref{2pcSub} shows a sub-process defined for the two phase commit algorithm, the example is written in c-syntax and the sub-processes are surrounded by curly braces.
 The entire algorithm is in Appendix \ref{appendix:examples}.
 
-\FloatBarrier
 \begin{figure}[!h]
 \label{2pcSub}
 \begin{lstlisting}[caption = Distributed PlusCal Sub-Processes, frame = tlrb, firstnumber = 1]
@@ -613,7 +893,6 @@ a1: if (aState = "unknown") {
 
 \end{lstlisting}
 \end{figure}
-\FloatBarrier
 
 \hfill\\
 
@@ -734,9 +1013,6 @@ try to describe the general flow
 
 \section{parsing and expansion process}
 
-\section{some software-based diagram}
-
-or maybe an AST description graph
 
 \chapter{Conclusion and future work}
 

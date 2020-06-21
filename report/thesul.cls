@@ -107,8 +107,8 @@
               Dix-huiti\`eme\or %
               Dix-neuvi\`eme\or Vingti\`eme\fi}\space\def\thepart{}}%
     \def\glossaryname{Glossaire}%
-    \def\chaptername{Chapter}%
-    \def\appendixname{Annex}%
+    \def\chaptername{Chapitre}%
+    \def\appendixname{Annexe}%
     \ifx\ier\undefined\def\ier{er}\fi
     \def\today{\ifnum\day=1\relax 1\ier%
                \else \number\day\fi%
@@ -173,7 +173,7 @@
 \newcommand\ThesisPresentedThe[1]%
   {\renewcommand{\@ThesisPresentedThe}{{\UseEntryFont{ThesisPresentedThe}#1}}}
 \newcommand{\@ThesisInOrderToGet}%
-        {{\UseEntryFont{ThesisInOrderToGet}A thesis submitted to obtain a}}
+        {{\UseEntryFont{ThesisInOrderToGet}pour l'obtention du}}
 \newcommand\ThesisInOrderToGet[1]%
   {\renewcommand{\@ThesisInOrderToGet}{{\UseEntryFont{ThesisInOrderToGet}#1}}}
 \newcommand{\@ThesisDomain}{mention informatique}
@@ -187,7 +187,7 @@
                          \ThesisDiploma{{\UseEntryFont{ThesisDiploma}%
                 Habilitation de l'Universit\'e de Lorraine\\[3mm]
             {\UseEntryFont{ThesisSpecialty}(\@ThesisDomain)}}}}
-\newcommand\MasterUL{\ThesisKind{Report}%
+\newcommand\MasterUL{\ThesisKind{Rapport}%
                      \renewcommand{\@ThesisFirstPageHead}{\@ULhe@d}%
                          \ThesisDiploma{{\UseEntryFont{ThesisDiploma}%
                 Master de l'Universit\'e de Lorraine\\[3mm]
@@ -196,7 +196,7 @@
          {\fbox{Choisir {\tt\char`\\ThesisUL}, {\tt\char`\\HDRUL} ou {\tt\char`\\MasterUL}}}
 \newcommand\ThesisDiploma[1]%
         {\renewcommand{\@ThesisDiploma}{{\UseEntryFont{ThesisDiploma}#1}}}
-\newcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}by}}
+\newcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}par}}
 \newcommand\ThesisPresentedBy[1]%
    {\renewcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}#1}}}
 \newcommand{\@ThesisAuthor}%
@@ -1371,7 +1371,7 @@
 \def\@sspsection#1{\@spsection[]{#1}}
 \if@dont@load@french
 \else
-  \AtBeginDocument{\def\contentsname{Summary}}%
+  \AtBeginDocument{\def\contentsname{Sommaire}}%
 \fi
 \newcommand{\@toc@hook}{}
 \renewcommand\tableofcontents{%
