@@ -540,7 +540,7 @@ In the \textbf{Process Section} the process can hold multiple sub-processes each
 In the sections that follow we will be doing a walk-through on the two phase commit protocol \ref{appendix:examples}, it is used in distributed transactions that consist of multiple operations, performed at multiple sites. The goal of the protocol is to reach consensus between the different elements that carry out the transaction together such that if an element decides to abort all other elements abort as well, and the transaction is rolled back.
 
 \FloatBarrier
-\section{Communication Primitives}
+\section{Communication Channels}
 \label{comChannels}
 
 Distributed algorithms composed of multiple processes communicate by exchanging messages through channels. Channels provide communication and coordination for distributed applications. They are classified by the way they handle the addition and removal of messages from their collections. 
