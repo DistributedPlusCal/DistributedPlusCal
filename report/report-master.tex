@@ -289,7 +289,7 @@ For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
 \tlaplus is a specification formalism not a programming language. It relies on mathematical logic and formulas for structuring specifications, which may discourage programmers from using it. PlusCal~\cite{pcalAlgo} was designed as an algorithm language with a more familiar syntax that can be translated into \tlaplus specifications and then be verified using the familiar \tlaplus tools.
 
 An algorithm language is used to focus on aspects of the algorithm such as data manipulation rather than irrelevant and distracting details that involve programming-language objects and data structures.
-
+	
 PlusCal is an algorithm language that describes both concurrent and sequential algorithms, it maintains the expressiveness of \tlaplus as well as representing atomicity conveniently.
 
 The TLA+ Toolbox provides a platform where algorithm designers can model their algorithms using PlusCal, translate them to the corresponding \tlaplus specifications and check for the algorithm's correctness through the TLC model checker.
@@ -404,8 +404,8 @@ Init == (* Global variables *)
 
 \item For each PlusCal label, generate a \tlaplus action that represents the atomic operation beginning at that label. 
 In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
-The definition is parameterized by the identifier self ,
-which represents the current process's identifier. For example, the following action is generated for label \texttt{start} of the semaphore algorithm.
+The definition is parameterized by the identifier $self$,
+which represents the identifier for the current process. For example, the following action is generated for label \texttt{start} of the semaphore algorithm.
 
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 enter(self) == /\ pc[self] = "enter"
@@ -430,6 +430,9 @@ Spec == Init /\ [][Next]_vars
 \end{lstlisting}
 
 \end{enumerate}
+
+
+In practice, to use PlusCal the user must understand the generated TLA+ specifications, in order to write the properties in terms of the TLA+ variables introduced by the compiler.
 
 A more detailed description of the translation strategy can be found in \cite{pcalAlgo}.
 
@@ -475,24 +478,24 @@ instantiates a process or a group of processes using the specified architype, ea
 
 - show a smaller example or grammer
 
-\chapter{Distributed PlusCal}
+\chapter{The Distributed-PlusCal language}
 
 
 Distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level.
 TLA+ provides a flexibility and an expressiveness that enables it specify and verify those algorithms. One of the popular modern examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
-Distributed PlusCal is a language used to describe distributed algorithms, it extends PlusCal. 
+Distributed-PlusCal is a language used to describe distributed algorithms, it extends PlusCal. 
 Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we want a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms.
 
 Since we extended the existing PluCal translator responsible for parsing PlusCal into TLA+ we inherited the same semantics and grammar and added our own.
 
 \section{Structure of an algorithm}
 
-The general structure and organization of a Distributed PlusCal algorithm is shown in Figure \ref{dpluscal-struct}.
+The general structure and organization of a Distributed-PlusCal algorithm is shown in Figure \ref{dpluscal-struct}.
 
 
 \begin{figure}
-\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+\begin{lstlisting}% [caption = General structure of a Distributed-PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
 
 (* PlusCal options section *)
 (* PlusCal options (-distpcal) *)
@@ -522,11 +525,11 @@ process (<name> [=|\in] <Expr>))
 *)
 
 \end{lstlisting}
-\caption{General structure of a Distributed PlusCal algorithm}
+\caption{General structure of a Distributed-PlusCal algorithm}
 \label{dpluscal-struct}
 \end{figure}
 
-\textbf{PlusCal options section} holds options to be passed to the translator, for example adding $-label$ to the PlusCal options turns on the automatic labeling of the algorithm by the translator. Since we extended the PlusCal translator we notify the translator to parse a Distributed PlusCal algorithm by passing the $-distpcal$ option.
+\textbf{PlusCal options section} holds options to be passed to the translator, for example adding $-label$ to the PlusCal options turns on the automatic labeling of the algorithm by the translator. Since we extended the PlusCal translator we notify the translator to parse a Distributed-PlusCal algorithm by passing the $-distpcal$ option.
 
 Figure \ref{dpluscal-struct} resembles figure \ref{pluscal-struct}, however the variable declarations in \textbf{declarations, procedures, and processes} sections enables the user to declare primitive constructs such as non-ordered channels and FIFO based channels in addition to PlusCal variables.More details on the communication channels are available in section \ref{comChannels}.
 
@@ -542,16 +545,11 @@ In the sections that follow we will be doing a walk-through on the two phase com
 
 Distributed algorithms composed of multiple processes communicate by exchanging messages through channels. Channels provide communication and coordination for distributed applications. They are classified by the way they handle the addition and removal of messages from their collections. 
 
-For some algorithms message ordering is critical, for example if a message is sent to subscribe in a service and another is send to unsubscribe, it is crucial that the first message is received and handled before the second. However, some algorithms are not dependent on ordering. Distributed PlusCal offers two types of channels, unordered channels as well as FIFO based channels.
+For some algorithms message ordering is critical, for example if a message is sent to subscribe in a service and another is send to unsubscribe, it is crucial that the first message is received and handled before the second. However, some algorithms are not dependent on ordering. Distributed-PlusCal offers two types of channels, unordered channels as well as FIFO based channels.
 
-Channels in Distributed PlusCal are unbounded , meaning there is no maximum capacity for the messages they can hold.
+Channels in Distributed-PlusCal are unbounded , meaning there is no maximum capacity for the messages they can hold.
 
 The sections to follow explain how to define and use the channels as well as their \tlaplus translations. 
-
-
-- Distributed PlusCal offers communication primitives 
-- Channels provide communication and coordination for distributed applications.
-- can significantly simplify coding of decoupled applications
 
 \subsection{Unordered Channels}
 
@@ -573,7 +571,7 @@ The dimensions are \tlaplus sets that are defined in the \tlaplus file, they rep
 
 \FloatBarrier
 \begin{figure}[!h]
-\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+\begin{lstlisting}% [caption = General structure of a Distributed-PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
 
 <channel-identifier> = [s1 \in IdSet1, s2 \in IdSet2, ..., sN \in IdSetN |-> {}]
 
@@ -584,11 +582,11 @@ The dimensions are \tlaplus sets that are defined in the \tlaplus file, they rep
 \FloatBarrier
 
 
-In our two phase commit example, we have two unordered channels $coord$ and $agt$, their Distributed PlusCal declarations and \tlaplus translation are in Figure \ref{2pcchannels}.
+In our two phase commit example, we have two unordered channels $coord$ and $agt$, their Distributed-PlusCal declarations and \tlaplus translation are in Figure \ref{2pcchannels}.
 
 \FloatBarrier
 \begin{figure}[!h]
-\begin{lstlisting}% [caption = General structure of a Distributed PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
+\begin{lstlisting}% [caption = General structure of a Distributed-PlusCal algorithm, frame = tlrb, firstnumber =  1,label=dpluscal-struct]
 
 (***
 ----------------------------- MODULE 2pc -----------------------------
@@ -625,7 +623,7 @@ CONSTANTS Coord, Agent
 \end{figure}
 \FloatBarrier
 
-Distributed PlusCal extended PlusCals allowed statements within a body to include channel operators.
+Distributed-PlusCal extended PlusCals allowed statements within a body to include channel operators.
 The list below shows the syntax of the channel operators and their \tlaplus translations, to simplify the examples assume we are dealing with a one dimensional channel with the identifier $chan$.
 
 \begin{itemize}
@@ -730,7 +728,7 @@ The general structure for channel declaration is shown below. A FIFO channel is 
 
 Appendix \ref{appendix:examples} includes an example for  modeling Lamport's Mutual Exclusion algorithm, an algorithm that uses time-stamp to order critical section requests and to resolve any conflict between requests. the example introduces a FIFO channel $network$ and performs the supported FIFO channel operations. \\
 
-The Distributed PlusCal declaration and the \tlaplus translation of the $network$ FIFO channel are in Figure \ref{fifochannels}.
+The Distributed-PlusCal declaration and the \tlaplus translation of the $network$ FIFO channel are in Figure \ref{fifochannels}.
 
 \FloatBarrier
 \begin{figure}[!h]
@@ -773,7 +771,7 @@ Nodes == 1 .. N
 \FloatBarrier
 
 
-Distributed PlusCal extended PlusCals allowed statements within a body to include functions that are applied on channels.
+Distributed-PlusCal extended PlusCals allowed statements within a body to include functions that are applied on channels.
 The list below shows the syntax of the channel operators and their \tlaplus translations, to simplify the examples assume we are dealing with a one dimensional channel with the identifier $chan$.
 
 \begin{itemize}
@@ -859,7 +857,7 @@ The Lamport Mutex example in \ref{appendix:examples} includes the operators $sen
 \section{Sub-Processes}
 \label{subProcess}
 
-Distributed PlusCal gives the user the opportunity to define multiple sub-processes per process. Each sub-process consists of labeled statements. Essentially this enables the process execute multiple tasks in parallel.
+Distributed-PlusCal gives the user the opportunity to define multiple sub-processes per process. Each sub-process consists of labeled statements. Essentially this enables the process execute multiple tasks in parallel.
 
 The body of a sub-process maintains the same syntax as the body of a PlusCal process. All the sub-processes share the same variables declared for the process, this makes communication between them possible if needed.
 
@@ -868,7 +866,7 @@ The entire algorithm is in Appendix \ref{appendix:examples}.
 
 \begin{figure}[!h]
 \label{2pcSub}
-\begin{lstlisting}[caption = Distributed PlusCal Sub-Processes, frame = tlrb, firstnumber = 1]
+\begin{lstlisting}[caption = Distributed-PlusCal Sub-Processes, frame = tlrb, firstnumber = 1]
    
   fair process (a \in Agent)
   variable aState = "unknown"; { \* sub-process
@@ -900,7 +898,7 @@ it's important to note that the sub-processes do not allow variable declarations
 
 \subsection{TLA+ Translation}
 
-The translation of a Distributed PlusCal process into TLA+ meant having to introduce structures and sets that refer to the sub-processes as well as the processes.
+The translation of a Distributed-PlusCal process into TLA+ meant having to introduce structures and sets that refer to the sub-processes as well as the processes.
 
 Initially a set \textbf{SubProcSet} was added to hold all the sub-process identifiers, with respect to which process they belonged to.
 
@@ -909,9 +907,9 @@ SubProcSet == [P \in ProcSet |-> IF P \in IdSet  THEN  1..n
 								  ELSE  1..m ]
 \]						  
 
-The value of the \textbf{pc} variable in PlusCal is a single string equal to the label of the next statement to be executed with respect to a process. In Distributed PlusCal we extended the definition to indicate which sub-process is involved as well.
+The value of the \textbf{pc} variable in PlusCal is a single string equal to the label of the next statement to be executed with respect to a process. In Distributed-PlusCal we extended the definition to indicate which sub-process is involved as well.
 
-Since in \tlaplus a function with domain 1..n for some n in Nat is a sequence, the \textbf{pc} variable in Distributed PlusCal is initialized as :
+Since in \tlaplus a function with domain 1..n for some n in Nat is a sequence, the \textbf{pc} variable in Distributed-PlusCal is initialized as :
 
 \[
 pc = [self \in ProcSet |-> self \in IdSet -> <<"action",...>>]
@@ -932,7 +930,7 @@ In our example we have two process types, one for Agents and the other for Coord
 \FloatBarrier
 \begin{figure}[!h]
 \label{2pcSubTla}
-\begin{lstlisting}[caption = Distributed PlusCal Translation- SubProcSet, frame = tlrb, firstnumber = 1]
+\begin{lstlisting}[caption = Distributed-PlusCal Translation- SubProcSet, frame = tlrb, firstnumber = 1]
 SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
                              ELSE (**Coord**) 1..2]
 
@@ -1004,6 +1002,17 @@ a4(self) == /\ pc[self] [2] = "a4"
 
 \end{enumerate}
 
+
+\section{Evaluation}
+
+Distributed-PlusCal is a language that provides algorithm designers with an interface in which distributed algorithms and their properties can be expressed naturally.
+
+While the PlusCal language may enforce some limitation that make it difficult to express distributed algorithms in a natural way, Distributed-PlusCal introduced constructs that can overcome these limitation.
+
+In distributed algorithms several processes or threads may coexist and asynchronously communicate while being a part of a distributed node. Distributed-PlusCal firstly introduced Sub-processes \ref{subProcess} to allow the declaration of these threads, and secondly we provided the user with communication channel constructs \ref{comChannels} to assist in the communication between those processes.
+\\\\
+Extending the PlusCal translator introduced some limitations in our translation process;however, it also allowed our translator to be backward compatible. The Distributed-PlusCal translator can translate PlusCal models as well as Distributed-PlusCal models.
+
 \chapter{Code Documentation}
 
 \section{general structure of the toolbox and it's components}
@@ -1014,8 +1023,9 @@ try to describe the general flow
 
 \chapter{Conclusion and future work}
 
+
 \begin{appendices}
-\chapter{Distributed PlusCal to TLA+ Examples}
+\chapter{Distributed-PlusCal to TLA+ Examples}
 \section{Two Phase Commit}
 \label{appendix:examples}
 
