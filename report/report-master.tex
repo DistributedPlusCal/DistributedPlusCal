@@ -210,22 +210,24 @@ qui fut la première de toutes.
 \chapter{Introduction}
 %%============================
 
-- Model checking is a verification method that is automatic and model-based(system is represented by a model, a specification is represented as a formula and we check whether the model satisfies the formula ==> if not we have counter models), it is intended to be used for concurrent systems.
+Distributed systems are based on continuous interactions among components, these interactions produce bugs that are difficult to find by testing as they tend to be non-reproducible or not covered by test-cases.
 
-- The purpose of a modeling language is to describe what a system must perform,
-not how a system must perform.
-- the users of these modeling languages are algorithm designers who
-are responsible for describing the functionality of the system in terms of algorithms
-before actual implementation. Thus, these languages should be simple so that the
-users can learn and use the language constructs easily.
+Distributed systems benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level.
 
-- PlusCal language by Leslie Lamport provides simple pseudo-code like interface
-for the user to express concurrent systems.
+Formal verification methods have been employed successfully to model the system and its properties and then verify its correctness. One of the verification methods is called model checking, it is a model-based verification technique. Model checking starts with a model described by the user and checks if the properties asserted by the user are valid on that model. 
 
-- distributed system bugs are difficult to find by testing, they tend to be non-reproducible or not covered by test-cases.
+\tlaplus is a formal languages used to describe algorithms, it provides a flexibility and an expressiveness that enables it to specify and verify complicated algorithms concisely. One of the popular modern examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
-- TLA+
-- 
+Once the user has modeled the system using the \tlaplus specification language, the user can then use the Temporal Logic Checker(TLC) to check both the safety and liveness properties. TLC can further speed-up model checking by running on virtual machines using cloud-based distributed TLC \cite{cloudTLC}. The TLC model checker is offered with the \tlaplus Toolbox. 
+
+In addition, the \tlaplus Toolbox also provides a translator from the algorithmic language PlusCal to \tlaplus. The PlusCal language was designed to provides simple pseudo-code like interface for the user to express concurrent systems. It maintains the expressiveness of \tlaplus while providing the user with a more familiar syntax.
+
+Although PlusCal is very useful, when i comes to distributed algorithms it may enforce some limitation that make it difficult to express them in a natural way. As an example, distributed algorithms usually need to model several sub-processes coexisting and communicating as a part of a distributed node, PlusCal processes must all be declared at top level and cannot be easily used to create what the algorithm is aiming for. 
+
+This thesis proposes Distributed PlusCal, an extension of PlusCal that introduces constructs that can overcome these limitation. Distributed PlusCal is a language that provides algorithm designers with an interface in which distributed algorithms and their properties can be expressed naturally.
+
+Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we want a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms.
+
 
 \chapter{Background info}
 %%============================
@@ -492,10 +494,6 @@ instantiates a process or a group of processes using the specified architype, ea
 - show a smaller example or grammer
 
 \chapter{Distributed PlusCal}
-
-
-Distributed algorithms are based on continuous interactions among components, they benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level.
-TLA+ provides a flexibility and an expressiveness that enables it to specify and verify those algorithms. One of the popular modern examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
 Distributed PlusCal is a language used to describe distributed algorithms, it extends PlusCal. 
 Our motivations for creating Disrtibuted PlusCal are quite similar to the motivations that created PlusCal, we want a syntax that would spare the user from having to model primitives that usually accompany distributed algorithms.

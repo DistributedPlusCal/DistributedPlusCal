@@ -1,0 +1,29 @@
+\babel@toc {french}{}
+\@frame@switchfalse 
+\contentsline {chapter}{\numberline {Chapitre\ 1}Introduction}{1}%
+\contentsline {chapter}{\numberline {Chapitre\ 2}Background info}{3}%
+\contentsline {section}{\numberline {2.1}TLA\textsuperscript {+}\xspace }{3}%
+\contentsline {section}{\numberline {2.2}PlusCal algorithm language}{4}%
+\contentsline {paragraph}{Translation to TLA\textsuperscript {+}\xspace .}{5}%
+\contentsline {chapter}{\numberline {Chapitre\ 3}Related work}{9}%
+\contentsline {section}{\numberline {3.1}PGO}{9}%
+\contentsline {subsection}{\numberline {3.1.1}Modular PlusCal}{9}%
+\contentsline {paragraph}{\textbf {Architypes}}{9}%
+\contentsline {paragraph}{Mapping Macros}{9}%
+\contentsline {paragraph}{Instances}{10}%
+\contentsline {chapter}{\numberline {Chapitre\ 4}Distributed PlusCal}{11}%
+\contentsline {section}{\numberline {4.1}Structure of an algorithm}{11}%
+\contentsline {section}{\numberline {4.2}Communication Channels}{12}%
+\contentsline {subsection}{\numberline {4.2.1}Unordered Channels}{12}%
+\contentsline {subsection}{\numberline {4.2.2}FIFO channels}{14}%
+\contentsline {section}{\numberline {4.3}Sub-Processes}{16}%
+\contentsline {subsection}{\numberline {4.3.1}TLA+ Translation}{16}%
+\contentsline {section}{\numberline {4.4}Evaluation}{18}%
+\contentsline {chapter}{\numberline {Chapitre\ 5}Code Documentation}{19}%
+\contentsline {section}{\numberline {5.1}general structure of the toolbox and it's components}{19}%
+\contentsline {section}{\numberline {5.2}parsing and expansion process}{19}%
+\contentsline {chapter}{\numberline {Chapitre\ 6}Conclusion and future work}{21}%
+\contentsline {chapter}{Appendices}{23}%
+\contentsline {chapter}{\numberline {Annexe\ A}Distributed PlusCal to TLA+ Examples}{25}%
+\contentsline {section}{\numberline {A.1}Two Phase Commit}{25}%
+\contentsline {section}{\numberline {A.2}Lamport Mutex}{28}%
