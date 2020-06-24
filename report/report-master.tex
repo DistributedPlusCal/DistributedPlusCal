@@ -14,6 +14,7 @@
 \usepackage{latexsym}
 \usepackage{amssymb}
 \usepackage{listings}
+\usepackage{tikz}
 
 \usepackage{color}
 \usepackage[T1]{fontenc}
@@ -107,6 +108,16 @@
 \mathcode`O="714F\mathcode`P="7150\mathcode`Q="7151\mathcode`R="7152%
 \mathcode`S="7153\mathcode`T="7154\mathcode`U="7155\mathcode`V="7156%
 \mathcode`W="7157\mathcode`X="7158\mathcode`Y="7159\mathcode`Z="715A}
+
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+
+\tikzstyle{arrow} = [thick,->,>=stealth]
 
 \noTeXmath
 \makeatother
@@ -454,44 +465,45 @@ A more detailed description of the translation strategy can be found in \cite{pc
 \chapter{Related work}
 %%============================
 
-- pluscal extensions for generating code to make sure that verified spec isn't lost while being implemented
-- \ref{PGO} a tool represented as a part of a master thesis, it aims to produce an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
+There are several modeling languages that are used to specify algorithms and then verify them with the help of a model checker. Modular PlusCal \ref{ModularPlusCal} is an extension of PlusCal that aims to add the ability to specify an interface between the actual substance of a PlusCal algorithm and the environment.
+
+Modular PlusCal is a part of a tool called PGo \ref{PGO}, PGO produces an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
 
 \section{PGO}
 
-PGo is a source to source compiler written in Java. It compiles specifications written in an extension of PlusCal, called Modular PlusCal to Go programs, PGo can compile Modular PlusCal to PlusCal, PlusCal to Go, and Modular PlusCal to Go.
+PGo is a source to source compiler written in Java. PGo can compile Modular PlusCal to PlusCal, PlusCal to Go, and Modular PlusCal to Go.
 
 \subsection{Modular PlusCal}
 
-Modular PlusCal is an extension of PlusCal, using Modular PlusCal the user can separate the specification into two components, a system functionality specification concerned with what the algorithm is supposed to achieve and an environment specification concerned about how we may want it achieved.
-
+Modular PlusCal is an extension of PlusCal, using Modular PlusCal the user can separate the specification into two components, a system functionality specification concerned with what the algorithm is supposed to achieve, and an environment specification concerned about how we may want it achieved. Modular PlusCal allows the user to separate abstract and implementation-dependent details.
 \hfill\\
 
-For example, if we consider a server/client based communication system, the system functionality can be a client requesting services, this is called system functionality, which is not related to how the client is requesting that service via a TCP connection for example, this is called an environment specification. Another added value for this separation is that the programmer can reuse concept defined in one specification in another specification since the environment specification isn't dependent on the functionality of the system.
+For example, if we consider a server/client based communication system, where the system functionality is a client requesting services, then the fact that the client is requesting the service via a TCP connection is called an environment specification. 
+An added value for this separation is that the programmer can reuse concepts defined in one specification in another specification, since the environment specification isn't dependent on the functionality of the system.
 
-Modular PlusCal introduced Architypes, Mapping Macros, and Instances to achieve the modularization of the spec.
+Modular PlusCal is compiled by PGo to PlusCal, which is then translated to \tlaplus by the help of the \tlaplus toolbox. Modular PlusCal introduced archetypes, mapping macros, and instances to achieve the modularization of the spec.
 
 \paragraph{\textbf{Architypes}}
 \hfill\\
-They are considered to be the blue print of a PlusCal process, they are used to specify the system behaviors. They have the same semantics except for the inability to access global variables unless passed to the architypes as arguments.
+Architypes are considered to be the blue print of a PlusCal process, they are used to specify the system behaviors. They have the same semantics except for the inability to access global variables unless passed to the architypes as arguments.
 
-Using the \textit{ref} keyword before a global variable that is sent as an argument lets us know that this architype can modify it.
+An archetype must communicate with its environment via a set
+of parameters that it accepts. Instead of specifying shared global variables.
 
-these restrictions provide the needed isolation between system and environment behaviours.
+They are capable of both input and output due to the 'pass by reference' parameters, using the \textit{ref} keyword before a global variable that is sent as an argument lets us know that this architype can modify it.
+
+The syntax is similar to the syntax for a PlusCal process; however, an architype is not allowed to access to global variables that are out of its scope. An archetype should never rely on anything that is not explicitly passed to it as a parameter. These restrictions provide the needed isolation between system and environment behaviors.
 
 \paragraph{Mapping Macros}
 
-They specify the environment, they define interfaces for reading and writing on a global variable that represents a network.
-like pluscal macros they cannot contain any labels inside them, all statements are apart of the same step.
+Mapping Macros specify the environment, they define interfaces for reading and writing on a global variable that represents a network. Like PlusCal all statements in a macro are part of the same atomic step, therefore labels are not allowed within a mapping macro.
 
 Modeling mapping macros independently from system functionality allows the user to reuse the mapping macros.
 
 \paragraph{Instances}
 
-Instances are the glue that holds the archtypes and mapping macros together.
-instantiates a process or a group of processes using the specified architype, each argument passed is bound with a mapping macro to control read and write functions on it.
+Instances are the glue that holds the archtypes and mapping macros together.Instances instantiate a process or a group of processes using the specified architype, where each argument passed to the architype is bound with a mapping macro to control read and write functions on it.
 
-- show a smaller example or grammer
 
 \chapter{Distributed PlusCal}
 
@@ -1034,14 +1046,70 @@ In distributed algorithms several processes or threads may coexist and asynchron
 \\\\
 Extending the PlusCal translator allowed our translator to be backward compatible. The Distributed PlusCal translator can translate PlusCal models as well as Distributed PlusCal models.
 
-\chapter{Code Documentation}
+\chapter{Compilation with Distributed PlusCal translator}
 
-\section{general structure of the toolbox and it's components}
-try to describe the general flow
+The TLC model checker accepts only \tlaplus specifications as input, the translator compiles Distributed PlusCal specifications into \tlaplus specifications.
 
-\section{parsing and expansion process}
+In this chapter we will explain how the PlusCal translator works generally, as well as the changes that were made to parse Distributed PlusCal to \tlaplus.
+
+Figure \ref{translator} shows the stages that the translator goes through to parse from Distributed PlusCal to \tlaplus. These steps are shared with the PlusCal translator except for the steps explained in \ref{parsesub} and \ref{chanexpand}.
+
+\begin{figure}[!h]
+\label{translator}
+\centering
+\includegraphics[width=0.7\textwidth]{chart}
+\caption{Parsing tasks in Distributed PlusCal translator}
+\end{figure}
+\section{Parsing Processes}
+
+When parsing a process, the translator distinguishes the sub-processes using sub-process separators. the separators differ based on the PlusCal syntax the programmer is using. In c-syntax PlusCal the sub-processes separators are curly brackets as explained in \ref{subProcess}.
+
+Each block of statements read in a sub-process is placed in a vector of sub-processes. All of the statements are parsed and transformed into the appropriate structure with respect to the type of each statement, they are then placed in an AST(Abstract syntax tree) that represents the entire algorithm.
+
+The AST includes statement types such as $if$ statements and $while$ statements. Our translator added more types to the AST to be able to hold sub-processes and channel operators.
 
 
+Then the bodies of the sub-processes go through the expansion process described in \ref{translator} and \ref{chanexpand}.
+
+\label{parsesub}
+\section{Channel operator expansion}
+
+The expansions refer to the process of structurally expanding code fragments during compilation. The PlusCal translator uses the expansion process to transform $Macro Calls$ that are within a statement to the body of the defined macro with the arguments the programmer has passed.
+
+The expansion process deals with channel operators, so when a channel operator is found in a statement, the translator generates the appropriate template body corresponding to the channel operator used. when generating the expanded body of the operator the arguments used when calling the operator are substituted.
+
+The expanded body is generated polymorphically based on the type of the channel, meaning the expanded body for a channel operator  depends on the type of channel that is passed as an argument with the operator.
+
+For instance, consider the $receive$ operator in the two phase commit example
+\[
+receive(coord, msg)
+\]
+
+The generated body template based on the channel type and the operator is shown below.
+
+\begin{lstlisting}
+with(e \in chan){
+	msg := e;
+	chan := chan \ {e}
+}
+\end{lstlisting}
+
+The listing below shows the statement after the expansion process as a part of the resulting AST.
+
+\begin{lstlisting}
+[type   |-> "with", 
+ var    |-> "c1512",
+ eqOrIn |-> "\\in",
+ exp    |-> << "coord" >>,
+ do     |-> <<[type |-> "assignment",
+               ass  |-> <<[lhs |-> [var |-> "msg", sub |-> <<  >>],
+                           rhs |-> << "c1512" >>], 
+                          [lhs |-> [var |-> "coord", sub |-> <<  >>],
+                           rhs |-> << "coord", " \ ", "{", "c1512", "}" >>]>>]>>]
+
+\end{lstlisting}
+
+\label{chanexpand}
 \chapter{Conclusion and future work}
 
 
