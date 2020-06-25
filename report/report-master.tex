@@ -1085,6 +1085,14 @@ For instance, consider the $receive$ operator in the two phase commit example
 receive(coord, msg)
 \]
 
+The listing below shows the statement before the expansion process as a part of the AST.
+
+\begin{lstlisting}
+[type |-> "ChannelReceiver",
+channel |-> coord, targetVar |-> msg, callExp |-> <<  >>, targetExp |-> <<  >>]
+
+\end{lstlisting}
+
 The generated body template based on the channel type and the operator is shown below.
 
 \begin{lstlisting}
