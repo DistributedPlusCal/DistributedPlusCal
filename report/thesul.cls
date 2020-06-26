@@ -129,7 +129,7 @@
 
 \newcommand{\@ULhe@d}{{\UseEntryFont{ThesisFirstPageHead}\noindent
     \centerline{{\setbox0=\hbox{$\raise1.5cm\hbox{\ULLogo}$}%
-                     \ht0=\baselineskip\box0}\hfill\@DFD}}%
+                     \ht0=\baselineskip\box0}\hfill}}%
     \@TUL@cmn@head\par
     }
 \newtoks\@lab@tok
@@ -149,9 +149,9 @@
      \begin{center}\UseEntryFont{ThesisFirstPageFoot}%
                  \the\@lab@tok
      \end{center}
-     \centerline{\if@logo@loria@
+     \centerline{
                     $\raise\baselineskip\hbox{\LoriaLogo}$\hskip2.5cm%
-                 \fi}
+                 }
      \vskip2mm
     }
 \newcommand\ThesisFirstPageFoot[1]%
@@ -408,8 +408,8 @@
        \vskip3mm plus1fil
                                 \@ThesisAuthor
     \end{center}
-       \vskip5mm plus2fil
-                 \hskip1cm\@ThesisJuryTitle
+       %\vskip5mm plus2fil
+                 %\hskip1cm\@ThesisJuryTitle
     \begin{center}
                                 \@ThesisJury
     \end{center}

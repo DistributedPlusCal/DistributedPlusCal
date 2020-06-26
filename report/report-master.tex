@@ -42,7 +42,7 @@
   breakatwhitespace=true,
   tabsize=1,
   morecomment=[l]{\\*},
-  morekeywords={fair, process, macro, procedure, define, algorithm, variables}
+  morekeywords={}
 }
 \newcommand\tab[1][1cm]{\hspace*{#1}}
 \renewcommand{\floatpagefraction}{.99}
@@ -159,38 +159,28 @@
 
 
 \MasterUL
+
 \ThesisTitle{Formal Verification of Distributed Algorithms using Distributed PlusCal}
 \ThesisAuthor{Heba Al-kayed}
+
 \ThesisPresentedThe{soutenu le 26 juin 2020}
-\President    = {Le pr\'esident}
-\Rapporteurs  = {Le rapporteur 1\\
-                 Le rapporteur 2\\
-                 Le rapporteur 3}
-\Examinateurs = {L'examinateur 1\\
-                 L'examinateur 2}
-
+\Encadrants{Stephan Merz, Horatiu Cirstea \\ \tab(VERIDIS)}
+\ThesisDomain{Computer Science - MFLS}
 \MakeThesisTitlePage
-
+\ThesisFirstPageFoot
 
 %-------------------------------------------------------------------
 %                          remerciements
 %-------------------------------------------------------------------
 
 %\DontFrameThisInToc
-\begin{ThesisAcknowledgments}
-Les remerciements.
-\end{ThesisAcknowledgments}
+%\begin{ThesisAcknowledgments}
+%Les remerciements.
+%\end{ThesisAcknowledgments}
 
 %-------------------------------------------------------------------
 %                            dédicace
 %-------------------------------------------------------------------
-
-\begin{ThesisDedication}
-Je dédie cette thèse\\
-à ma machine.\\
-Oui, à Pandore,\\
-qui fut la première de toutes.
-\end{ThesisDedication}
 
 
 %-------------------------------------------------------------------
@@ -225,7 +215,7 @@ Distributed systems are based on continuous interactions among components, these
 
 Distributed systems benefit greatly from testing failure conditions like deadlocks or race conditions at early stages of development at design level.
 
-Formal verification methods have been employed successfully to model the system and its properties and then verify its correctness. One of the verification methods is called model checking, it is a model-based verification technique. Model checking starts with a model described by the user and checks if the properties asserted by the user are valid on that model. 
+Formal verification methods have been employed successfully to model the system and its properties and then verify its correctness. One of the verification methods is called model checking \cite{ModelCheckingTLA}, it is a model-based verification technique. Model checking starts with a model described by the user and checks if the properties asserted by the user are valid on that model. 
 
 \tlaplus is a formal languages used to describe algorithms, it provides a flexibility and an expressiveness that enables it to specify and verify complicated algorithms concisely. One of the popular modern examples of incorporating TLA+ to verify distributed algorithms is its usage at Amazon Web Services \cite{amazon}.
 
@@ -307,7 +297,7 @@ The action $Next$ defines the possible state transitions as the disjunction of $
 \bigskip
 
 
-For More details on the syntax and grammer of TLA+, see \ref{tlabook}.
+For More details on the syntax and grammer of TLA+, see \cite{tlabook} \cite{tlaplus}.
 
 \section{PlusCal algorithm language}
 %%============================
@@ -374,7 +364,7 @@ Figure \ref{semaphoreEx} shows the modeling of a semaphore mutex example in Plus
 (*
 --algorithm SemaphoreMutex {
 variables sem = 1;
-
+ 
   process(p \in 1..N)
   {
   start : while (TRUE){
@@ -395,8 +385,7 @@ variables sem = 1;
 \paragraph{Translation to \tlaplus.}
 The PlusCal translator expects as input a PlusCal algorithm following the structure described previously.
 
-% The translator
-It parses the PlusCal algorithm and generates the corresponding \tlaplus specification in roughly the following steps.
+The translator parses the PlusCal algorithm and generates the corresponding \tlaplus specification in roughly the following steps.
 
 \begin{enumerate}
 \item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
@@ -465,9 +454,9 @@ A more detailed description of the translation strategy can be found in \cite{pc
 \chapter{Related work}
 %%============================
 
-There are several modeling languages that are used to specify algorithms and then verify them with the help of a model checker. Modular PlusCal \ref{ModularPlusCal} is an extension of PlusCal that aims to add the ability to specify an interface between the actual substance of a PlusCal algorithm and the environment.
+There are several modeling languages that are used to specify algorithms and then verify them with the help of a model checker. Modular PlusCal \cite{ModularPlusCal} is an extension of PlusCal that aims to add the ability to specify an interface between the actual substance of a PlusCal algorithm and the environment.
 
-Modular PlusCal is a part of a tool called PGo \ref{PGO}, PGO produces an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
+Modular PlusCal is a part of a tool called PGo \cite{PGO}, PGO produces an implementation in Go(C based language developed by Google) based on a PlusCal/TLA+ specification.
 
 \section{PGO}
 
@@ -527,8 +516,8 @@ The general structure and organization of a Distributed PlusCal algorithm is sho
 
 (* Declaration section *)
 variables <variable declarations>
-channels <variable declarations>
-FIFOs <variable declarations>
+channels <channel declarations>
+fifos <fifo declarations>
 
 (* Definition section *)
 define <definition name> == <definition description>
@@ -578,7 +567,7 @@ The sections to follow explain how to define and use the channels as well as the
 
 \subsection{Unordered Channels}
 
-Unordered channels are declared and used as communication gateways in algorithms that are not depended on the order in which the messages are handled.
+Unordered channels are declared and used as communication gateways in algorithms that are not dependent on the order in which the messages are handled.
 
 The general structure for channel declaration is shown below. An unordered channel is declared with the keyword \keyword{channel} or \keyword{channels}. 
 
@@ -593,7 +582,6 @@ The equivalent PlusCal declaration of the same channel would be as follows
 \]
 
 The $dimensions$ are \tlaplus sets that are defined in the \tlaplus file, they represent the keys of the channel, Figure \ref{unorderedtla} shows the corresponding TLA+ translation of the unordered channel declaration with N dimensions.
-
 
 
 The TLA+ translation of the FIFO channel is as follows
@@ -676,10 +664,10 @@ The $multicast$ operator takes two parameters, the channel $chan$ and a \tlaplus
 \end{minipage}\hfill
 \begin{minipage}{.8\textwidth}
 \begin{lstlisting}[frame = none, numbers = none]
-chan' = a \in DOMAIN chan |-> 
+chan' = [a \in DOMAIN chan |-> 
 					IF a \in sub
 					THEN chan[a] \cup {msg}
-					ELSE chan[a]
+					ELSE chan[a]]
 \end{lstlisting}
 
 \end{minipage}\hfill
@@ -728,9 +716,9 @@ The coordinator receives the decisions of the agents though the $coord$ channel,
 \end{minipage}
 \begin{minipage}{.9\textwidth}
 \begin{lstlisting}[frame = none, numbers = none]
-\E c1512 \in coord:
-	/\ coord' = coord \ {c1512}
-	/\ msg' = c1512
+\E c \in coord:
+	/\ coord' = coord \ {c}
+	/\ msg' = c
 \end{lstlisting}
 
 \end{minipage}\hfill
@@ -833,7 +821,7 @@ The $multicast$ operator takes two parameters, the channel $chan$ and a \tlaplus
 chan'=[a \in DOMAIN chan 
 			|-> IF a \in sub 
        THEN Append(chan[a], msg)
-       ELSE chan[a]
+       ELSE chan[a]]
 \end{lstlisting}
 
 \end{minipage}\hfill
@@ -862,7 +850,7 @@ The $clear$ operator empties the channel $chan$.
 \begin{center}
 
 \lstinline|clear(chan)| $\triangleq$
-\lstinline|chan' = [el \in IdSet -> <<>>]|
+\lstinline|chan' = [el \in IdSet -> $\seq{}$$\seq{}$]|
 
 \end{center}
 \end{itemize}
@@ -890,7 +878,7 @@ The \tlaplus translation use the operators $Head$ and $Tail$ in order to read th
 \section{Sub-Processes}
 \label{subProcess}
 
-Distributed PlusCal gives the user the opportunity to define multiple sub-processes per process. Each sub-process consists of labeled statements. Essentially this enables the process execute multiple tasks in parallel.
+Distributed PlusCal gives the user the opportunity to define multiple sub-processes per process. Each sub-process consists of labeled statements. Essentially this enables the process to execute multiple tasks in parallel.
 
 The body of a sub-process maintains the same syntax as the body of a PlusCal process. All the sub-processes share the same variables declared for the process, this makes communication between them possible if needed.
 
@@ -971,7 +959,7 @@ SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
 \end{figure}
 \FloatBarrier
 
-\item Generate the set $pc$ variable to as a point of control for the processes and sub-processes.
+\item Generate the $pc$ variable to be a point of control for the processes and sub-processes.
 In our example, for processes of type Agent we have two sub-processes. The first sub-process begins execution at action "a1", and the second one begins at action "a3".
 \hfill\\
 
@@ -1093,7 +1081,7 @@ channel |-> coord, targetVar |-> msg, callExp |-> <<  >>, targetExp |-> <<  >>]
 
 \end{lstlisting}
 
-The generated body template based on the channel type and the operator is shown below.
+The generated body template is based on the channel type and the operator, so the listing shown below is the template for a receive channel operator when receiving from an unordered channel.
 
 \begin{lstlisting}
 with(e \in chan){
@@ -1102,24 +1090,27 @@ with(e \in chan){
 }
 \end{lstlisting}
 
-The listing below shows the statement after the expansion process as a part of the resulting AST.
+After applying the expansion process using this body template the AST is modified to hold the statements corresponding to the channel receive operator as shows below.
 
 \begin{lstlisting}
 [type   |-> "with", 
- var    |-> "c1512",
+ var    |-> "c",
  eqOrIn |-> "\\in",
  exp    |-> << "coord" >>,
  do     |-> <<[type |-> "assignment",
                ass  |-> <<[lhs |-> [var |-> "msg", sub |-> <<  >>],
-                           rhs |-> << "c1512" >>], 
+                           rhs |-> << "c" >>], 
                           [lhs |-> [var |-> "coord", sub |-> <<  >>],
-                           rhs |-> << "coord", " \ ", "{", "c1512", "}" >>]>>]>>]
+                           rhs |-> << "coord", " \ ", "{", "c", "}" >>]>>]>>]
 
 \end{lstlisting}
 
 \label{chanexpand}
 \chapter{Conclusion and future work}
 
+This thesis presents Distributed PlusCal, an language extending PlusCal, with the goal of providing the user with constructs that support the modeling of distributed algorithms. We also provide a compiler from Distributed PlusCal to \tlaplus.
+
+In the future we aim to introduce more types of communication channels, and we're working on supporting PlusCals p-syntax as well.
 
 \begin{appendices}
 \chapter{Distributed PlusCal to TLA+ Examples}
