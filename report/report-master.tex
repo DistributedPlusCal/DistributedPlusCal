@@ -6,6 +6,7 @@
 %
 \documentclass{thesul}
 
+
 \usepackage{capt-of}
 \usepackage{placeins}
 \usepackage[toc,page]{appendix}
@@ -175,9 +176,12 @@
 %-------------------------------------------------------------------
 
 %\DontFrameThisInToc
-%\begin{ThesisAcknowledgments}
+\begin{ThesisAcknowledgments}
 %Les remerciements.
-%\end{ThesisAcknowledgments}
+Thank you to my supervisors, Stephan Merz and Horatiu Cirstea , for providing guidance and feedback throughout this project.
+Thanks also to my respected professors at Université de Lorraine who influenced me greatly in this past year.
+
+\end{ThesisAcknowledgments}
 
 %-------------------------------------------------------------------
 %                            dédicace
@@ -287,13 +291,13 @@ TypeOK ==
 \label{memory-tla}
 \end{figure}
 
-For example, figure~\ref{memory-tla} shows a \tlaplus specification of a simple memory. It declares four constant parameters $Address$, $Value$, $InitValue$, and $NoValue$, and states a hypothesis on the values that these parameters can be instantiated with. The state space of the specification is represented by the two variables $chan$ and $mem$. Intuitively, $mem$ holds the current memory, whereas $chan$ is an output channel that reflects the result of the preceding operation.
+For example, Figure~\ref{memory-tla} shows a \tlaplus specification of a simple memory. It declares four constant parameters \verb|Address, Value, InitValue,| and \verb|NoValue|, and states a hypothesis on the values that these parameters can be instantiated with. The state space of the specification is represented by the two variables $chan$ and \verb|mem|. Intuitively, \verb|mem| holds the current memory, whereas \verb|chan| is an output channel that reflects the result of the preceding operation.
 
-The remainder of the \tlaplus module contains operator definitions that represent parts of the specification and of correctness properties. The state predicate $Init$ fixes the initial values of the two variables. The actions $Read(a)$ and $Write(a,v)$ represent reading the value at memory address $a$ and writing value $v$ to memory address $a$, respectively. In this specification, the memory is modeled as a function mapping addresses to values. The \tlaplus expression $[x \in S \mapsto e]$ denotes the function with domain $S$ such that every element $x$ of $S$ is mapped to $e$. This is reminiscent of a $\lambda$-expression but also makes explicit the domain of the function. Function application $f[x]$ is written using square brackets. Finally, the expression $[f\ \EXCEPT\ ![x] = e]$ denotes the function that is similar to $f$, except that argument $x$ is mapped to $e$, one can think of it as a function overwrite.
+The remainder of the \tlaplus module contains operator definitions that represent parts of the specification and of correctness properties. The state predicate \verb|Init| fixes the initial values of the two variables. The actions \verb|Read(a)| and \verb|Write(a,v)| represent reading the value at memory address \verb|a| and writing value \verb|v| to memory address \verb|a|, respectively. In this specification, the memory is modeled as a function mapping addresses to values. The \tlaplus expression $[x \in S \mapsto e]$ denotes the function with domain \verb|S| such that every element \verb|x| of \verb|S| is mapped to \verb|e|. This is reminiscent of a $\lambda$-expression but also makes explicit the domain of the function. Function application \verb|f[x]| is written using square brackets. Finally, the expression $[f\ \EXCEPT\ ![x] = e]$ denotes the function that is similar to $f$, except that argument \verb|x| is mapped to \verb|e|, one can think of it as a function overwrite.
 
-The action $Next$ defines the possible state transitions as the disjunction of $Read$ and $Write$ actions, and $Spec$ represents the overall specification of the memory.
+The action \verb|Next| defines the possible state transitions as the disjunction of \verb|Read| and \verb|Write| actions, and \verb|Spec| represents the overall specification of the memory.
 
-\tlaplus is an untyped language. Type correctness can be verified as a property of the specification. For our example, the predicate $TypeOK$ indicates the possible values that the variables $chan$ and $mem$ are expected to hold at any state of the specification. Formally, the implication $Spec \Rightarrow \Box TypeOK$ can be established as a theorem.
+\tlaplus is an untyped language. Type correctness can be verified as a property of the specification. For our example, the predicate \verb|TypeOK| indicates the possible values that the variables \verb|chan| and \verb|mem| are expected to hold at any state of the specification. Formally, the implication \verb|Spec| $\Rightarrow \Box$ \verb|TypeOK| can be established as a theorem.
 
 \bigskip
 
@@ -390,7 +394,7 @@ The translator parses the PlusCal algorithm and generates the corresponding \tla
 
 \begin{enumerate}
 \item Generate all the definitions and variables regardless of their scope within the PlusCal algorithm, as well as $vars$ the tuple of all variables.
-The $pc$ variable is introduced by the translator to track the control flow of processes.
+The \verb|pc| variable is introduced by the translator to track the control flow of processes.
 
 \FloatBarrier
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
@@ -401,15 +405,15 @@ vars == << sem, pc >>
 
 \end{lstlisting}
 
-\item Generate $ProcSet$ which is a set that contains all the process identifiers.
+\item Generate \verb|ProcSet| which is a set that contains all the process identifiers.
 
 \begin{lstlisting}[frame = tlrb, firstnumber = 1,xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 ProcSet == (1..N)
 
 \end{lstlisting}
 
-\item  Generate $Init$, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
-The variable $pc$ is defined and used as a program control variable, it's a function whose domain is $ProcSet$ such that each element is mapped to the entry label of the process.
+\item  Generate \verb|Init|, the initial predicate that specifies the initial values of all the declared variables. Comments indicate if the variables are global or local to a process or procedure.
+The variable \verb|pc| is defined and used as a program control variable, it's a function whose domain is \verb|ProcSet| such that each element is mapped to the entry label of the process.
 
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
 Init == (* Global variables *)
@@ -420,7 +424,7 @@ Init == (* Global variables *)
 
 \item For each PlusCal label, generate a \tlaplus action that represents the atomic operation beginning at that label. 
 In the produced actions unprimed variables refer to their values before executing the action and the primed variables refer to their values after the execution.
-The definition is parameterized by the identifier $self$,
+The definition is parameterized by the identifier \verb|self|,
 which represents the identifier for the current process. For example, the following action is generated for label \texttt{enter} of the semaphore algorithm.
 
 \begin{lstlisting}[frame = tlrb, firstnumber = 1, xleftmargin=.2\textwidth, xrightmargin=.2\textwidth]
@@ -1063,48 +1067,141 @@ Then the bodies of the sub-processes go through the expansion process described 
 \label{parsesub}
 \section{Channel operator expansion}
 
-The expansions refer to the process of structurally expanding code fragments during compilation. The PlusCal translator uses the expansion process to transform $Macro Calls$ that are within a statement to the body of the defined macro with the arguments the programmer has passed.
+The expansions refer to the process of structurally expanding code fragments during compilation. The PlusCal translator uses the expansion process to transform $Macro Calls$ that are within a statement to the body of the defined macro with the arguments the programmer has passed in the call.
 
-The expansion process deals with channel operators, so when a channel operator is found in a statement, the translator generates the appropriate template body corresponding to the channel operator used. when generating the expanded body of the operator the arguments used when calling the operator are substituted.
+The expansion process deals with channel operators, so when a channel operator is found in a statement, the translator generates the appropriate body template corresponding to the channel operator used. When generating the expanded body of the operator the arguments used when calling the operator are substituted.
 
-The expanded body is generated polymorphically based on the type of the channel, meaning the expanded body for a channel operator  depends on the type of channel that is passed as an argument with the operator.
+The expanded body is generated polymorphically based on the type of the channel, meaning the expanded body for a channel operator  depends on the type of the channel that is passed as an argument with the operator.
 
-For instance, consider the $receive$ operator in the two phase commit example
-\[
-receive(coord, msg)
-\]
+The templates that are generated and substituted based on the channel type and the channel operation are shown in the table below:
 
-The listing below shows the statement before the expansion process as a part of the AST.
-
-\begin{lstlisting}
-[type |-> "ChannelReceiver",
-channel |-> coord, targetVar |-> msg, callExp |-> <<  >>, targetExp |-> <<  >>]
-
-\end{lstlisting}
-
-The generated body template is based on the channel type and the operator, so the listing shown below is the template for a receive channel operator when receiving from an unordered channel.
-
-\begin{lstlisting}
-with(e \in chan){
-	msg := e;
-	chan := chan \ {e}
+\begin{center}
+\begin{tabular}{ | c | c | c | } 
+\hline
+\textbf{Channel Operator} & \textbf{Unordered channel templates} & \textbf{FIFO channel templates} \\ 
+\hline
+\verb|send(chan[e], msg)| & 
+\begin{lstlisting}[frame=none, numbers=none]
+chan' = [chan EXCEPT ![e] =
+ chan[e] \cup {msg}]
+\end{lstlisting} &
+\begin{lstlisting}[frame=none, numbers=none]
+chan' = [chan EXCEPT ![e] =
+ Append(@, msg)]
+\end{lstlisting} \\ 
+\hline
+\verb|receive(chan[e], msg)| & 
+\begin{lstlisting}[frame=none, numbers=none]
+with(element \in chan[e]){
+	msg' := element;
+	chan' := [chan EXCEPT
+		 ![e] = chan[e] \ {e}]
 }
+\end{lstlisting} &
+
+\begin{lstlisting}[frame=none, numbers=none]
+with(Len(chan[e]) > 0){
+	msg' := Head(chan[e]);
+	chan' := [chan EXCEPT
+		 ![e] = Tail(@)]
+}
+
+\end{lstlisting} \\ 
+
+\hline
+\begin{lstlisting}[frame=none, numbers=none]
+broadcast(chan,
+	[e \in IdSet |-> msg])
+\end{lstlisting}
+ & 
+\begin{lstlisting}[frame=none, numbers=none]
+chan' = [e \in IdSet |-> 
+		chan[e] \cup {msg}]
+\end{lstlisting} &
+
+\begin{lstlisting}[frame=none, numbers=none]
+chan' = [e \in IdSet |-> 
+		 Append(@, msg)]]
+
+\end{lstlisting} \\ 
+\hline
+\begin{lstlisting}[frame=none, numbers=none]
+multicast(chan,
+	[e \in SubSet |-> msg])
+\end{lstlisting}
+ & 
+\begin{lstlisting}[frame=none, numbers=none]
+
+chan' = [e \in DOMAIN chan |-> 
+					IF a \in sub
+					THEN chan[e] \cup {msg}
+					ELSE chan[e]]
+					
+\end{lstlisting} &
+
+\begin{lstlisting}[frame=none, numbers=none]
+chan'=[e \in DOMAIN chan 
+			|-> IF a \in sub 
+       THEN Append(chan[e], msg)
+       ELSE chan[e]]
+
+\end{lstlisting} \\ 
+\hline
+
+\begin{lstlisting}[frame=none, numbers=none]
+clear(chan)
+\end{lstlisting}
+ & 
+\begin{lstlisting}[frame=none, numbers=none, escapechar=\%]
+chan' = [el \in IdSet -> %$\{\}$%]
+					
+\end{lstlisting} &
+
+\begin{lstlisting}[frame=none, numbers=none, , escapechar=\%]
+chan' = [el \in IdSet -> %$\seq{}$%]
+
+\end{lstlisting} \\ 
+\hline
+
+\end{tabular}
+\end{center}
+
+Using dimensions corresponds to defining sets of channels, in our Lamport Mutex example (Appendix \ref{appendix:examples}) we define a two dimensional channel \verb|network[Nodes, Nodes]| where \verb|Nodes| represent a set with all the nodes in our algorithm. The \verb|network[Nodes,Nodes]| represents a set of channels, where a channel is referenced by a \verb|[sender, receiver]| and  \verb|sender, receiver| $\in$ \verb|Nodes|. When a process wants to use the multicast operator to send a message it references itself using the \verb|self| operator as follows  
+
+\verb!multicast(network, [self, nd \in Nodes |-> Request(clock)]);! 
+
+However, if the template we described in Table \ref{} was applied we would get the following \tlaplus translation
+
+\begin{lstlisting}[frame=none, numbers=none]
+
+chan' = [self \in DOMAIN chan |-> 
+					IF self \in sub
+					THEN chan[self] \cup {msg}
+					ELSE chan[self]]
+					
 \end{lstlisting}
 
-After applying the expansion process using this body template the AST is modified to hold the statements corresponding to the channel receive operator as shows below.
+The TLA+ parser raises an error because we cannot bind the variable \verb|self| since it is already in scope, as a work around this we introduced a variable $slf$ to be used instead while giving the same meaning as follows
 
-\begin{lstlisting}
-[type   |-> "with", 
- var    |-> "c",
- eqOrIn |-> "\\in",
- exp    |-> << "coord" >>,
- do     |-> <<[type |-> "assignment",
-               ass  |-> <<[lhs |-> [var |-> "msg", sub |-> <<  >>],
-                           rhs |-> << "c" >>], 
-                          [lhs |-> [var |-> "coord", sub |-> <<  >>],
-                           rhs |-> << "coord", " \ ", "{", "c", "}" >>]>>]>>]
+\begin{lstlisting}[frame=none, numbers=none]
 
+chan' = [slf \in DOMAIN chan |-> 
+					IF slf = self /\ slf \in sub
+					THEN chan[self] \cup {msg}
+					ELSE chan[self]]
+					
 \end{lstlisting}
+
+Applying this template in the special case when a \verb|self| expression exists in one of the dimensions results in the following correct \tlaplus translation
+
+\begin{lstlisting}[frame=none, numbers=none]
+
+network' = [<<slf, nd>> \in DOMAIN network |->  IF slf = self 
+                           /\ nd \in Nodes THEN 
+                           Append(network[slf, nd], Request(clock'[self])) ELSE network[slf, nd]]
+					
+\end{lstlisting}
+
 
 \label{chanexpand}
 \chapter{Conclusion and future work}

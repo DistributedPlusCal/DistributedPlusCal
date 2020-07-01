@@ -48,7 +48,7 @@
 =======(\fileversion\space D. Roegel, LORIA)=======]
 \newif\if@dont@load@french
 \@dont@load@frenchfalse
-\DeclareOption{nofrench}{\@dont@load@frenchtrue}
+\@dont@load@frenchtrue
 \newif\if@minfrench
 \@minfrenchfalse
 \DeclareOption{minfrench}{%
@@ -1219,7 +1219,7 @@
      \fi
      %\addtocounter{page}{-2}%
     }
-\newcommand{\AcknowledgmentName}{Remerciements}
+\newcommand{\AcknowledgmentName}{Acknowledgements}
 \newcommand{\@acknowledgment@hook}{}
 \newenvironment{ThesisAcknowledgments}
     {\@newdoublepage
