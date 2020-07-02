@@ -228,7 +228,7 @@ Once the user has modeled the system using the \tlaplus specification language, 
 
 In addition, the \tlaplus Toolbox also provides a translator from the algorithmic language PlusCal to \tlaplus. The PlusCal language was designed to provides simple pseudo-code like interface for the user to express concurrent systems. It maintains the expressiveness of \tlaplus while providing the user with a more familiar syntax.
 
-Although PlusCal is very useful, when i comes to distributed algorithms it may enforce some limitation that make it difficult to express them in a natural way. As an example, distributed algorithms usually need to model several sub-processes coexisting and communicating as a part of a distributed node, PlusCal processes must all be declared at top level and cannot be easily used to create what the algorithm is aiming for. 
+Although PlusCal is very useful, when it comes to distributed algorithms it may enforce some limitation that make it difficult to express them in a natural way. As an example, distributed algorithms usually need to model several sub-processes coexisting and communicating as a part of a distributed node, PlusCal processes must all be declared at top level and cannot be easily used to create what the algorithm is aiming for. 
 
 This thesis proposes Distributed PlusCal, an extension of PlusCal that introduces constructs that can overcome these limitation. Distributed PlusCal is a language that provides algorithm designers with an interface in which distributed algorithms and their properties can be expressed naturally.
 
@@ -1170,7 +1170,7 @@ Using dimensions corresponds to defining sets of channels, in our Lamport Mutex 
 
 \verb!multicast(network, [self, nd \in Nodes |-> Request(clock)]);! 
 
-However, if the template we described in Table \ref{} was applied we would get the following \tlaplus translation
+However, if the template we described in the above table was applied we would get the following \tlaplus translation
 
 \begin{lstlisting}[frame=none, numbers=none]
 
