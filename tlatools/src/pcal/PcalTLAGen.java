@@ -1010,7 +1010,9 @@ public class PcalTLAGen
                 	if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
                 		
                     	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
-                        TLAToken selfToken = new TLAToken("self][" + sass.lhs.sub.toPlainString(), 0, TLAToken.IDENT, true);
+                		String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
+                				sass.lhs.sub.toPlainString().indexOf("]"));
+                        TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
                         
                         Vector tokenVec = new Vector();
                         tokenVec.addElement(selfToken);

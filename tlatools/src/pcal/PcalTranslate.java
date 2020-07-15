@@ -2168,7 +2168,7 @@ public class PcalTranslate {
         } else {
         	TLAExpr expr = new TLAExpr();
         	expr.addLine();
-            TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+            TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
             expr.addToken(tok);
             sass.lhs.sub = expr;
         }
@@ -2393,7 +2393,7 @@ public class PcalTranslate {
             } else {
             	TLAExpr exp = new TLAExpr();
             	exp.addLine();
-                TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+                TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
                 exp.addToken(tok);
                 sass.lhs.sub = exp;
             }
@@ -2718,7 +2718,7 @@ public class PcalTranslate {
          } else {
         	 TLAExpr exp = new TLAExpr();
         	 exp.addLine();
-             TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+             TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
         	 exp.addToken(tok);
         	 sass.lhs.sub = exp;
          }
