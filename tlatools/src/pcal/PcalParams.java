@@ -332,7 +332,7 @@ public final class PcalParams
       return true ;
   }
   
-  //For Distributed pluscal	
+  //For Distributed PlusCal	
   /*************************************************************************
    * Parameters related to language definition.                             *
    *************************************************************************/
@@ -347,7 +347,7 @@ public final class PcalParams
 	  return exp ;
   }
 
-  //For Distributed pluscal	
+  //For Distributed PlusCal	
   /*************************************************************************
    * Parameters related to language definition.                             *
    *************************************************************************/

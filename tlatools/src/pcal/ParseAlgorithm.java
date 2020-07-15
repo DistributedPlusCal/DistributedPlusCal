@@ -341,8 +341,10 @@ public class ParseAlgorithm
     	   vdecls = GetVarDecls();
        }
        
-       //for Distributed pluscal, could be surrounded by an if statement
-       if (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) {
+       //For Distributed PlusCal, could be surrounded by an if statement
+       //to read channels and fifo channels
+       if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
     	   vdecls.addAll(GetChannelDecls());
        }
 	    
@@ -370,6 +372,7 @@ public class ParseAlgorithm
 			macros.addElement(GetMacro(macros));
 		}
 
+
 		while (PeekAtAlgToken(1).equals("procedure")) {
 			procedures.addElement(GetProcedure());
 			// if there's a procedure, we assume that it's
@@ -377,10 +380,10 @@ public class ParseAlgorithm
 			omitPC = false;
 		}
 
-		//For distributed pluscal
+		//For Distributed PlusCal
 		if(PcalParams.distpcalFlag) {
 			
-			//nodes can have either name, process or node
+			//nodes can have either name (process or node)
 			if (PeekAtAlgToken(1).equals("node") || PeekAtAlgToken(1).equals("process")
 					|| (PeekAtAlgToken(1).equals("fair") && (PeekAtAlgToken(2).equals("node")
 							|| (PeekAtAlgToken(2).equals("+") && PeekAtAlgToken(3).equals("node")))
@@ -445,17 +448,7 @@ public class ParseAlgorithm
 				while (i < multiNodes.nodes.size()) {
 					AST.Node node = (AST.Node) multiNodes.nodes.elementAt(i);
 
-					ExpandMacrosInStmtSeq(node.body, multiNodes.macros);
-
-					//heba refactor this to be expand channel calls
-					ExpandChannelCallersInStmtSeq(node.body, node.decls, vdecls);
-					
-					AddLabelsToStmtSeq(node.body);
-
-					node.body = MakeLabeledStmtSeq(node.body);
-
 					omitStutteringWhenDone = true;
-					checkBody(node.body);
 
 					omitStutteringWhenDoneValue = omitStutteringWhenDoneValue || omitStutteringWhenDone;
 					PcalDebug.reportInfo("omitStutteringWhenDoneValue: " + omitStutteringWhenDoneValue);
@@ -463,6 +456,7 @@ public class ParseAlgorithm
 					int j = 0;
 					while (j < node.threads.size()) {
 						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
+						
 						ExpandMacrosInStmtSeq(thread.body, multiNodes.macros);
 						ExpandChannelCallersInStmtSeq(thread.body, node.decls, vdecls);
 						AddLabelsToStmtSeq(thread.body);
@@ -483,7 +477,10 @@ public class ParseAlgorithm
 					AST.Procedure prcd = (AST.Procedure) multiNodes.prcds.elementAt(i);
 					currentProcedure = prcd.name;
 					ExpandMacrosInStmtSeq(prcd.body, multiNodes.macros);
-					//					ExpandSendAndReceiveInStmtSeq(prcd.body, prcd.decls, vdecls);
+					
+					//For Distributed PlusCal
+					//to expand the channel callers that are within a procedures body
+					ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
 
 					AddLabelsToStmtSeq(prcd.body);
 					prcd.body = MakeLabeledStmtSeq(prcd.body);
@@ -514,6 +511,95 @@ public class ParseAlgorithm
 				}
 				multiNodes.setOrigin(new Region(multiprocBegin, GetLastLocationEnd()));
 				return multiNodes;
+			} else {
+				 
+			AST.Uniprocess uniproc = new AST.Uniprocess() ;
+			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
+			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
+			uniproc.name   = name ;
+			uniproc.decls  = vdecls ;
+			uniproc.defs  = defs ;
+			uniproc.macros = macros ;
+			uniproc.prcds  = procedures ;
+			// Version 1.5 allowed "fair" to appear here
+			// to specify fairness for a sequential algorithm
+			if (PcalParams.inputVersionNumber == PcalParams.VersionToNumber("1.5")) {
+				if (PeekAtAlgToken(1).equals("fair")) {
+					GobbleThis("fair");
+					if (PeekAtAlgToken(1).equals("+")) {
+						GobbleThis("+");
+					} 
+					PcalParams.FairnessOption = "wf";
+				}
+			}
+
+			// Following if statement added by LL on 5 Oct 2011
+			// to fix bug in which --fair uniprocess algorithm
+			// wasn't producing fairness condition.
+			if (fairAlgorithm) {
+				if (!PcalParams.FairnessOption.equals("") 
+						&& !PcalParams.FairnessOption.equals("wf")
+						&& !PcalParams.FairnessOption.equals("wfNext")) {
+					PcalDebug.reportWarning("Option `" + PcalParams.FairnessOption + "' specified for --fair algorithm.");
+				}
+				PcalParams.FairnessOption = "wf";
+			} ;
+
+			GobbleBeginOrLeftBrace() ;
+			uniproc.body = GetStmtSeq() ;
+			CheckForDuplicateMacros(uniproc.macros) ;
+			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
+			// LL comment added 11 Mar 2006.
+			// I moved the following to after processing the procedures
+			// so added labels are printed in correct order-- e.g., with 
+			// -reportLabels option 
+			//           AddLabelsToStmtSeq(uniproc.body) ;
+			//           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+			int i = 0 ;
+			while (i < uniproc.prcds.size())
+			{  AST.Procedure prcd =
+			(AST.Procedure) uniproc.prcds.elementAt(i) ;
+			currentProcedure = prcd.name ;
+			ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
+			AddLabelsToStmtSeq(prcd.body);
+			prcd.body = MakeLabeledStmtSeq(prcd.body);
+			i = i + 1 ;
+			}
+			if (cSyntax) 
+			{ GobbleThis("}") ; 
+			GobbleThis("}") ; } 
+			else 
+			{ GobbleThis("end") ;
+			GobbleThis("algorithm") ;} ;
+			AddLabelsToStmtSeq(uniproc.body) ;
+			uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+			/****************************************************************
+			 * Check for added labels, report an error if there shouldn't    *
+			 * be any, and print them out if the -reportLabels was           *
+			 * specified.                                                    *
+			 ****************************************************************/
+			if (addedLabels.size() > 0)
+			{ if (hasLabel && ! PcalParams.LabelFlag) 
+			{ AddedMessagesError() ; } ;
+			if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
+			else
+				// SZ March 11, 2009: info reporting using PcalDebug added
+			{ PcalDebug.reportInfo("Labels added.") ; } ;
+			} ;
+
+			if (gotoUsed) {
+				omitPC = false;
+			}
+			if (gotoDoneUsed) {
+				omitPC = false;
+				omitStutteringWhenDone = false;
+			} else {
+				checkBody(uniproc.body);
+			}
+			uniproc.setOrigin(new Region(uniprocBegin, 
+					GetLastLocationEnd())) ;
+			return uniproc ;
+			
 			}
 		} else {
 			if ((PeekAtAlgToken(1).equals("fair") 
@@ -619,7 +705,10 @@ public class ParseAlgorithm
 						GetLastLocationEnd())) ;
 				return multiproc ;
 			} else
-			{ AST.Uniprocess uniproc = new AST.Uniprocess() ;
+			{ 
+			
+				System.out.println("in uni process");
+			AST.Uniprocess uniproc = new AST.Uniprocess() ;
 			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
 			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
 			uniproc.name   = name ;
@@ -707,7 +796,7 @@ public class ParseAlgorithm
 			return uniproc ;
 			}
 		}
-		return null;
+
        } catch (final RuntimeException e) {
 			// Catch generic/unhandled errors (ArrayIndexOutOfbounds/NullPointers/...) that
 			// the nested code might throw at us. Not converting them into a
@@ -715,7 +804,9 @@ public class ParseAlgorithm
 			// algorithm (see Github issue at https://github.com/tlaplus/tlaplus/issues/313)
     	   
     	   
-    	    //System.out.println("error position : " + e.getStackTrace()[0]);
+    	    System.out.println("error position : " + e.getStackTrace()[0]);
+    	    System.out.println("error class : " + e.getClass());
+
 	    	ParsingError("Unknown error at or before");
 	    	System.out.println(e.getMessage());
 
@@ -3681,9 +3772,8 @@ public class ParseAlgorithm
                 || nxt.equals("}")
                 || nxt.equals("{")
                 
-                //For distributed pluscal
+                //For Distributed PlusCal
                 || nxt.equals("node")
-                //need to add function caller keywords like send receive broadcast multicast and clear
               )
              { return ;
              };                   
@@ -4660,7 +4750,8 @@ public class ParseAlgorithm
    }
 
    
-   //for Distributed pluscal 
+   //For Distributed PlusCal 
+   //parse the node with keyword 'process' or 'node' and place it inside an object of type AST.Node
    public static AST.Node GetNode() throws ParseAlgorithmException {
 		AST.Node result = new AST.Node();
 		
@@ -4700,16 +4791,9 @@ public class ParseAlgorithm
 				result.decls = new Vector();
 			}
 			result.decls.addAll(GetVarDecls());
-			//For Distributed pluscal	
 			result.decls.addAll(GetChannelDecls());
 		}
 		
-		GobbleBeginOrLeftBrace();
-
-		result.body = GetStmtSeq();
-
-		GobbleEndOrRightBrace("node");
-
 		// this is a vector of vectors,
 		// where each vector inside it represents a sub thread of the node
 
@@ -4722,7 +4806,7 @@ public class ParseAlgorithm
 
 				// GobbleBeginOrLeftBrace();
 				AST.Thread thread = new AST.Thread();
-				thread.index = ++i;
+				thread.index = i++;
 				thread.id = result.id;
 				GobbleBeginOrLeftBrace();
 
@@ -4752,7 +4836,7 @@ public class ParseAlgorithm
 		return result;
 	}
 
-   //For Distributed pluscal	
+   //For Distributed PlusCal	
    public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
@@ -4786,7 +4870,7 @@ public class ParseAlgorithm
 		return result;
 	}
    
-   	//For Distributed pluscal	
+   	//For Distributed PlusCal	
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
 		AST.Channel pv;

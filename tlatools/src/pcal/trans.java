@@ -911,7 +911,7 @@ class trans {
         try
         {
             ast = ParseAlgorithm.getAlgorithm(reader, foundFairBegin);
-// System.out.println(ast.toString());
+            System.out.println(ast.toString());
 // For testing, we print out when the new code for eliminating the 
 // suttering-on-done and pc is used.
 // if (ParseAlgorithm.omitPC || ParseAlgorithm.omitStutteringWhenDone) {
@@ -1654,7 +1654,7 @@ class trans {
                 }
                 PcalParams.LabelRoot = args[nextArg];
                 
-            //For distributed pluscal
+            //For Distributed PlusCal
             } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
             	PcalParams.distpcalFlag = true;
                 PcalDebug.reportInfo("Distributed pluscal option enabled");

@@ -817,7 +817,7 @@ public class Tokenize
                 || tok.equals("process")
                 || tok.equals("fair")
                 
-                //For distributed pluscal
+                //For Distributed PlusCal
                 || tok.equals("channel")
                 || tok.equals("channels")
                 || tok.equals("fifo")

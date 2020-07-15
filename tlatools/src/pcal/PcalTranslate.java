@@ -477,6 +477,7 @@ public class PcalTranslate {
     }
 
     private static Vector CopyAndExplodeLastStmt(Vector stmts, String next) throws PcalTranslateException {
+    	
         /**************************************************************
         * The arguments are:                                               *
         *                                                                  *
@@ -517,6 +518,7 @@ public class PcalTranslate {
         if (stmts != null && stmts.size() > 0) {
             AST last = (AST) stmts.elementAt(stmts.size() - 1);
             result1 = stmts;
+
             if (last.getClass().equals(AST.LabelIfObj.getClass())) {
                 Vector pair = ExplodeLabelIf((AST.LabelIf) last, next);
                   /*********************************************************
@@ -1007,6 +1009,7 @@ public class PcalTranslate {
         sass.line = ast.line ;
         sass.col  = ast.col ;
         sass.lhs.var = "stack";
+        
         sass.lhs.sub = MakeExpr(new Vector());
         TLAExpr expr = new TLAExpr();
         expr.addLine();
@@ -1019,7 +1022,8 @@ public class PcalTranslate {
         expr.addLine();
         expr.addToken(IdentToken("pc"));
         expr.addToken(BuiltInToken("|->"));
-        expr.addToken(StringToken(next));       
+        expr.addToken(StringToken(next)); 
+        
         for (int i = 0; i < pe.decls.size(); i++) {
             AST.PVarDecl decl =
                 (AST.PVarDecl) pe.decls.elementAt(i);
@@ -1045,6 +1049,7 @@ public class PcalTranslate {
         expr.addToken(AddedToken("stack"));
         MakeNewStackTopExprPretty(expr);
         expr.normalize();
+        
         sass.rhs = expr;
         ass.ass.addElement(sass);
         /*********************************************************
@@ -1180,7 +1185,7 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         TLAExpr expr = new TLAExpr();
         sass.lhs.var = "pc";
-        sass.lhs.sub = new TLAExpr();
+        sass.lhs.sub = new TLAExpr();        
         expr.addLine();
         expr.addToken(IdentToken("Head"));
         expr.addToken(BuiltInToken("("));
@@ -1265,6 +1270,7 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         expr = new TLAExpr();
         sass.lhs.var = "stack";
+        
         sass.lhs.sub = new TLAExpr();
         expr.addLine();
         expr.addToken(IdentToken("Tail"));
@@ -1368,6 +1374,7 @@ public class PcalTranslate {
             sass.line = ast.line ;
             sass.col  = ast.col ;
             sass.lhs.var = "stack";
+            
             sass.lhs.sub = MakeExpr(new Vector());
             expr = new TLAExpr();
             expr.addLine();
@@ -1520,6 +1527,7 @@ public class PcalTranslate {
         newast.prcds = new Vector(ast.prcds.size(), 10);
         newast.defs = ast.defs ;
         newast.setOrigin(ast.getOrigin()) ;
+        
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
                                                      ast.prcds.elementAt(i)));
@@ -1556,24 +1564,6 @@ public class PcalTranslate {
         newast.decls = ast.decls;
         newast.threads = new Vector(ast.threads.size(), 10);
 
-        newast.body = new Vector();
-        AST.LabeledStmt thisLS = (ast.body.size() > 0)
-            ? (AST.LabeledStmt) ast.body.elementAt(0) : null;
-            
-        AST.LabeledStmt nextLS = (ast.body.size() > 1)
-            ? (AST.LabeledStmt) ast.body.elementAt(1) : null;
-            
-        while (i < ast.body.size()) {
-            String next = (nextLS == null)
-                ? "Done"
-                : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, null));
-            i = i + 1;
-            thisLS = nextLS;
-            nextLS = (ast.body.size() > i + 1)
-                ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
-        }
-        
         for (AST.Thread thread : ast.threads) {
         	thread = ExplodeThread(thread, thread.index);
         	newast.threads.add(thread);
@@ -1612,7 +1602,18 @@ public class PcalTranslate {
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
         sAss.lhs.sub = MakeExpr(new Vector()) ;
-        sAss.lhs.threadIndex = threadIndex;
+        
+        if(threadIndex == null) {
+        	sAss.lhs.sub = MakeExpr(new Vector());
+        } else {
+        	TLAExpr expr = new TLAExpr();
+        	expr.addLine();
+            TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+            expr.addToken(tok);
+            sAss.lhs.sub = expr;
+        }
+        
+//        sAss.lhs.threadIndex = threadIndex;
         
         sAss.rhs = exp ;
         AST.Assign result = new AST.Assign() ;
@@ -1667,6 +1668,7 @@ public class PcalTranslate {
         boolean needsGoto = false ;
         if (stmts != null && stmts.size() > 0) {
             AST last = (AST) stmts.elementAt(stmts.size() - 1);
+
             result1 = stmts;
             if (last.getClass().equals(AST.LabelIfObj.getClass())) {
                 Vector pair = ExplodeLabelIf((AST.LabelIf) last, next, threadIndex);
@@ -1698,14 +1700,16 @@ public class PcalTranslate {
                 result1.addElement(UpdatePC(g.to, threadIndex));
             }
             else if (last.getClass().equals(AST.CallObj.getClass())) {
+
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeCall((AST.Call) last, next, threadIndex));
             }
             else if (last.getClass().equals(AST.ReturnObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
-                result1.addAll(ExplodeReturn((AST.Return) last, next));
+                result1.addAll(ExplodeReturn((AST.Return) last, next, threadIndex));
             }
             else if (last.getClass().equals(AST.CallReturnObj.getClass())) {
+
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeCallReturn((AST.CallReturn) last, next, threadIndex));
             }
@@ -1800,6 +1804,7 @@ public class PcalTranslate {
     	Vector res = CopyAndExplodeLastStmt(stmts, next, threadIndex) ;
     	if (((BoolObj) res.elementAt(2)).val) {
     		((Vector) res.elementAt(0)).addElement(UpdatePC(next, threadIndex)); } ;    
+    		
     		return Pair(res.elementAt(0), res.elementAt(1)) ;
     }
 
@@ -2157,7 +2162,17 @@ public class PcalTranslate {
         sass.line = ast.line ;
         sass.col  = ast.col ;
         sass.lhs.var = "stack";
-        sass.lhs.sub = MakeExpr(new Vector());
+
+        if(threadIndex == null) {
+        	sass.lhs.sub = MakeExpr(new Vector());
+        } else {
+        	TLAExpr expr = new TLAExpr();
+        	expr.addLine();
+            TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+            expr.addToken(tok);
+            sass.lhs.sub = expr;
+        }
+        
         TLAExpr expr = new TLAExpr();
         expr.addLine();
         expr.addToken(BuiltInToken("<<"));
@@ -2169,7 +2184,8 @@ public class PcalTranslate {
         expr.addLine();
         expr.addToken(IdentToken("pc"));
         expr.addToken(BuiltInToken("|->"));
-        expr.addToken(StringToken(next));       
+        expr.addToken(StringToken(next));    
+        
         for (int i = 0; i < pe.decls.size(); i++) {
             AST.PVarDecl decl =
                 (AST.PVarDecl) pe.decls.elementAt(i);
@@ -2193,6 +2209,7 @@ public class PcalTranslate {
         expr.addLine();
         expr.addToken(BuiltInToken("\\o"));
         expr.addToken(AddedToken("stack"));
+
         MakeNewStackTopExprPretty(expr);
         expr.normalize();
         sass.rhs = expr;
@@ -2275,6 +2292,7 @@ public class PcalTranslate {
         // Note: omitPC must be false if there's a call statement (and hence
         // a procedure being called).
         result.addElement(UpdatePC(pe.iPC, threadIndex));
+        
         return result;
     }
 
@@ -2337,7 +2355,7 @@ public class PcalTranslate {
         * First, with h being the head of the stack, restore each local    *
         * variable v of ast.from with v := h.v .                           *
         *******************************************************************/
-        if (! ast.from.equals(ast.to)) {
+        if (!ast.from.equals(ast.to)) {
             for (int i = 0; i < peFrom.decls.size(); i++) {
                 AST.PVarDecl decl =
                     (AST.PVarDecl) peFrom.decls.elementAt(i);
@@ -2369,7 +2387,17 @@ public class PcalTranslate {
             sass.line = ast.line ;
             sass.col  = ast.col ;
             sass.lhs.var = "stack";
-            sass.lhs.sub = MakeExpr(new Vector());
+
+            if(threadIndex == null) {
+            	sass.lhs.sub = MakeExpr(new Vector());
+            } else {
+            	TLAExpr exp = new TLAExpr();
+            	exp.addLine();
+                TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+                exp.addToken(tok);
+                sass.lhs.sub = exp;
+            }
+            
             expr = new TLAExpr();
             expr.addLine();
             expr.addToken(BuiltInToken("<<"));
@@ -2387,6 +2415,7 @@ public class PcalTranslate {
             expr.addToken(BuiltInToken(")"));
             expr.addToken(BuiltInToken("."));
             expr.addToken(IdentToken("pc"));
+            
             for (int i = 0; i < peTo.decls.size(); i++) {
                 AST.PVarDecl decl =
                     (AST.PVarDecl) peTo.decls.elementAt(i);
@@ -2483,6 +2512,7 @@ public class PcalTranslate {
         /*********************************************************
          * pc := entry point of ast.to                           *
          *********************************************************/
+        
         result.addElement(UpdatePC(peTo.iPC, threadIndex));
         return result;
     }
@@ -2531,4 +2561,210 @@ public class PcalTranslate {
         }
         return newast;
     }
+    
+    /***********************************************************************
+     * Modified by LL on 2 Feb 2006 to add line and column numbers to the   *
+     * newly created statements for error reporting.                        
+      **
+     ***********************************************************************/
+     private static Vector ExplodeReturn(AST.Return ast, String next, Integer threadIndex) throws PcalTranslateException {
+         Vector result = new Vector();
+
+         /*******************************************************************
+         * On 30 Mar 2006, added code to throw a PcalTranslateException     *
+         * when ast.from equals null to raise an error if a return          *
+         * statement appears outside a procedure.  That error was not       *
+         * caught by the parsing phase for reasons explained in the         *
+         * comments for ParseAlgorithm.GetReturn.                           *
+         *                                                                  *
+         * Unfortunately, that test raised an error if the return actually  *
+         * was inside a procedure but was generated by macro expansion.     *
+         * To allow that case, on 7 June 2010 LL added the                  *
+         * currentProcedure field (see comments for that field) and         *
+         * modified the test accordingly.  (This was after an incorrect     *
+         * attempt to fix the problem on 6 June 2010.)                      *
+         *******************************************************************/
+         if (ast.from == null)
+         {
+             ast.from = currentProcedure;
+         }
+         if (ast.from == null)
+         {
+             throw new PcalTranslateException("`return' statement not in procedure", ast);
+         }
+         ;
+
+         int from = st.FindProc(ast.from);
+         // The following added by LL on 13 Jan 2011.
+         if (!(from < st.procs.size())) {
+         	throw new PcalTranslateException("Error in procedure (perhaps name used elsewhere)", ast);
+         }
+         PcalSymTab.ProcedureEntry pe =
+             (PcalSymTab.ProcedureEntry) st.procs.elementAt(from);
+         /*********************************************************
+          * With h being the head of stack                        *
+          *   pc := h.pc                                          *
+          *   for each procedure variable v of ast.from v := h.v  *
+          *   for each parameter p of ast.from p := h.p           *
+          *********************************************************/
+         AST.Assign ass = new AST.Assign();
+         ass.line = ast.line ;
+         ass.col  = ast.col ;
+         AST.SingleAssign sass = new AST.SingleAssign();
+         sass.line = ast.line ;
+         sass.col  = ast.col ;
+         TLAExpr expr = new TLAExpr();
+         sass.lhs.var = "pc";
+         
+         if(threadIndex == null) {
+         	sass.lhs.sub = MakeExpr(new Vector());
+         } else {
+        	 TLAExpr exp = new TLAExpr();
+        	 exp.addLine();
+        	 TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+        	 exp.addToken(tok);
+        	 sass.lhs.sub = exp;
+         }
+
+         //fix this
+     
+         expr.addLine();
+         expr.addToken(IdentToken("Head"));
+         expr.addToken(BuiltInToken("("));
+         expr.addToken(AddedToken("stack"));
+         expr.addToken(BuiltInToken(")"));
+         expr.addToken(BuiltInToken("."));
+         expr.addToken(IdentToken("pc"));
+         expr.normalize();
+         sass.rhs = expr;
+         ass.ass = Singleton(sass);
+         result.addElement(ass);
+         for (int i = 0; i < pe.decls.size(); i++) {
+             AST.PVarDecl decl =
+                 (AST.PVarDecl) pe.decls.elementAt(i);
+             ass = new AST.Assign();
+             ass.line = ast.line ;
+             ass.col  = ast.col ;
+             sass = new AST.SingleAssign();
+             sass.line = ast.line ;
+             sass.col  = ast.col ;
+             expr = new TLAExpr();
+             sass.lhs.var = decl.var;
+             sass.lhs.sub = new TLAExpr();
+             expr.addLine();
+             expr.addToken(IdentToken("Head"));
+             expr.addToken(BuiltInToken("("));
+             expr.addToken(AddedToken("stack"));
+             expr.addToken(BuiltInToken(")"));
+             expr.addToken(BuiltInToken("."));
+             expr.addToken(IdentToken(decl.var));
+             expr.normalize();
+             sass.rhs = expr;
+             /**
+              * For assignments that restore procedure variables, there's no
+              * good origin.  I decided to set them to the origin of the return statement.
+              */
+             sass.setOrigin(ast.getOrigin()) ;
+             ass.setOrigin(ast.getOrigin()) ;
+             ass.ass = Singleton(sass);
+             result.addElement(ass);
+         }
+         for (int i = 0; i < pe.params.size(); i++) {
+             AST.PVarDecl decl =
+                 (AST.PVarDecl) pe.params.elementAt(i);
+             ass = new AST.Assign();
+             ass.line = ast.line ;
+             ass.col  = ast.col ;
+             sass = new AST.SingleAssign();
+             sass.line = ast.line ;
+             sass.col  = ast.col ;
+             /** For assignments that restore procedure parameter values, there's no
+              * good origin.  I decided to set them to the origin of the return statement.
+              */
+             sass.setOrigin(ast.getOrigin()) ;
+             ass.setOrigin(ast.getOrigin()) ;
+             expr = new TLAExpr();
+             sass.lhs.var = decl.var;
+             sass.lhs.sub = new TLAExpr();
+             expr.addLine();
+             expr.addToken(IdentToken("Head"));
+             expr.addToken(BuiltInToken("("));
+             expr.addToken(AddedToken("stack"));
+             expr.addToken(BuiltInToken(")"));
+             expr.addToken(BuiltInToken("."));
+             expr.addToken(IdentToken(decl.var));
+             expr.normalize();
+             sass.rhs = expr;
+             ass.ass = Singleton(sass);
+             result.addElement(ass);
+         }
+
+         /*********************************************************
+          * stack := Tail(stack)                                  *
+          *********************************************************/
+         ass = new AST.Assign();
+         ass.line = ast.line ;
+         ass.col  = ast.col ;
+         sass = new AST.SingleAssign();
+         sass.setOrigin(ast.getOrigin()) ;
+         ass.setOrigin(ast.getOrigin()) ;
+         sass.line = ast.line ;
+         sass.col  = ast.col ;
+         expr = new TLAExpr();
+         sass.lhs.var = "stack";
+         
+         if(threadIndex == null) {
+         	sass.lhs.sub = MakeExpr(new Vector());
+         } else {
+        	 TLAExpr exp = new TLAExpr();
+        	 exp.addLine();
+             TLAToken tok = BuiltInToken(String.valueOf((threadIndex + 1)));
+        	 exp.addToken(tok);
+        	 sass.lhs.sub = exp;
+         }
+         
+         expr.addLine();
+         expr.addToken(IdentToken("Tail"));
+         expr.addToken(BuiltInToken("("));
+         expr.addToken(AddedToken("stack"));
+         expr.addToken(BuiltInToken(")"));
+         expr.normalize();
+         sass.rhs = expr;
+         ass.ass = Singleton(sass);
+         result.addElement(ass);
+         return result;
+     }
+
+     private static AST ExplodeProcedure (AST.Procedure ast,  Integer threadIndex) throws PcalTranslateException {
+         /*********************************************************************
+         * Generate new AST.Procedure with exploded labeled statements.       *
+         *********************************************************************/
+         int i = 0;
+         AST.Procedure newast = new AST.Procedure();
+         newast.setOrigin(ast.getOrigin()) ;
+         newast.col = ast.col;
+         newast.line = ast.line;
+         newast.name = ast.name;
+         currentProcedure = ast.name;  // Added by LL on 7 June 2010
+         newast.params = ast.params;
+         newast.decls = ast.decls;
+         newast.body = new Vector(ast.body.size(), 10);
+         AST.LabeledStmt thisLS = (ast.body.size() > 0)
+             ? (AST.LabeledStmt) ast.body.elementAt(0) : null;
+         AST.LabeledStmt nextLS = (ast.body.size() > 1)
+             ? (AST.LabeledStmt) ast.body.elementAt(1) : null;
+         while (i < ast.body.size()) {
+             String next = (nextLS == null)
+                 ? st.UseThis(PcalSymTab.LABEL, "Error", "")
+                 : nextLS.label;
+             newast.body.addAll(ExplodeLabeledStmt(thisLS, next, threadIndex));
+             i = i + 1;
+             thisLS = nextLS;
+             nextLS = (ast.body.size() > i + 1)
+                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
+         }
+         currentProcedure = null;  // Added by LL on 7 June 2010
+         return newast;
+     }
+     
 }
