@@ -48,7 +48,7 @@
 =======(\fileversion\space D. Roegel, LORIA)=======]
 \newif\if@dont@load@french
 \@dont@load@frenchfalse
-\DeclareOption{nofrench}{\@dont@load@frenchtrue}
+\@dont@load@frenchtrue
 \newif\if@minfrench
 \@minfrenchfalse
 \DeclareOption{minfrench}{%
@@ -107,8 +107,8 @@
               Dix-huiti\`eme\or %
               Dix-neuvi\`eme\or Vingti\`eme\fi}\space\def\thepart{}}%
     \def\glossaryname{Glossaire}%
-    \def\chaptername{Chapter}%
-    \def\appendixname{Annex}%
+    \def\chaptername{Chapitre}%
+    \def\appendixname{Annexe}%
     \ifx\ier\undefined\def\ier{er}\fi
     \def\today{\ifnum\day=1\relax 1\ier%
                \else \number\day\fi%
@@ -129,7 +129,7 @@
 
 \newcommand{\@ULhe@d}{{\UseEntryFont{ThesisFirstPageHead}\noindent
     \centerline{{\setbox0=\hbox{$\raise1.5cm\hbox{\ULLogo}$}%
-                     \ht0=\baselineskip\box0}\hfill\@DFD}}%
+                     \ht0=\baselineskip\box0}\hfill}}%
     \@TUL@cmn@head\par
     }
 \newtoks\@lab@tok
@@ -149,9 +149,9 @@
      \begin{center}\UseEntryFont{ThesisFirstPageFoot}%
                  \the\@lab@tok
      \end{center}
-     \centerline{\if@logo@loria@
+     \centerline{
                     $\raise\baselineskip\hbox{\LoriaLogo}$\hskip2.5cm%
-                 \fi}
+                 }
      \vskip2mm
     }
 \newcommand\ThesisFirstPageFoot[1]%
@@ -173,7 +173,7 @@
 \newcommand\ThesisPresentedThe[1]%
   {\renewcommand{\@ThesisPresentedThe}{{\UseEntryFont{ThesisPresentedThe}#1}}}
 \newcommand{\@ThesisInOrderToGet}%
-        {{\UseEntryFont{ThesisInOrderToGet}A thesis submitted to obtain a}}
+        {{\UseEntryFont{ThesisInOrderToGet}pour l'obtention du}}
 \newcommand\ThesisInOrderToGet[1]%
   {\renewcommand{\@ThesisInOrderToGet}{{\UseEntryFont{ThesisInOrderToGet}#1}}}
 \newcommand{\@ThesisDomain}{mention informatique}
@@ -187,7 +187,7 @@
                          \ThesisDiploma{{\UseEntryFont{ThesisDiploma}%
                 Habilitation de l'Universit\'e de Lorraine\\[3mm]
             {\UseEntryFont{ThesisSpecialty}(\@ThesisDomain)}}}}
-\newcommand\MasterUL{\ThesisKind{Report}%
+\newcommand\MasterUL{\ThesisKind{Rapport}%
                      \renewcommand{\@ThesisFirstPageHead}{\@ULhe@d}%
                          \ThesisDiploma{{\UseEntryFont{ThesisDiploma}%
                 Master de l'Universit\'e de Lorraine\\[3mm]
@@ -196,7 +196,7 @@
          {\fbox{Choisir {\tt\char`\\ThesisUL}, {\tt\char`\\HDRUL} ou {\tt\char`\\MasterUL}}}
 \newcommand\ThesisDiploma[1]%
         {\renewcommand{\@ThesisDiploma}{{\UseEntryFont{ThesisDiploma}#1}}}
-\newcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}by}}
+\newcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}par}}
 \newcommand\ThesisPresentedBy[1]%
    {\renewcommand{\@ThesisPresentedBy}{{\UseEntryFont{ThesisPresentedBy}#1}}}
 \newcommand{\@ThesisAuthor}%
@@ -408,8 +408,8 @@
        \vskip3mm plus1fil
                                 \@ThesisAuthor
     \end{center}
-       \vskip5mm plus2fil
-                 \hskip1cm\@ThesisJuryTitle
+       %\vskip5mm plus2fil
+                 %\hskip1cm\@ThesisJuryTitle
     \begin{center}
                                 \@ThesisJury
     \end{center}
@@ -1219,7 +1219,7 @@
      \fi
      %\addtocounter{page}{-2}%
     }
-\newcommand{\AcknowledgmentName}{Remerciements}
+\newcommand{\AcknowledgmentName}{Acknowledgements}
 \newcommand{\@acknowledgment@hook}{}
 \newenvironment{ThesisAcknowledgments}
     {\@newdoublepage
@@ -1371,7 +1371,7 @@
 \def\@sspsection#1{\@spsection[]{#1}}
 \if@dont@load@french
 \else
-  \AtBeginDocument{\def\contentsname{Summary}}%
+  \AtBeginDocument{\def\contentsname{Sommaire}}%
 \fi
 \newcommand{\@toc@hook}{}
 \renewcommand\tableofcontents{%
@@ -1696,7 +1696,7 @@
      }
 \newcommand{\TUL}{{\normalfont\textsf{thesul}}}
 \errorcontextlines5
-\newcommand\@removefromreset[2]{\let\@tempb\@elt
+\renewcommand\@removefromreset[2]{\let\@tempb\@elt
    \def\@tempa#1{@&#1}\expandafter\let\csname @*#1*\endcsname\@tempa
    \def\@elt##1{\expandafter\ifx\csname @*##1*\endcsname\@tempa\else
                 \noexpand\@elt{##1}\fi}%
