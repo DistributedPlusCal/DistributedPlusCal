@@ -3174,7 +3174,7 @@ public class PcalTLAGen
         String nextSSstart = "(\\E self \\in ProcSet: ";
         
         if(PcalParams.distpcalFlag) {
-            nextSSstart = "(\\E self \\in ProcSet: \\E subprocess \\in SubProcSet:  ";
+            nextSSstart = "(\\E self \\in ProcSet: \\E subprocess \\in SubProcSet[self] :  ";
         }
         
         sb = new StringBuffer();
