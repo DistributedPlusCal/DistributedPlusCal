@@ -159,11 +159,11 @@ public class DotStateWriter extends StateWriter {
 	/* (non-Javadoc)
 	 * @see tlc2.util.StateWriter#writeState(tlc2.tool.TLCState, tlc2.tool.TLCState, boolean)
 	 */
-	public synchronized void writeState(TLCState state, TLCState successor, boolean successorStateIsNew) {
+	public void writeState(TLCState state, TLCState successor, boolean successorStateIsNew) {
 		writeState(state, successor, successorStateIsNew, Visualization.DEFAULT);
 	}
 	
-    public synchronized void writeState(final TLCState state, final TLCState successor, final boolean successorStateIsNew, Action action)
+    public void writeState(final TLCState state, final TLCState successor, final boolean successorStateIsNew, Action action)
     {
 		writeState(state, successor, null, 0, 0, successorStateIsNew, Visualization.DEFAULT, action);
     }
@@ -171,21 +171,21 @@ public class DotStateWriter extends StateWriter {
 	/* (non-Javadoc)
 	 * @see tlc2.util.StateWriter#writeState(tlc2.tool.TLCState, tlc2.tool.TLCState, boolean, tlc2.util.IStateWriter.Visualization)
 	 */
-	public synchronized void writeState(TLCState state, TLCState successor, boolean successorStateIsNew, Visualization visualization) {
+	public void writeState(TLCState state, TLCState successor, boolean successorStateIsNew, Visualization visualization) {
 		writeState(state, successor, null, 0, 0, successorStateIsNew, visualization, null);
 	}
 
 	/* (non-Javadoc)
 	 * @see tlc2.util.StateWriter#writeState(tlc2.tool.TLCState, tlc2.tool.TLCState, tlc2.util.BitVector, int, int, boolean)
 	 */
-	public synchronized void writeState(TLCState state, TLCState successor, BitVector actionChecks, int from, int length, boolean successorStateIsNew) {
+	public void writeState(TLCState state, TLCState successor, BitVector actionChecks, int from, int length, boolean successorStateIsNew) {
 		writeState(state, successor, actionChecks, from, length, successorStateIsNew, Visualization.DEFAULT, null);
 	}
 
 	/* (non-Javadoc)
 	 * @see tlc2.util.StateWriter#writeState(tlc2.tool.TLCState, tlc2.tool.TLCState, java.lang.String, boolean, tlc2.util.IStateWriter.Visualization)
 	 */
-	public synchronized void writeState(TLCState state, TLCState successor, BitVector actionChecks, int from, int length, boolean successorStateIsNew,
+	private synchronized void writeState(TLCState state, TLCState successor, BitVector actionChecks, int from, int length, boolean successorStateIsNew,
 			Visualization visualization, Action action) {
 		final String successorsFP = Long.toString(successor.fingerPrint());
 		
@@ -295,7 +295,7 @@ public class DotStateWriter extends StateWriter {
 		sb.append(String.format("node [ labeljust=\"l\",colorscheme=\"%s\",style=filled,shape=record ]\n",
 				dotColorScheme));
 		for (String action : actions) {
-			String str = String.format("%s [label=\"%s\",fillcolor=%d]", action, action,
+			String str = String.format("%s [label=\"%s\",fillcolor=%d]", action.replaceAll("!", ":"), action,
 					this.actionToColors.get(action));
 			sb.append(str);
 			sb.append("\n");

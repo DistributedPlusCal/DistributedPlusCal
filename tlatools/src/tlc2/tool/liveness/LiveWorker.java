@@ -869,8 +869,8 @@ public class LiveWorker implements Callable<Boolean> {
 				}
 
 				// Print the prefix in reverse order of previous loop:
-				for (int i = 0; i < states.size(); i++) {
-					StatePrinter.printState(states.get(i));
+				for (int i = 0; i < states.size() - 1; i++) {
+					StatePrinter.printState(tool.evalAlias(states.get(i), states.get(i + 1).state));
 				}
 				return states;
 			}
@@ -902,7 +902,11 @@ public class LiveWorker implements Callable<Boolean> {
 		while (cycleStack.size() > 0) {
 			// Do not filter successive <<fp,tidx,permId>> here but do it below
 			// when the actual states get printed. See Test3.tla for reason why.
-			postfix.addElement(cycleStack.popLong());
+			long fp = cycleStack.popLong();
+			if (postfix.isEmpty() || postfix.lastElement() != fp) {
+				// See comment 4723xdf below.  This here just a minor optimization.
+				postfix.addElement(fp);
+			}
 			cycleStack.popInt(); // ignore tableau idx. The tableau idx is
 									// irrelevant as <<fpA, tidx1>> and <<fpA,
 									// tidx2>> both map to the same state in the
@@ -926,29 +930,36 @@ public class LiveWorker implements Callable<Boolean> {
 		
 		/*
 		 * At this point everything from the initial state up to the start state
-		 * of the SCC has been printed. Now, print the states in postfix. Obtain
-		 * the last state from the prefix (which corresponds to <<state, tidx>>)
-		 * to use it to generate the next state. Obviously, we have to wait for
-		 * the prefix thread to be done for two reasons: a) the trace has to be
-		 * printed and b) we need the TLCState instance to generate the
-		 * successor states in the cycle.
+		 * of the SCC has been printed. Now, print cycleState and the  states in
+		 * postfix. Obtain the last state from the prefix (which corresponds to
+		 * <<state, tidx>>) to use it to generate the next state. Obviously, we
+		 * have to wait for the prefix thread to be done for two reasons: a) the
+		 * trace has to be printed and b) we need the TLCState instance to generate
+		 * the successor states in the cycle.
 		 */
 		final TLCStateInfo cycleState = states.get(states.size() - 1);
-		
 		TLCStateInfo sinfo = cycleState;
-		for (int i = postfix.size() - 1; i >= 0; i--) {
-			final long curFP = postfix.elementAt(i);
-			// Only print the state if it differs from its predecessor. We don't
-			// want to print an identical state twice. This can happen if the
-			// loops A) and B) above added an identical state multiple times
-			// into cycleStack/postfix.
-			// The reason we don't simply compare the actual states is for
-			// efficiency reason. Regenerating the next state might be
-			// expensive.
-			if (curFP != sinfo.fingerPrint()) {
-				sinfo = tool.getState(curFP, sinfo);
-				StatePrinter.printState(sinfo);
+		
+		// 4723xdf:
+		// Only print the state if it differs from its predecessor. We don't
+		// want to print an identical state twice. This can happen if the
+		// loops A) and B) above added an identical state multiple times
+		// into cycleStack/postfix.
+		// The reason we don't simply compare the actual states is for
+		// efficiency reason. Regenerating the next state might be
+		// expensive.
+		if (postfix.isEmpty()) {
+			StatePrinter.printState(tool.evalAlias(cycleState, cycleState.state));
+		} else {
+			postfix.pack().removeLastIf(cycleState.fingerPrint());
+			
+			for (int i = postfix.size() - 1; i >= 0; i--) {
+				final long curFP = postfix.elementAt(i);
+				TLCStateInfo sucinfo = tool.getState(curFP, sinfo);
+				StatePrinter.printState(tool.evalAlias(sinfo, sucinfo.state));
+				sinfo = sucinfo;
 			}
+			StatePrinter.printState(tool.evalAlias(sinfo, cycleState.state));
 		}
 
 		/* All error trace states have been printed (prefix + cycleStack +
@@ -960,6 +971,9 @@ public class LiveWorker implements Callable<Boolean> {
 		if (sinfo.fingerPrint() == cycleState.fingerPrint()) {
 			StatePrinter.printStutteringState(stateNumber);
 		} else {
+			// The new sinfo.state is equivalent to cycleState after getState(..). The
+			// sinfo.info has the name of the action that closes the loop of the lasso/takes
+			// us back to cycleState.
 			sinfo = tool.getState(cycleState.fingerPrint(), sinfo);
 			// The print stmts below claim there is a cycle, thus assert that
 			// there is indeed one. Index-based lookup into states array is

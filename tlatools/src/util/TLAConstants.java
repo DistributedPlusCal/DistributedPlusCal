@@ -71,7 +71,8 @@ public final class TLAConstants {
 	}
 	
 	public final class TraceExplore {
-	    public static final String ERROR_STATES_MODULE_NAME = "SpecTE";
+	    public static final String TRACE_EXPRESSION_MODULE_NAME = "SpecTE";
+	    public static final String ERROR_STATES_MODULE_NAME = "TraceDef";
 	    public static final String EXPLORATION_MODULE_NAME = "TE";
 		public static final String ACTION = "_TEAction";
 		public static final String POSITION = "_TEPosition";
@@ -135,6 +136,7 @@ public final class TLAConstants {
     public static final String R_PAREN = ")";
     public static final String L_SQUARE_BRACKET = "[";
     public static final String R_SQUARE_BRACKET = "]";
+    public static final String FALSE = "FALSE";
 
     public static final String INDENTED_CONJUNCTIVE = TLAConstants.INDENT + TLAConstants.TLA_AND + TLAConstants.SPACE;
     public static final String INDENTED_DISJUNCTIVE = TLAConstants.INDENT + TLAConstants.TLA_OR + TLAConstants.SPACE;

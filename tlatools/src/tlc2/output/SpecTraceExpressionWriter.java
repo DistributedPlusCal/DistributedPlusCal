@@ -11,6 +11,7 @@ import tlc2.model.Formula;
 import tlc2.model.MCState;
 import tlc2.model.MCVariable;
 import tlc2.model.TraceExpressionInformationHolder;
+import tlc2.tool.impl.ModelConfig;
 import util.TLAConstants;
 
 /**
@@ -199,7 +200,7 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	 * @return an array of length 2, the first element is a buffer containing all trace expression subaction
 	 * 				declarations followed by the action constraint definition; the second element is a buffer
 	 * 				containing a potential VARIABLE stub for the trace expression variable, followed by the
-	 * 				definitions for Init and finally Next. This will return null if {@code trace.size() == 0}
+	 * 				definitions for Init and finally Next.
 	 */
 	public static StringBuilder[] addInitNextToBuffers(final StringBuilder cfgBuffer,
 													   final List<MCState> trace,
@@ -265,7 +266,7 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 						initAndNext.append(TLAConstants.TRACE_NA);
 					} else {
 	                    // add the actual expression if it is not temporal level
-						initAndNext.append(expressionInfo.getExpression());
+						initAndNext.append(expressionInfo.getIdentifier());
 	                }
 	
 					initAndNext.append(TLAConstants.CR).append(TLAConstants.INDENT).append(TLAConstants.INDENT);
@@ -307,15 +308,7 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	         * Next_123 == (x=1 /\ x'=2) \/ (x=2 /\ x'=3) \/ ... \/ (x=42 /\ x'=42)
 	         * 
 	         * At runtime, TLC created an Action for each sub-action of the next-state
-	         * relation (42 for the example above). For each state generated during
-	         * breadth-first search, all Actions were evaluated, but the assumption was
-	         * that only the one corresponding to the level of the current state would
-	         * generate a valid successor state. However, this is not true if a trace expression This poses two problems:
-	         * 1)  Actions may 
-	         * 
-	         * However, for some next-state relations
-	         * 
-	         * Non-determinism in trace expression
+	         * relation (42 for the example above).
 	         */
 	        final StringBuilder nextDisjunctBuffer = new StringBuilder();
 	        nextDisjunctBuffer.append(nextId).append(TLAConstants.DEFINES_CR);
@@ -453,7 +446,7 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	                    subActionsAndConstraint.append(expressionInfo.getVariableName()).append(TLAConstants.PRIME);
 	                    subActionsAndConstraint.append(TLAConstants.EQ).append(TLAConstants.L_PAREN).append(TLAConstants.CR);
 	                    subActionsAndConstraint.append(TRI_INDENT);
-	                    subActionsAndConstraint.append(expressionInfo.getExpression()).append(TLAConstants.CR);
+	                    subActionsAndConstraint.append(expressionInfo.getIdentifier()).append(TLAConstants.CR);
 	                    subActionsAndConstraint.append(TRI_INDENT).append(TLAConstants.R_PAREN);
 	
 						if (expressionInfo.getLevel() < 2) {
@@ -493,6 +486,9 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 			initAndNext.append(TLAConstants.CR).append(TLAConstants.CR);
 	        
 			
+			/**
+			 * Action Constraint
+			 */
 			subActionsAndConstraint.append(TLAConstants.COMMENT).append("TRACE Action Constraint definition ");
 			subActionsAndConstraint.append(TLAConstants.TraceExplore.TRACE_EXPLORE_ACTION_CONSTRAINT);
 			subActionsAndConstraint.append(TLAConstants.CR).append(actionConstraintBuffer.toString());
@@ -504,18 +500,20 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	        return new StringBuilder[] { subActionsAndConstraint, initAndNext };
 	    }
 		
-		return null;
+		return new StringBuilder[] { new StringBuilder(), new StringBuilder() };
 	}
 
-	public static void addTraceFunctionToBuffers(final StringBuilder tlaBuffer, final StringBuilder cfgBuffer,
-			final List<MCState> input) {
+	public static String addTraceFunctionToBuffers(final StringBuilder tlaBuffer, final StringBuilder cfgBuffer,
+			final List<MCState> input, final String id) {
 		// Filter stuttering or back2state instances from trace.
 		final List<MCState> trace = input.stream()
 				.filter(state -> !state.isBackToState() && !state.isStuttering())
 				.collect(Collectors.toList());
 		
 		if (trace.isEmpty()) {
-			return;
+			return addArrowAssignmentIdToBuffers(tlaBuffer, cfgBuffer,
+					new Assignment(TLAConstants.TraceExplore.TRACE, new String[0], TLAConstants.BEGIN_TUPLE + TLAConstants.END_TUPLE),
+					id);
 	    }
 		
 		// Trace
@@ -533,9 +531,9 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 		traceFunctionDef.append(TLAConstants.CR).append(TLAConstants.END_TUPLE);
 		traceFunctionDef.append(CLOSING_SEP).append(TLAConstants.CR);
 		
-		addArrowAssignmentToBuffers(tlaBuffer, cfgBuffer,
+		return addArrowAssignmentIdToBuffers(tlaBuffer, cfgBuffer,
 				new Assignment(TLAConstants.TraceExplore.TRACE, new String[0], traceFunctionDef.toString()),
-				TLAConstants.Schemes.DEFOV_SCHEME);
+				id);
 	}
 	
 	
@@ -601,6 +599,10 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 				extraExtendedModules.toArray(new String[extraExtendedModules.size()])));
 	}
 
+	public void addFooter() {
+		tlaBuffer.append(getTLAModuleClosingTag());
+	}
+	
 	/**
 	 * This only changes the tla file. This method adds a variable declaration
 	 * for each element of traceExpressionData and, if the flag addDefinitions is true,
@@ -695,6 +697,53 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	    tlaBuffer.append(CLOSING_SEP).append(TLAConstants.CR);
 	}
 
+	public void addProperties(final List<MCState> trace) {
+        MCState finalState = trace.get(trace.size() - 1);
+        boolean isBackToState = finalState.isBackToState();
+        boolean isStuttering = finalState.isStuttering();
+
+        // add temporal property or invariant depending on type of trace
+        // read the method comments to see the form of the invariant or property
+        if (isStuttering)
+        {
+            addStutteringProperty(trace.get(trace.size() - 2));
+        } else if (isBackToState)
+        {
+            addBackToStateProperty(trace.get(trace.size() - 2), trace.get(finalState.getStateNumber() - 1));
+        } else
+        {
+            // checking deadlock eliminates the need for the following
+			// MAK 06/26/2020: write.addInvariant(finalState) below used to be commented
+			// with the comment above about deadlock checking taking care of it. The
+			// statement is wrong when an error-trace is not the shortest possible trace,
+			// because bfs (run with TE) on such a trace might a) shorten it and b) no
+			// longer deadlocks. This is the possible with traces that can come out of
+			// simulation mode.
+			// Assume any spec and an invariant such as TLCGet("level") < n for some n \in Nat
+        	// (larger n increase the probability of a behavior with a sequence of stuttering
+        	// steps). If the simulator happens to generate a behavior with a sequence of
+			// stuttering step, the generated TE.tla will define a behavior that allows infinite
+			// stuttering (for each stuttering step, there will be a disjunct in the disjuncts
+			// of the next-state relation), which is not a deadlock. We could require the
+        	// simulator to run with the "-difftrace" command-line parameter, which will remove
+        	// successive stuttering steps.  However, it seems like an unnecessary requirement
+        	// given that checking an invariant instead of deadlock has no drawback.
+			// I ran into this issue when I used the simulator to generate very long traces
+			// (1000+) for a spec (AsyncGameOfLife.tla) that models an Asynchronous Cellular
+			// Automaton (https://uhra.herts.ac.uk/bitstream/handle/2299/7041/102007.pdf),
+			// to use as input for Will Schultz's animation module (result at
+			// https://github.com/lemmy/tlaplus_specs/blob/master/AsyncGameOfLifeAnimBlinker.mp4).
+            addInvariant(finalState);
+        }
+        
+		// Do not require to pass -deadlock on the command-line (properties assert that
+		// TLC re-finds the error-trace).
+		cfgBuffer.append(TLAConstants.COMMENT).append(ModelConfig.CheckDeadlock).append(" off because of PROPERTY or INVARIANT above.")
+				.append(TLAConstants.CR);
+		cfgBuffer.append(ModelConfig.CheckDeadlock).append(TLAConstants.SPACE).append(TLAConstants.FALSE);
+		cfgBuffer.append(TLAConstants.CR);
+	}
+
 	/**
 	 * Adds the temporal property ~<>[](P) where P is the formula describing finalState.
 	 * The format in the tla file is as follows:
@@ -722,7 +771,7 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 
 	/**
 	 * Adds the temporal property ~([]<>P /\ []<>Q), where P is the formula describing finalState and 
-	 * Q the formula describing backToState. The formating in the tla file is as follows:
+	 * Q the formula describing backToState. The formatting in the tla file is as follows:
 	 * 
 	 * prop_21321312 ==
 	 * ~(([]<>(
@@ -774,8 +823,8 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 	/**
 	 * @see #addInitNextToBuffers(StringBuilder, StringBuilder, List, TraceExpressionInformationHolder[])
 	 */
-	public String[] addInitNext(final List<MCState> trace, final TraceExpressionInformationHolder[] expressionData) {
-		return addInitNextToBuffers(tlaBuffer, cfgBuffer, trace, expressionData);
+	public String[] addInitNext(final List<MCState> trace) {
+		return addInitNextToBuffers(tlaBuffer, cfgBuffer, trace, null);
 	}
 
 	/**
@@ -795,9 +844,139 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
 		addInitNextToBuffers(tlaBuffer, cfgBuffer, trace, expressionData, initId, nextId, actionConstraintId,
 							 nextSubActionBasename, true);
 	}
+	
+	public void addInitNext(final List<MCState> trace, final String initId, String nextId,
+			final String actionConstraintId, final String nextSubActionBasename) {
+		addInitNext(trace, null, initId, nextId, actionConstraintId, nextSubActionBasename);
+	}
 
-	public void addTraceFunction(final List<MCState> input) {
-		addTraceFunctionToBuffers(tlaBuffer, cfgBuffer, input);
+	public void addInitNextTraceFunction(final List<MCState> trace, final String[] vars, final String initId, String nextId) {
+        /*******************************************************
+         * Add the init definition.                            *
+         *******************************************************/
+		if (cfgBuffer != null) {
+			cfgBuffer.append(TLAConstants.COMMENT).append(TLAConstants.KeyWords.INIT).append(" definition");
+			cfgBuffer.append(TLAConstants.CR).append(TLAConstants.KeyWords.INIT).append(TLAConstants.CR);
+			cfgBuffer.append(initId).append(TLAConstants.CR);
+		}
+		
+		// Stub for trace expressions variable
+		tlaBuffer.append(TLAConstants.COMMENT).append(TLAConstants.KeyWords.VARIABLE).append(' ');
+		tlaBuffer.append(TRACE_EXPRESSION_VARIABLE).append(TLAConstants.CR).append(TLAConstants.CR);
+
+		tlaBuffer.append(TLAConstants.COMMENT).append("TRACE INIT definition ");
+		tlaBuffer.append(TLAConstants.TraceExplore.TRACE_EXPLORE_INIT).append(TLAConstants.CR);
+		tlaBuffer.append(initId).append(TLAConstants.DEFINES_CR);
+        
+        // variables from spec
+		for (int i = 0; i < vars.length; i++) {
+            final String var = vars[i];
+            tlaBuffer.append(TLAConstants.INDENTED_CONJUNCTIVE);
+            tlaBuffer.append(var).append(TLAConstants.EQ).append("_TETrace[1].").append(var);
+            tlaBuffer.append(TLAConstants.CR);
+        }
+		
+		// Stub for trace expressions
+		tlaBuffer.append(TLAConstants.COMMENT).append(TLAConstants.INDENTED_CONJUNCTIVE);
+		tlaBuffer.append(TRACE_EXPRESSION_VARIABLE).append(TLAConstants.EQ);
+		tlaBuffer.append(TLAConstants.KeyWords.TRUE).append(TLAConstants.CR);
+
+		tlaBuffer.append(CLOSING_SEP).append(TLAConstants.CR);
+		
+        /************************************************
+         *  Now add the next state relation             *
+         ************************************************/
+		if (cfgBuffer != null) {
+			cfgBuffer.append(TLAConstants.COMMENT).append(TLAConstants.KeyWords.NEXT).append(" definition");
+			cfgBuffer.append(TLAConstants.CR).append(TLAConstants.KeyWords.NEXT).append(TLAConstants.CR);
+			cfgBuffer.append(nextId).append(TLAConstants.CR);
+		}
+		
+		tlaBuffer.append(TLAConstants.COMMENT).append("TRACE NEXT definition ");
+		tlaBuffer.append(TLAConstants.TraceExplore.TRACE_EXPLORE_NEXT).append(TLAConstants.CR);
+		// _SpecTENext == 
+		tlaBuffer.append(nextId).append(TLAConstants.DEFINES_CR);
+		if (trace.size() == 1) {
+			tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENTED_CONJUNCTIVE);
+			tlaBuffer.append("FALSE").append(TLAConstants.CR);
+		} else {
+			tlaBuffer.append(TLAConstants.INDENTED_CONJUNCTIVE).append("\\E i,j \\in DOMAIN _TETrace:")
+					.append(TLAConstants.CR);
+			tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENTED_CONJUNCTIVE).append(TLAConstants.TLA_OR).append(" j = i + 1")
+					.append(TLAConstants.CR);
+			// Back to state?
+			final MCState finalState = trace.get(trace.size() - 1);
+			final boolean isBackToState = finalState.isBackToState();
+			if (isBackToState) {
+				// Instead of this disjunct, we could append backToState to the trace function
+				// (_TETrace). Len(_TETrace) would however be off by one.
+				MCState backToState = trace.get(finalState.getStateNumber() - 1);
+				tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENT).append("   ")
+						.append(TLAConstants.TLA_OR).append(TLAConstants.SPACE).append(TLAConstants.TLA_AND)
+						// Len(_TETrace) requires EXTENDS Sequences
+						.append(" i = ").append(trace.size() - 1).append(TLAConstants.CR);
+				tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENT).append("  ")
+						.append(TLAConstants.INDENTED_CONJUNCTIVE).append("j = ").append(backToState.getStateNumber())
+						.append(TLAConstants.CR);
+			}
+			for (int i = 0; i < vars.length; i++) {
+	            final String var = vars[i];
+	            // x = _TETrace[_TEPosition].x
+				tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENTED_CONJUNCTIVE);
+				tlaBuffer.append(var).append(" ").append(TLAConstants.EQ).append("_TETrace[i].")
+						.append(var);
+				tlaBuffer.append(TLAConstants.CR);
+
+				// x' = _TETrace[_TEPosition+1].x
+				tlaBuffer.append(TLAConstants.INDENT).append(TLAConstants.INDENTED_CONJUNCTIVE);
+				tlaBuffer.append(var).append(TLAConstants.PRIME);
+				tlaBuffer.append(TLAConstants.EQ).append("_TETrace[j].").append(var);
+				tlaBuffer.append(TLAConstants.CR);
+	        }
+
+			// stub for trace expressions.
+			tlaBuffer.append(TLAConstants.COMMENT).append(TLAConstants.INDENT).append(TLAConstants.TLA_AND).append(' ');
+			tlaBuffer.append(TRACE_EXPRESSION_VARIABLE).append(TLAConstants.PRIME).append(TLAConstants.EQ);
+			tlaBuffer.append(TRACE_EXPRESSION_VARIABLE).append(TLAConstants.CR);
+		}
+
+		tlaBuffer.append(TLAConstants.CR).append(TLAConstants.CR);
+	}
+
+	public String addTraceFunction(final List<MCState> input) {
+		return addTraceFunctionToBuffers(tlaBuffer, cfgBuffer, input,
+				SpecWriterUtilities.getValidIdentifier(TLAConstants.Schemes.DEFOV_SCHEME));
+	}
+
+	public String addTraceFunction(final List<MCState> input, final String id) {
+		return addTraceFunctionToBuffers(tlaBuffer, cfgBuffer, input, id);
+	}
+
+	/*
+	 * See https://github.com/tlaplus/tlaplus/issues/482 for why we create the
+	 * _SpecTETraceDef symbol. In short, it leads to faster evaluation because TLC's
+	 * caching kicks in.
+	 * 
+	 * The reason why the trace function is in a dedicated module (via monolith spec
+	 * functionality) is to make it easy for users to edit SpecTE to replace the
+	 * TLA+ encoded trace function with a significantly more efficient binary
+	 * encoding to work around deficiencies in SANY and semantic processing.
+	 */
+	public String addTraceFunctionInstance() {
+		/*
+		 * SpecTETraceDef == INSTANCE SpecTETraceDef
+		 * def_ov_15940964130543000 == SpecTETraceDef!def_ov_15940964130543000
+		 */
+		tlaBuffer.append(TLAConstants.COMMENT).append(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME)
+				.append(" definition").append(TLAConstants.CR);
+		final String identifier = SpecWriterUtilities.getValidIdentifier(TLAConstants.Schemes.DEFOV_SCHEME);
+		tlaBuffer.append(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + "TraceDef == INSTANCE "
+				+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME
+				+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME).append(TLAConstants.CR);
+		tlaBuffer.append(identifier).append(TLAConstants.DEFINES)
+				.append(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + "TraceDef!").append(identifier)
+				.append(TLAConstants.CR).append(TLAConstants.CR);
+		return identifier;
 	}
 	
     /**
@@ -844,4 +1023,12 @@ public class SpecTraceExpressionWriter extends AbstractSpecWriter {
             return formula.toString();
         }
     }
+
+	public StringBuilder append(String str) {
+		return tlaBuffer.append(str);
+	}
+
+	public String getComment() {
+		return tlaBuffer.toString().replaceFirst("^", "\\\\*").replaceAll("\n", "\n\\\\*");
+	}
 }

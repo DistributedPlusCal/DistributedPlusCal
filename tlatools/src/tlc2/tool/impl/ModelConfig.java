@@ -7,8 +7,12 @@ package tlc2.tool.impl;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import tla2sany.parser.SimpleCharStream;
 import tla2sany.parser.TLAplusParserConstants;
@@ -29,6 +33,7 @@ import tlc2.value.impl.Value;
 import tlc2.value.impl.ValueVec;
 import util.FileUtil;
 import util.FilenameToStream;
+import util.MonolithSpecExtractor;
 import util.SimpleFilenameToStream;
 import util.TLAConstants;
 
@@ -44,7 +49,8 @@ import util.TLAConstants;
  * @author Yuan Yu, Leslie Lamport
  */
 public class ModelConfig implements ValueConstants, Serializable {
-    // keywords of the configuration file
+    // keywords of the configuration file.
+	// CAREFUL: HAVE TO BE IN CONFIGTBL FOR PARSING TO WORK!
     private static final String Constant = TLAConstants.KeyWords.CONSTANT;
     private static final String Constants = TLAConstants.KeyWords.CONSTANTS;
     private static final String Constraint = "CONSTRAINT";
@@ -60,9 +66,9 @@ public class ModelConfig implements ValueConstants, Serializable {
     private static final String Spec = TLAConstants.KeyWords.SPECIFICATION;
     private static final String Prop = TLAConstants.KeyWords.PROPERTY;
     private static final String Props = "PROPERTIES";
-    private static final String Type = "TYPE";
+    private static final String Alias = "ALIAS";
     private static final String TypeConstraint = "TYPE_CONSTRAINT";
-    private static final String CheckDeadlock = "CHECK_DEADLOCK";
+    public static final String CheckDeadlock = "CHECK_DEADLOCK";
 
     private static final long serialVersionUID = 1L;
 
@@ -70,7 +76,7 @@ public class ModelConfig implements ValueConstants, Serializable {
      * All keywords used in the configuration file
      */
     public final static String[] ALL_KEYWORDS = { Constant, Constants, Constraint, Constraints, ActionConstraint,
-            ActionConstraints, Invariant, Invariants, Init, Next, View, Symmetry, Spec, Prop, Props, Type,
+            ActionConstraints, Invariant, Invariants, Init, Next, View, Symmetry, Spec, Prop, Props, Alias,
             TypeConstraint, CheckDeadlock };
 
     private Hashtable configTbl;
@@ -80,6 +86,7 @@ public class ModelConfig implements ValueConstants, Serializable {
     private Hashtable modOverrides;
     private String configFileName;
     private FilenameToStream resolver; // resolver for the file
+    private List<String> rawConstants;
 
     /**
      * Creates a new model config handle
@@ -123,13 +130,15 @@ public class ModelConfig implements ValueConstants, Serializable {
         temp = new Vect<>();
         this.configTbl.put(Prop, temp);
         this.configTbl.put(Props, temp);
-        this.configTbl.put(Type, "");
+        this.configTbl.put(Alias, "");
         this.configTbl.put(TypeConstraint, "");
-
+        this.configTbl.put(CheckDeadlock, "undef");
+        
         this.modConstants = new Hashtable<>();
         this.modOverrides = new Hashtable<>();
         this.overrides = new Hashtable<>();
         this.overridesReverseMap = new Hashtable<>();
+        this.rawConstants = new ArrayList<>();
     }
 
     /**
@@ -145,15 +154,21 @@ public class ModelConfig implements ValueConstants, Serializable {
         try
         {
             // SZ 23.02.2009: separated file resolution from stream retrieval
-            FileInputStream fis = FileUtil.newFIS(resolver.resolve(this.configFileName, false));
+            InputStream fis = FileUtil.newFIS(resolver.resolve(this.configFileName, false));
             if (fis == null)
             {
                 throw new ConfigFileException(EC.CFG_ERROR_READING_FILE, new String[] { this.configFileName,
                         "File not found." });
             }
+            if (this.configFileName.endsWith(TLAConstants.Files.TLA_EXTENSION)) {
+				fis = MonolithSpecExtractor.config(fis,
+						// strip ".tla" from this.configFileName.
+						this.configFileName.replace(TLAConstants.Files.TLA_EXTENSION, ""));
+            }
             SimpleCharStream scs = new SimpleCharStream(fis, 1, 1);
             TLAplusParserTokenManager tmgr = new TLAplusParserTokenManager(scs, 2);
 
+        	final List<StringBuffer> rawConstants = new ArrayList<StringBuffer>();
             Token tt = getNextToken(tmgr);
             while (tt.kind != TLAplusParserConstants.EOF)
             {
@@ -225,17 +240,17 @@ public class ModelConfig implements ValueConstants, Serializable {
                                 Symmetry });
                     }
                     tt = getNextToken(tmgr);
-                } else if (tval.equals(Type))
+                } else if (tval.equals(Alias))
                 {
                     tt = getNextToken(tmgr);
                     if (tt.kind == TLAplusParserConstants.EOF)
                     {
-                        throw new ConfigFileException(EC.CFG_MISSING_ID, new String[] { String.valueOf(loc), Type });
+                        throw new ConfigFileException(EC.CFG_MISSING_ID, new String[] { String.valueOf(loc), Alias });
                     }
-                    String old = (String) this.configTbl.put(Type, tt.image);
+                    String old = (String) this.configTbl.put(Alias, tt.image);
                     if (old.length() != 0)
                     {
-                        throw new ConfigFileException(EC.CFG_TWICE_KEYWORD, new String[] { String.valueOf(loc), Type });
+                        throw new ConfigFileException(EC.CFG_TWICE_KEYWORD, new String[] { String.valueOf(loc), Alias });
                     }
                     tt = getNextToken(tmgr);
                 } else if (tval.equals(TypeConstraint))
@@ -255,6 +270,8 @@ public class ModelConfig implements ValueConstants, Serializable {
                     tt = getNextToken(tmgr);
                 } else if (tval.equals(Constant) || tval.equals(Constants))
                 {
+                	StringBuffer buf = new StringBuffer(tval);
+                	rawConstants.add(buf);
                     while ((tt = getNextToken(tmgr)).kind != TLAplusParserConstants.EOF)
                     {
                         /* Exit this while loop if the next token is something like "CONSTANT"
@@ -262,18 +279,20 @@ public class ModelConfig implements ValueConstants, Serializable {
                          */
                         if (this.configTbl.get(tt.image) != null)
                             break;
+                        
+                        buf.append("\n").append(tt.image).append(" ");
                         /* Token tt should be the first token in an expression of the form
                          * id <- ...  or id = ... .  In the current implementation, id is the
                          * token tt.  The following code was modified on 30 July 2009
                          * to allow id to be something like frob!bar!glitch, fixing Bug44.
                          */
                         String lhs = tt.image;
-                        tt = getNextToken(tmgr);
+                        tt = getNextToken(tmgr, buf);
                         while (tt.image.equals("!"))
                         {
-                            tt = getNextToken(tmgr);
+                            tt = getNextToken(tmgr, buf);
                             lhs = lhs + "!" + tt.image;
-                            tt = getNextToken(tmgr);
+                            tt = getNextToken(tmgr, buf);
                         }
                         Vect line = new Vect();
                         line.addElement(lhs);
@@ -282,24 +301,24 @@ public class ModelConfig implements ValueConstants, Serializable {
                         // tt = getNextToken(tmgr);
                         if (tt.image.equals("<-"))
                         {
-                            tt = getNextToken(tmgr);
+                            tt = getNextToken(tmgr, buf);
                             if (tt.image.equals("["))
                             {
                                 // This is a module override:
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 if (tt.kind == TLAplusParserConstants.EOF)
                                 {
                                     throw new ConfigFileException(EC.CFG_EXPECT_ID, new String[] {
                                             String.valueOf(scs.getBeginLine()), "<-[" });
                                 }
                                 String modName = tt.image;
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 if (!tt.image.equals("]"))
                                 {
                                     throw new ConfigFileException(EC.CFG_EXPECTED_SYMBOL, new String[] {
                                             String.valueOf(scs.getBeginLine()), "]" });
                                 }
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 if (tt.kind == TLAplusParserConstants.EOF)
                                 {
                                     throw new ConfigFileException(EC.CFG_EXPECT_ID, new String[] {
@@ -330,10 +349,10 @@ public class ModelConfig implements ValueConstants, Serializable {
                             {
                                 while (true)
                                 {
-                                    tt = getNextToken(tmgr);
+                                    tt = getNextToken(tmgr, buf);
                                     IValue arg = this.parseValue(tt, scs, tmgr);
                                     line.addElement(arg);
-                                    tt = getNextToken(tmgr);
+                                    tt = getNextToken(tmgr, buf);
                                     if (!tt.image.equals(","))
                                         break;
                                 }
@@ -341,31 +360,31 @@ public class ModelConfig implements ValueConstants, Serializable {
                                 {
                                     throw new ConfigFileException(EC.CFG_GENERAL, new String[] { String.valueOf(loc) });
                                 }
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                             }
                             if (!tt.image.equals("="))
                             {
                                 throw new ConfigFileException(EC.CFG_EXPECTED_SYMBOL, new String[] {
                                         String.valueOf(scs.getBeginLine()), "= or <-" });
                             }
-                            tt = getNextToken(tmgr);
+                            tt = getNextToken(tmgr, buf);
                             if (tt.image.equals("["))
                             {
                                 // This is a module specific override:
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 if (tt.kind == TLAplusParserConstants.EOF)
                                 {
                                     throw new ConfigFileException(EC.CFG_EXPECT_ID, new String[] {
                                             String.valueOf(scs.getBeginLine()), "=[" });
                                 }
                                 String modName = tt.image;
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 if (!tt.image.equals("]"))
                                 {
                                     throw new ConfigFileException(EC.CFG_EXPECTED_SYMBOL, new String[] {
                                             String.valueOf(scs.getBeginLine()), "]" });
                                 }
-                                tt = getNextToken(tmgr);
+                                tt = getNextToken(tmgr, buf);
                                 line.addElement(this.parseValue(tt, scs, tmgr));
                                 Vect mConsts = (Vect) this.modConstants.get(modName);
                                 if (mConsts == null)
@@ -429,7 +448,7 @@ public class ModelConfig implements ValueConstants, Serializable {
                         throw new ConfigFileException(EC.CFG_EXPECTED_SYMBOL, new String[] {
                             String.valueOf(scs.getBeginLine()), "TRUE or FALSE" });
                     }
-                    if (previous != null)
+                    if (previous != "undef")
                     {
                         throw new ConfigFileException(EC.CFG_TWICE_KEYWORD, new String[] { String.valueOf(loc), CheckDeadlock });
                     }
@@ -440,6 +459,7 @@ public class ModelConfig implements ValueConstants, Serializable {
                             String.valueOf(scs.getBeginLine()), "a keyword" });
                 }
             }
+            this.rawConstants = rawConstants.stream().map(buf -> buf.toString()).collect(Collectors.toList());
         } catch (IOException e)
         {
             throw new ConfigFileException(EC.CFG_ERROR_READING_FILE,
@@ -501,7 +521,7 @@ public class ModelConfig implements ValueConstants, Serializable {
      * @param tmgr
      * @return
      */
-    public static Token getNextToken(TLAplusParserTokenManager tmgr)
+    private static Token getNextToken(TLAplusParserTokenManager tmgr)
     {
         try
         {
@@ -512,6 +532,28 @@ public class ModelConfig implements ValueConstants, Serializable {
             tt.kind = TLAplusParserConstants.EOF;
             return tt;
         }
+    }
+    private static Token getNextToken(TLAplusParserTokenManager tmgr, StringBuffer buf)
+    {
+        try
+        {
+            Token nextToken = tmgr.getNextToken();
+            buf.append(nextToken.image).append(" ");
+			return nextToken;
+        } catch (TokenMgrError e)
+        {
+            Token tt = new Token();
+            tt.kind = TLAplusParserConstants.EOF;
+            return tt;
+        }
+    }
+
+    /**
+     * @return All CONSTANT or CONSTANTS statements as they appear in the config file.
+     */
+    public synchronized final List<String> getRawConstants()
+    {
+        return this.rawConstants;
     }
 
     public synchronized final Vect getConstants()
@@ -589,9 +631,9 @@ public class ModelConfig implements ValueConstants, Serializable {
         return (Vect) this.configTbl.get(Prop);
     }
 
-    public synchronized final String getType()
+    public synchronized final String getAlias()
     {
-        return (String) this.configTbl.get(Type);
+        return (String) this.configTbl.get(Alias);
     }
 
     public synchronized final String getTypeConstraint()
@@ -601,8 +643,9 @@ public class ModelConfig implements ValueConstants, Serializable {
 
     public synchronized final boolean getCheckDeadlock()
     {
-    	if (this.configTbl.containsKey(CheckDeadlock)) {
-    		return (boolean) this.configTbl.get(CheckDeadlock);
+    	Object object = this.configTbl.get(CheckDeadlock);
+    	if (object instanceof Boolean) {
+    		return (boolean) object;
     	}
     	return true;
     }
