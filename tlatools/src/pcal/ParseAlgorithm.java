@@ -347,7 +347,7 @@ public class ParseAlgorithm
     		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
     	   vdecls.addAll(GetChannelDecls());
        }
-	    
+
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
 			MustGobbleThis("define");
@@ -371,7 +371,6 @@ public class ParseAlgorithm
 		while (PeekAtAlgToken(1).equals("macro")) {
 			macros.addElement(GetMacro(macros));
 		}
-
 
 		while (PeekAtAlgToken(1).equals("procedure")) {
 			procedures.addElement(GetProcedure());
@@ -959,7 +958,7 @@ public class ParseAlgorithm
            lookForComma = true ;
          }
        MustGobbleThis(")") ;
-       if (   PeekAtAlgToken(1).equals("begin")
+       if (PeekAtAlgToken(1).equals("begin")
            || PeekAtAlgToken(1).equals("{"))
          { result.decls = new Vector(1) ; }
        else
@@ -996,7 +995,9 @@ public class ParseAlgorithm
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
        if (   PeekAtAlgToken(1).equals("begin")
-           || PeekAtAlgToken(1).equals("{"))
+           || PeekAtAlgToken(1).equals("{")
+           //For Distributed PlusCal, when using p-syntax
+           || PeekAtAlgToken(1).equals("subprocess"))
          { result.decls = new Vector(1) ; }
        else
          { result.decls = GetVarDecls() ; } ;
@@ -1029,8 +1030,10 @@ public class ParseAlgorithm
        * The <PVarDecls> nonterminal is terminated by a "begin"            *
        * (p-syntax) or "{" (c-syntax) for the procedure.                   *
        ********************************************************************/
-       while (! (   PeekAtAlgToken(1).equals("begin")
-                 || PeekAtAlgToken(1).equals("{") ) )
+       while (! (PeekAtAlgToken(1).equals("begin")
+                 || PeekAtAlgToken(1).equals("{") 
+                 //For Distributed PlusCal, when using p-syntax
+                 || PeekAtAlgToken(1).equals("subprocess")) )
          { result.addElement(GetPVarDecl()) ;
            GobbleCommaOrSemicolon();
              /**************************************************************
@@ -1087,11 +1090,15 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("fair")  
                  || PeekAtAlgToken(1).equals("define")  
                  || PeekAtAlgToken(1).equals("macro")  
+                 //For Distributed PlusCal
                  || PeekAtAlgToken(1).equals("node")
- 				 || PeekAtAlgToken(1).contains("channel") 
- 				 || PeekAtAlgToken(1).contains("fifo")))
+ 				 || PeekAtAlgToken(1).equals("channel") 
+ 				 || PeekAtAlgToken(1).equals("channels") 
+ 				 || PeekAtAlgToken(1).equals("fifos") 
+ 				 || PeekAtAlgToken(1).equals("fifo")
+ 				 || PeekAtAlgToken(1).equals("subprocess")))
          { result.addElement(GetVarDecl());
-          } ;
+          }
         return result ;
      }
 
@@ -3705,7 +3712,7 @@ public class ParseAlgorithm
      * c-syntax.  Gobbles is and sets pSyntax or cSyntax.                  *
      **********************************************************************/
      { if (pSyntax) 
-         { GobbleThis("begin") ;}
+    		 GobbleThis("begin") ;
        else if (cSyntax)
          { GobbleThis("{") ;}
        else {PcalDebug.ReportBug("Syntax not initialized.") ;} ;
@@ -3774,6 +3781,7 @@ public class ParseAlgorithm
                 
                 //For Distributed PlusCal
                 || nxt.equals("node")
+                || nxt.equals("subprocess")
               )
              { return ;
              };                   
@@ -4783,7 +4791,7 @@ public class ParseAlgorithm
 			ParsingError("Empty node id at ");
 		}
 
-		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")) {
+		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 			result.decls = new Vector(1);
 		} else {
 
@@ -4799,25 +4807,34 @@ public class ParseAlgorithm
 
 		Vector<AST.Thread> threads = new Vector<>();
 
-		if (PeekAtAlgToken(1).equals("{")) {
+		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
 			int i = 0;
-			while (PeekAtAlgToken(1).equals("{")) {
+			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
-				// GobbleBeginOrLeftBrace();
 				AST.Thread thread = new AST.Thread();
 				thread.index = i++;
 				thread.id = result.id;
-				GobbleBeginOrLeftBrace();
+				
+				//read the sub-process delimiter
+				if(pSyntax){
+		    		 GobbleThis("subprocess");
+		    	 } else {
+		    		 GobbleThis("{");
+		    	 }
 
 				// check that next is not the end brace
 				thread.body = GetStmtSeq();
 
-				// something to change here
-				GobbleThis("}");
+				//to make sure this works remove the key node from the algorithm completely
+				GobbleEndOrRightBrace("subprocess");
+				
+				if(pSyntax) {
+					GobbleThis(";");
+				}
+				
 				threads.add(thread);
 			}
-
 		}
 
 		result.threads = threads;
@@ -4826,7 +4843,8 @@ public class ParseAlgorithm
 		if (PeekAtAlgToken(1).equals(";")) {
 			String tok = GetAlgToken();
 		}
-
+		
+		//TODO
 		// CheckLabeledStmtSeq(result.body) ;
 		result.plusLabels = plusLabels;
 		result.minusLabels = minusLabels;
@@ -4863,7 +4881,8 @@ public class ParseAlgorithm
 				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
 				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
-				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables"))) {
+				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
+				|| PeekAtAlgToken(1).equals("subprocess"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetChannelDecl(channelType));
 		}
@@ -5189,12 +5208,28 @@ public class ParseAlgorithm
 		return result;
 	}
 	
+	/**
+	 * 
+	 * @param varName
+	 * @param nodeDecl
+	 * @param globalDecl
+	 * @return
+	 */
 	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
 		VarDecl chanVar = null;
 		int i = 0;
 
 		while (nodeDecl != null && i < nodeDecl.size()) {
-			AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			
+			AST.VarDecl tempVar = null;
+			try {
+				tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			} catch (ClassCastException e) {
+				//incase we are handling a call from a procedure body then the local procedure variables will be of type PVarChar
+				//skip this because it makes no sense that a channel is defined local to a procedure
+				break;
+			}
+			
 			if (tempVar.var.equals(varName)) {
 				chanVar = tempVar;
 			}
@@ -5219,6 +5254,4 @@ public class ParseAlgorithm
 		}
 		return chanVar;
 	}
-
- }
-
+}
