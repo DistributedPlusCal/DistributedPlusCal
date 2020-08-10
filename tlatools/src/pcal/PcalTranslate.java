@@ -2195,6 +2195,7 @@ public class PcalTranslate {
             expr.addToken(BuiltInToken("|->"));
             expr.addToken(IdentToken(decl.var));
         }
+        
         for (int i = 0; i < pe.params.size(); i++) {
             AST.PVarDecl decl =
                 (AST.PVarDecl) pe.params.elementAt(i);
@@ -2204,6 +2205,7 @@ public class PcalTranslate {
             expr.addToken(BuiltInToken("|->"));
             expr.addToken(IdentToken(decl.var));
         }
+        
         expr.addToken(BuiltInToken("]"));
         expr.addToken(BuiltInToken(">>"));
         expr.addLine();
@@ -2278,8 +2280,20 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
-            sass.lhs.sub = MakeExpr(new Vector());
+            
+            //For Distributed Plus, so that the local procedure variables are also referenced using thread index when the procedure is called
+            if(threadIndex == null) {
+            	sass.lhs.sub = MakeExpr(new Vector());
+            } else {
+            	TLAExpr exp = new TLAExpr();
+            	exp.addLine();
+                TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+                exp.addToken(tok);
+                sass.lhs.sub = exp;
+            }
+            
             sass.rhs = (TLAExpr) decl.val;
+            System.out.println("!! : " + decl.val);
             ass.setOrigin(decl.getOrigin()) ;
             ass.ass.addElement(sass);
             result.addElement(ass) ;
@@ -2388,6 +2402,7 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.lhs.var = "stack";
 
+            //For Distributed PlusCal
             if(threadIndex == null) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
