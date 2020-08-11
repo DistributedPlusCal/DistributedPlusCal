@@ -2272,7 +2272,12 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                        is.append("[ self \\in ProcSet |-> ");
+                       //For Distributed PlusCal 
+                       if(PcalParams.distpcalFlag){
+                           is.append("[ self \\in ProcSet: \\E subprocess \\in SubProcSet[self] |-> ");
+                       } else{
+                    	   is.append("[ self \\in ProcSet |-> ");
+                       }
 //                    }
                         addOneTokenToTLA(is.toString());
                         addLeftParen(decl.val.getOrigin());
@@ -2343,8 +2348,12 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                        is.append("[ self \\in ProcSet |-> ");
-//                    }
+                        //For Distributed PlusCal 
+                        if(PcalParams.distpcalFlag){
+                            is.append("[ self \\in ProcSet: \\E subprocess \\in SubProcSet[self] |-> ");
+                        } else{
+                     	   is.append("[ self \\in ProcSet |-> ");
+                        }//                    }
                         addOneTokenToTLA(is.toString());
                         addLeftParen(decl.val.getOrigin());
                         addExprToTLA(AddSubscriptsToExpr(
