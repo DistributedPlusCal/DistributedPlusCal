@@ -2274,7 +2274,7 @@ public class PcalTLAGen
 //                    {
                        //For Distributed PlusCal 
                        if(PcalParams.distpcalFlag){
-                           is.append("[ self \\in ProcSet: \\E subprocess \\in SubProcSet[self] |-> ");
+                           is.append("[ self \\in ProcSet, subprocess \\in SubProcSet[self] |-> ");
                        } else{
                     	   is.append("[ self \\in ProcSet |-> ");
                        }
@@ -2350,7 +2350,7 @@ public class PcalTLAGen
 //                    {
                         //For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
-                            is.append("[ self \\in ProcSet: \\E subprocess \\in SubProcSet[self] |-> ");
+                            is.append("[ self \\in ProcSet, subprocess \\in SubProcSet[self] |-> ");
                         } else{
                      	   is.append("[ self \\in ProcSet |-> ");
                         }//                    }
