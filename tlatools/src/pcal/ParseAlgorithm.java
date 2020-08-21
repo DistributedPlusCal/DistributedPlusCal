@@ -4893,6 +4893,7 @@ public class ParseAlgorithm
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
 		AST.Channel pv;
+		//TODO is this default definition given here overridden at some point?
 		if (channelType.equals("Unordered")) {
 			pv = new AST.UnorderedChannel();
 			pv.val = PcalParams.DefaultChannelInit();
@@ -4949,8 +4950,8 @@ public class ParseAlgorithm
 		return pv;
 	}
 
-	public static AST.ChannelSenderCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelSenderCall result = new AST.ChannelSenderCall();
+	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
+		AST.ChannelSendCall result = new AST.ChannelSendCall();
 		result.name = GetAlgToken() ;
 
 		MustGobbleThis("(");
@@ -4986,8 +4987,8 @@ public class ParseAlgorithm
 		return result;
 	}
 
-	public static AST.ChannelReceiverCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelReceiverCall result = new AST.ChannelReceiverCall();
+	public static AST.ChannelReceiveCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
+		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
 		result.name = GetAlgToken() ;
 		MustGobbleThis("(");
 
@@ -5073,7 +5074,7 @@ public class ParseAlgorithm
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSenderCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5082,7 +5083,7 @@ public class ParseAlgorithm
 				}
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiverCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5111,7 +5112,7 @@ public class ParseAlgorithm
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandSendCall(AST.ChannelSenderCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
+	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
 
 		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
 
@@ -5147,7 +5148,7 @@ public class ParseAlgorithm
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call, Vector nodeDecl, Vector globalDecl)
+	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
 
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);

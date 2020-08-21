@@ -115,8 +115,8 @@ public class AST
     public static AST.MacroCall    MacroCallObj    ;
 
     //For Distributed PlusCal	
-    public static AST.ChannelSenderCall ChannelSenderObj;
-    public static AST.ChannelReceiverCall ChannelReceiverObj;
+    public static AST.ChannelSendCall ChannelSenderObj;
+    public static AST.ChannelReceiveCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearCall;
     
     public static final String SELF = "slf";
@@ -239,8 +239,8 @@ public class AST
         //For Distributed PlusCal	
         MultiNodesObj   = new AST.MultiNodes();
         NodeObj         = new AST.Node();
-        ChannelSenderObj =  new AST.ChannelSenderCall();
-        ChannelReceiverObj =  new AST.ChannelReceiverCall();
+        ChannelSenderObj =  new AST.ChannelSendCall();
+        ChannelReceiverObj =  new AST.ChannelReceiveCall();
         ChannelClearCall = new AST.ChannelClearCall();
       }
 
@@ -2158,7 +2158,7 @@ public class AST
 		}
    }
 
-   public static class ChannelSenderCall extends AST{
+   public static class ChannelSendCall extends AST{
    	TLAExpr msg = null;
    	public String channelName = null ;
    	public TLAExpr callExp = new TLAExpr(new Vector());
@@ -2166,7 +2166,7 @@ public class AST
    	public Boolean isBroadcast = false;
    	
    	public Boolean isMulticast = false;
-   	public ChannelSenderCall() {};
+   	public ChannelSendCall() {};
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
@@ -2210,14 +2210,14 @@ public class AST
 
    }
   
-   public static class ChannelReceiverCall extends AST{
+   public static class ChannelReceiveCall extends AST{
 	   public String channelName = "";
 	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public Vector args;
 	   public String name = "";
 	   String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
-	   public ChannelReceiverCall() {};
+	   public ChannelReceiveCall() {};
 	   public String toString()
 	   { return 
 			   Indent(lineCol()) + 
