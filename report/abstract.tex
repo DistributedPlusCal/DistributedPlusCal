@@ -1,0 +1,202 @@
+\documentclass[journal]{IEEEtran}
+
+
+\usepackage{capt-of}
+\usepackage{placeins}
+%\usepackage[toc,page]{appendix}
+\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{tikz}
+
+\usepackage{color}
+\usepackage[T1]{fontenc}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{orange}{rgb}{1.0,0.49,0.0}
+
+\usepackage{enumitem}
+\usepackage{pifont}
+
+\lstset{frame=single,
+  language={Java},
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  basicstyle={\small\ttfamily},
+  numbers=left,
+  stepnumber=1,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{orange},
+  commentstyle=\color{dkgreen},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=1,
+  morecomment=[l]{\\*},
+  morekeywords={}
+}
+%\usepackage[retainorgcmds]{IEEEtrantools}
+%\usepackage{bibentry}  
+\usepackage{xcolor,soul,framed} %,caption
+
+\colorlet{shadecolor}{yellow}
+% \usepackage{color,soul}
+%\usepackage[pdftex]{graphicx}
+%\graphicspath{{../pdf/}{../jpeg/}}
+
+%\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+
+\usepackage[cmex10]{amsmath}
+%Mathabx do not work on ScribTex => Removed
+%\usepackage{mathabx}
+\usepackage{array}
+\usepackage{mdwmath}
+\usepackage{mdwtab}
+\usepackage{eqparbox}
+\usepackage{url}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
+
+\newcommand{\tlaplus}{TLA\textsuperscript{+}\xspace}
+\newcommand{\EXCEPT}{\textsc{except}}
+\newcommand{\IF}{\textsc{if}}
+\newcommand{\THEN}{\textsc{then}}
+\newcommand{\ELSE}{\textsc{else}}
+\newcommand{\seq}[1]{\langle #1 \rangle}
+
+\newcommand{\keyword}[1]{\textbf{#1}}
+\newcommand{\entity}[1]{\ensuremath{\langle}#1\ensuremath{\rangle}}
+
+
+%\bstctlcite{IEEE:BSTcontrol}
+
+
+%=== TITLE & AUTHORS ====================================================================
+\begin{document}
+\bstctlcite{IEEEexample:BSTcontrol}
+    \title{Formal Verification of Distributed Algorithms using Distributed PlusCal}
+  \author{Stephan Merz, Horatui Cirstea, Heba Al-kayed \\~\IEEEmembership{Inria, Loria}
+% <-this % stops a space
+}  
+
+% ====================================================================
+\maketitle
+
+\IEEEpeerreviewmaketitle
+
+\section{Motivations}
+
+\IEEEPARstart{D}{istributed} systems are based on continuous interactions among components, these interactions produce bugs that are difficult to find by testing as they tend to be non-reproducible or not covered by test-cases.
+
+Formal verification methods like model checking \cite{ModelCheckingTLA} depend on the users ability to specify the concerned system, \tlaplus \cite{tlaplus} is a formal language used to describe algorithms, it provides a flexibility and an expressiveness that enables it to specify and verify complicated algorithms concisely.
+
+\tlaplus relies on mathematical logic and formulas for structuring specifications whereas The PlusCal language \cite{pcalAlgo} provides a simple pseudo-code like interface for the user to express concurrent systems. It maintains the expressiveness of \tlaplus while providing the user with a more familiar syntax.
+Although PlusCal is very useful, when it comes to distributed algorithms it may enforce some limitation that make it difficult to express them in a natural way. As an example, distributed algorithms usually need to model several sub-processes coexisting and communicating as a part of a distributed node, PlusCal processes must all be declared at top level and cannot be easily used to create what the algorithm is aiming for. 
+
+\section{Distributed PlusCal}
+
+\IEEEPARstart{D}{istributed PlusCal} is a language that extends PlusCal and is used to describe distributed algorithms.
+
+\subsection{Structure of an algorithm}
+
+The general structure and organization of a Distributed PlusCal algorithm is shown in Figure \ref{dpluscal-struct}.
+
+\begin{figure}
+\begin{lstlisting}[frame = tlrb, numbers = none, escapeinside={<@}{@>}]
+
+(* <@\textcolor{brown}{algorithm}@> <algorithm name>
+
+(* Declaration section *)
+<@\textcolor{brown}{variables}@> <variable declarations>
+<@\textcolor{blue}{channels}@> <channel declarations>
+<@\textcolor{blue}{fifos}@> <fifo declarations>
+
+(* Definition section *)
+<@\textcolor{brown}{define}@> <definition name> == <definition description>
+
+(* Macro section *)
+<@\textcolor{brown}{macro}@> <name>(var1, ...)
+ <macro-body of statements>
+
+(* Procedure section *)
+<@\textcolor{brown}{procedure}@> <name>(arg1, ...)
+ variables <local variable declarations>
+ <procedure body of statements>
+
+(* Processes section *)
+<@\textcolor{brown}{process}@> (<name> [=|\in] <Expr>))
+  <@\textcolor{brown}{variables}@> <variable declarations>
+ <@\textcolor{blue}{<sub-processes>}@>
+*)
+\end{lstlisting}
+
+\caption{General structure of a Distributed PlusCal algorithm}
+\label{dpluscal-struct}
+\end{figure}
+
+The \verb|PlusCal options section| holds options to be passed to the translator, we notify the translator to parse a Distributed PlusCal algorithm by passing the $-distpcal$ option.
+
+\subsection{Communication Channels}
+The \verb|declarations section| in Figure \ref{dpluscal-struct} allows the user to declare primitive constructs such as non-ordered channels and FIFO channels in addition to PlusCal variables.
+
+The general structure for an unordered channel declaration is shown below. An unordered channel is declared with the keyword \keyword{channel} or \keyword{channels}.
+\[
+ \keyword{channel}\ \entity{id}[\entity{dimension1,...,dimensionN}];
+\]
+
+The corresponding \tlaplus translation of the unordered channel declared with N dimensions is shown below.
+\[
+ \entity{id} = [\entity{d1 \in dimension1,... dN \in dimensionN |-> \{ \}}];
+\]
+
+A FIFO channel is declared with the keyword \keyword{fifo} or \keyword{fifos}.  
+\[
+ \keyword{fifo}\ \entity{id}[\entity{dimension1,...,dimensionN}];
+\]
+
+The \tlaplus translation a FIFO channel is as follows
+\[
+ \entity{id} = [\entity{d1 \in dimension1,... dN \in dimensionN |-> \seq{}}];
+\]
+
+The $dimensions$ are \tlaplus sets that are defined in the \tlaplus file, they represent the keys of the channel. Defining a multidimensional channel corresponds to defining a set of channels.
+
+The supported channel operators include \verb|send|, \verb|receive|, \verb|broadcast|, \verb|multicast|, \verb|clear|.
+
+\subsection{Sub-Processes}
+In the \verb|Process Section| in Figure \ref{dpluscal-struct} each process can hold multiple sub-processes each with its own body of statements. This enables the process to execute multiple tasks in parallel.
+
+The listing below shows a small part of an example we developed for modeling the two phase commit protocol using Distributed PlusCal along with the \tlaplus translation produced by our translator.
+
+ \begin{lstlisting}[frame = tlrb, numbers=none, escapeinside={<@}{@>}]  
+    a3:<@\textcolor{brown}{await}@> (aState # <@\textcolor{blue}{"unknown"}@>);
+       receive(agt[self], aState); 
+\end{lstlisting}
+
+\begin{lstlisting}[frame = tlrb, firstnumber=1, escapeinside={<@}{@>}]  
+a3(self) == 
+  /\ pc[self] [2] = <@\textcolor{blue}{"a3"}@>
+  /\ (aState[self] # <@\textcolor{blue}{"unknown"}@>)
+  /\ \E ag \in agt[self]:
+        /\ aState' = [aState <@\textcolor{violet}{EXCEPT}@> ![self] = ag]
+        /\ agt' = [agt <@\textcolor{violet}{EXCEPT}@> ![self] = agt[self] \ {ag}]
+        /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self] = [@  <@\textcolor{violet}{EXCEPT}@> ![2] =  <@\textcolor{blue}{"a4"}@>]]
+        /\ <@\textcolor{violet}{UNCHANGED}@> << coord, cState, commits, msg >>
+\end{lstlisting}
+
+The value of the \verb|pc| variable in PlusCal is a single string equal to the label of the next statement to be executed with respect to a process. In Distributed PlusCal we extended the definition to indicate which sub-process is involved as well. In the listing above at line 2 is the \verb|pc| variable references the 2nd sub-process.
+
+\section{Evalation}
+In distributed algorithms several processes or threads may coexist and asynchronously communicate while being a part of a distributed node. Distributed PlusCal firstly introduced sub-processes to allow the declaration of these threads, and secondly we provided the user with communication channel constructs to assist in the communication between those processes.
+\\\\
+Extending the PlusCal translator allowed our translator to be backward compatible. The Distributed PlusCal translator can translate PlusCal models as well as Distributed PlusCal models.
+
+\bibliographystyle{alpha}
+\bibliography{report}
+\end{document}
