@@ -780,15 +780,15 @@ public class MP
             break;
 
         case EC.TLC_MODULE_BAG_UNION1:
-            b.append("Attemtped to apply BagUnion to the following set, whose\nelement is not a bag:\n%1%");
+            b.append("Attempted to apply BagUnion to the following set, whose\nelement is not a bag:\n%1%");
             break;
 
         case EC.TLC_MODULE_TRANSITIVE_CLOSURE:
-            b.append("Attemtped to apply TransitiveClosure to a set containing\nthe following value:\n%1%");
+            b.append("Attempted to apply TransitiveClosure to a set containing\nthe following value:\n%1%");
             break;
 
         case EC.TLC_MODULE_COMPUTING_CARDINALITY:
-            b.append("Attemtped to compute cardinality of the value\n%1%");
+            b.append("Attempted to compute cardinality of the value\n%1%");
             break;
         case EC.TLC_MODULE_EVALUATING:
             b.append("Evaluating an expression of the form %1% when s is not a %2%:\n%3%");
@@ -1247,7 +1247,7 @@ public class MP
             break;
         case EC.TLC_ENVIRONMENT_JVM_GC:
 			b.append(
-					"Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the \"-XX:+UseParallelGC\" property.");
+					"Please run the Java VM, which executes TLC with a throughput optimized garbage collector, by passing the \"-XX:+UseParallelGC\" property.");
             break;
 
         /* ************************************************************************ */
@@ -1611,15 +1611,12 @@ public class MP
      */
     public static void printState(int code, String[] parameters, TLCState state, int num)
     {
-		recorder.record(code, new TLCStateInfo(state, ""), num);
-        DebugPrinter.print("entering printState(String[])"); //$NON-NLS-1$
-        ToolIO.out.println(getMessage(STATE, code, parameters));
-        DebugPrinter.print("leaving printState(String[])"); //$NON-NLS-1$
+        printState(code, parameters, new TLCStateInfo(state, ""), num);
     }
     
     public static void printState(int code, String[] parameters, TLCStateInfo stateInfo, int num)
     {
-		recorder.record(code, (TLCStateInfo) stateInfo, num);
+		recorder.record(code, stateInfo, num);
         DebugPrinter.print("entering printState(String[])"); //$NON-NLS-1$
         ToolIO.out.println(getMessage(STATE, code, parameters));
         DebugPrinter.print("leaving printState(String[])"); //$NON-NLS-1$

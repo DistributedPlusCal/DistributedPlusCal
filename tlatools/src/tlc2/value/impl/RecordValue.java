@@ -10,11 +10,14 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 
 import tla2sany.semantic.OpDeclNode;
+import tla2sany.semantic.SymbolNode;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.tool.FingerprintException;
+import tlc2.tool.StateVec;
 import tlc2.tool.TLCState;
 import tlc2.tool.coverage.CostModel;
 import tlc2.util.FP64;
@@ -232,8 +235,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final Value apply(Value arg, int control) {
     try {
       if (!(arg instanceof StringValue)) {
-        Assert.fail("Attempted to apply record to a non-string value " +
-        Values.ppr(arg.toString()) + ".");
+        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()));
       }
       UniqueString name = ((StringValue)arg).getVal();
       int rlen = this.names.length;
@@ -242,8 +244,8 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
           return this.values[i];
         }
       }
-      Assert.fail("Attempted to apply the record\n" + Values.ppr(this.toString()) +
-      "\nto nonexistent record field " + name + ".");
+      Assert.fail("Attempted to access nonexistent field '" + name +
+          "' of record\n" + Values.ppr(this.toString()));
       return null;    // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -271,8 +273,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final Value select(Value arg) {
     try {
       if (!(arg instanceof StringValue)) {
-        Assert.fail("Attempted to apply record to a non-string argument " +
-        Values.ppr(arg.toString()) + ".");
+        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()));
       }
       UniqueString name = ((StringValue)arg).getVal();
       int rlen = this.names.length;
@@ -591,17 +592,130 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
 	}
 
 	public TLCState toState() {
-		final TLCState state = TLCState.Empty.createEmpty();
-		final OpDeclNode[] vars = state.getVars();
-		for (int i = 0; i < vars.length; i++) {
-			final UniqueString name = vars[i].getName();
-			int rlen = this.names.length;
-			for (int j = 0; j < rlen; j++) {
-				if (name.equals(this.names[j])) {
-					state.bind(name, this.values[j]);
+			final TLCState state = TLCState.Empty.createEmpty();
+			final OpDeclNode[] vars = state.getVars();
+			for (int i = 0; i < vars.length; i++) {
+				final UniqueString name = vars[i].getName();
+				int rlen = this.names.length;
+				for (int j = 0; j < rlen; j++) {
+					if (name.equals(this.names[j])) {
+						state.bind(name, this.values[j]);
+					}
 				}
 			}
+			return new PrintTLCState(this, state);
 		}
-		return state;
-	}
+
+		private static final class PrintTLCState extends TLCState {
+
+			private final RecordValue rcd;
+			private final TLCState state;
+
+			public PrintTLCState(RecordValue recordValue, final TLCState state) {
+				this.rcd = recordValue;
+				this.state = state;
+			}
+
+			@Override
+			public String toString() {
+				final StringBuffer result = new StringBuffer();
+				int vlen = rcd.names.length;
+				if (vlen == 1) {
+					result.append(rcd.names[0].toString());
+					result.append(" = ");
+					result.append(Values.ppr(rcd.values[0]));
+					result.append("\n");
+				} else {
+					for (int i = 0; i < vlen; i++) {
+						UniqueString key = rcd.names[i];
+						result.append("/\\ ");
+						result.append(key.toString());
+						result.append(" = ");
+						result.append(Values.ppr(rcd.values[i]));
+						result.append("\n");
+					}
+				}
+				return result.toString();
+			}
+
+			@Override
+			public int hashCode() {
+				return this.state.hashCode();
+			}
+
+			@Override
+			public boolean equals(Object obj) {
+				return this.state.equals(obj);
+			}
+
+			@Override
+			public long fingerPrint() {
+				return this.state.fingerPrint();
+			}
+
+			@Override
+			public boolean allAssigned() {
+				return this.state.allAssigned();
+			}
+
+			@Override
+			public String toString(TLCState lastState) {
+				return this.state.toString(lastState);
+			}
+
+			@Override
+			public TLCState bind(UniqueString name, IValue value) {
+				return this.state.bind(name, value);
+			}
+
+			@Override
+			public TLCState bind(SymbolNode id, IValue value) {
+				return this.state.bind(id, value);
+			}
+
+			@Override
+			public TLCState unbind(UniqueString name) {
+				return this.state.unbind(name);
+			}
+
+			@Override
+			public IValue lookup(UniqueString var) {
+				return this.state.lookup(var);
+			}
+
+			@Override
+			public boolean containsKey(UniqueString var) {
+				return this.state.containsKey(var);
+			}
+
+			@Override
+			public TLCState copy() {
+				return this.state.copy();
+			}
+
+			@Override
+			public TLCState deepCopy() {
+				return this.state.deepCopy();
+			}
+
+			@Override
+			public StateVec addToVec(StateVec states) {
+				return this.state.addToVec(states);
+			}
+
+			@Override
+			public void deepNormalize() {
+				this.state.deepNormalize();
+			}
+
+			@Override
+			public Set<OpDeclNode> getUnassigned() {
+				return this.state.getUnassigned();
+			}
+
+			@Override
+			public TLCState createEmpty() {
+				return this.state.createEmpty();
+			}
+		}
 }

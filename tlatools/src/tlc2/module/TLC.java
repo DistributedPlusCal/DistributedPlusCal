@@ -44,6 +44,7 @@ public class TLC implements ValueConstants
 	private static final UniqueString DURATION = UniqueString.uniqueStringOf("duration");
 	private static final UniqueString QUEUE = UniqueString.uniqueStringOf("queue");
 	private static final UniqueString DISTINCT = UniqueString.uniqueStringOf("distinct");
+	private static final UniqueString GENERATED = UniqueString.uniqueStringOf("generated");
 	private static final UniqueString DIAMETER = UniqueString.uniqueStringOf("diameter");
 	private static final UniqueString EXIT = UniqueString.uniqueStringOf("exit");
 	private static final UniqueString PAUSE = UniqueString.uniqueStringOf("pause");
@@ -157,7 +158,7 @@ public class TLC implements ValueConstants
                 } else if (TLCGlobals.mainChecker != null)
                 {
                     res = (Value) tlc2.TLCGlobals.mainChecker.getValue(0, idx);
-                } else 
+                } else if (tlc2.TLCGlobals.simulator != null)
                 {	
                     res = (Value) tlc2.TLCGlobals.simulator.getLocalValue(idx);
                 }
@@ -186,6 +187,15 @@ public class TLC implements ValueConstants
 				// TLCGlobals.mainChecker is null while the spec is parsed. A constant
 				// expression referencing one of the named values here would thus result in an
 				// NPE.
+				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
+			}
+		} else if (GENERATED == sv.val) {
+			try {
+				return IntValue.gen(Math.toIntExact(TLCGlobals.mainChecker.getStatesGenerated()));
+			} catch (ArithmeticException e) {
+				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
+						Long.toString(TLCGlobals.mainChecker.getStatesGenerated()));
+			} catch (NullPointerException npe) {
 				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
 			}
 		} else if (DISTINCT == sv.val) {
@@ -252,7 +262,7 @@ public class TLC implements ValueConstants
                     TLCGlobals.mainChecker.setAllValues(idx, val);
                 } else 
                 {	
-                    tlc2.TLCGlobals.simulator.setLocalValue(idx, val);
+                    tlc2.TLCGlobals.simulator.setAllValues(idx, val);
                 }
                 return BoolValue.ValTrue;
             }
@@ -260,7 +270,12 @@ public class TLC implements ValueConstants
         	final StringValue sv = (StringValue) vidx;
         	if (EXIT == sv.val) {
         		if (val == BoolValue.ValTrue) {
-        			TLCGlobals.mainChecker.stop();
+        			if (TLCGlobals.mainChecker != null) {
+        				TLCGlobals.mainChecker.stop();
+        			}
+        			if (TLCGlobals.simulator != null) {
+        				TLCGlobals.simulator.stop();
+        			}
         		}
         		return BoolValue.ValTrue;
         	} else if (PAUSE == sv.val) {

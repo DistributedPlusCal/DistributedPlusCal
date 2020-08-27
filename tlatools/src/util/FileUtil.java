@@ -485,9 +485,44 @@ public class FileUtil
         return new DataOutputStream(new FileOutputStream(new File(filename)));
     }
 
-
-
-
-
-
+	public static File createTempFile(final String fileName) {
+		final File file;
+		// Create the temp file in Java's temp dir unless TLC's metaDir has been set. The
+		// latter won't be the case when SANY is invoked directly or during the early
+		// startup phase of TLC.
+		if (TLCGlobals.metaDir != null) {
+			file = new File(TLCGlobals.metaDir + separatorChar + fileName);
+		} else {
+			final String tDir = System.getProperty("java.io.tmpdir");
+			file = new File(tDir + separatorChar + fileName);
+		}
+		// Let's get rid of the file when TLC terminates.
+		file.deleteOnExit();
+		return file;
+	}
+	
+	
+	/**
+	 * This is themed on commons-io-2.6's IOUtils.copyLarge(InputStream, OutputStream, byte[]) -
+	 * 	once we move to Java9+, dump this usage in favor of InputStream.transferTo(OutputStream)
+	 * 
+	 * @return the count of bytes copied
+	 */
+	public static long copyStream(final InputStream is, final OutputStream os) throws IOException {
+		final byte[] buffer = new byte[1024 * 4];
+		long byteCount = 0;
+		int n;
+		final BufferedInputStream bis = (is instanceof BufferedInputStream) ? (BufferedInputStream)is
+																			: new BufferedInputStream(is);
+		final BufferedOutputStream bos = (os instanceof BufferedOutputStream) ? (BufferedOutputStream)os
+																			  : new BufferedOutputStream(os);
+		while ((n = bis.read(buffer)) != -1) {
+			bos.write(buffer, 0, n);
+			byteCount += n;
+		}
+		
+		bos.flush();
+		
+		return byteCount;
+	}
 }

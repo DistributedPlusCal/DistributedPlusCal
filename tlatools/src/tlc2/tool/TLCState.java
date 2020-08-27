@@ -96,8 +96,19 @@ public abstract class TLCState implements Cloneable, Serializable {
   public final OpDeclNode[] getVars() {
 	  return vars;
   }
+  
+  public final String[] getVarsAsStrings() {
+	  String[] res = new String[vars.length];
+	  for (int i = 0; i < vars.length; i++) {
+		res[i] = vars[i].getName().toString();
+	  }
+	  return res;
+  }
 
   public final void setPredecessor(final TLCState predecessor) {
+	  // This method only keeps the level instead of the predecessor, because a) we
+	  // don't need the predecessor and b) keeping predecessors would mean that we
+	  // eventually have all states of the state graph in memory.
 	  if (predecessor.getLevel() == Integer.MAX_VALUE) {
 		  Assert.fail(EC.TLC_TRACE_TOO_LONG, this.toString());
 	  }
@@ -124,4 +135,14 @@ public abstract class TLCState implements Cloneable, Serializable {
   public void setCallable(Callable<?> cl) {
 	  // no-op - see TLAPlusExecutorState
   }
+
+	public int getActionId() {
+		  // no-op - see TLCStateMutSimulation
+		return 0;
+	}
+
+	public void setActionId(int actionId) {
+		  // no-op - see TLCStateMutSimulation
+	}
+
 }

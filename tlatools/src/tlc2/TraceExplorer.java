@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,11 +24,7 @@ import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.output.Messages;
 import tlc2.output.SpecTraceExpressionWriter;
-import tlc2.output.TLACopier;
-import tlc2.util.Vect;
-import tlc2.value.impl.SetEnumValue;
-import tlc2.value.impl.Value;
-import tlc2.value.impl.ValueEnumeration;
+import tlc2.tool.TLCState;
 import util.TLAConstants;
 import util.ToolIO;
 import util.UsageGenerator;
@@ -76,83 +73,90 @@ public class TraceExplorer {
     
     
     /**
-	 * @param sourceDirectory
-	 * @param originalSpecName
-	 * @param results
-	 * @param error
 	 * @return an array of length two; the 0-index is the location to the
 	 *         destination TLA file, and the 1-index is that of the CFG file
 	 * @throws IOException
 	 */
-    public static File[] writeSpecTEFiles(final File sourceDirectory, final String originalSpecName,
-    									  final MCParserResults results, final MCError error) throws IOException {
-    	final StringBuilder tlaBuffer = new StringBuilder();
-    	final StringBuilder cfgBuffer = new StringBuilder();
-    	
-    	final Vect<?> configDeclaredConstants = results.getModelConfig().getConstants();
-    	final HashSet<String> constantModelValuesToDeclare = new HashSet<>();
-    	final int constantsCount = configDeclaredConstants.size();
-    	for (int i = 0; i < constantsCount; i++) {
-    		final Vect<?> constantDeclaration = (Vect<?>)configDeclaredConstants.elementAt(i);
-    		final Object value = constantDeclaration.elementAt(1);
-    		if (value instanceof SetEnumValue) {
-    			final SetEnumValue sev = (SetEnumValue)value;
-    			final ValueEnumeration ve = sev.elements();
-    			Value v = ve.nextElement();
-    			while (v != null) {
-    				constantModelValuesToDeclare.add(v.toString());
-    				v = ve.nextElement();
-    			}
-    		}
-    	}
-    	if (constantModelValuesToDeclare.size() > 0) {
-	    	cfgBuffer.append(TLAConstants.KeyWords.CONSTANTS).append(TLAConstants.CR);
-	    	for (final String modelValue : constantModelValuesToDeclare) {
-	    		cfgBuffer.append(TLAConstants.INDENT).append(modelValue).append(TLAConstants.EQ);
-	    		cfgBuffer.append(modelValue).append(TLAConstants.CR);
-	    	}
-	    	cfgBuffer.append(TLAConstants.CR);
-	    	
-	    	tlaBuffer.append(TLAConstants.CR).append(TLAConstants.KeyWords.CONSTANTS).append(' ');
-	    	boolean firstDone = false;
-	    	for (final String modelValue : constantModelValuesToDeclare) {
-	    		if (firstDone) {
-	    			tlaBuffer.append(", ");
-	    		} else {
-	    			firstDone = true;
-	    		}
-	    		
-	    		tlaBuffer.append(modelValue);
-	    	}
-	    	tlaBuffer.append(TLAConstants.CR).append(TLAConstants.CR);
-    	}
-    	
-    	final List<MCState> trace = error.getStates();
-    	final StringBuilder[] tlaBuffers
-    		= SpecTraceExpressionWriter.addInitNextToBuffers(cfgBuffer, trace, null, SPEC_TE_INIT_ID, SPEC_TE_NEXT_ID,
-    														 SPEC_TE_ACTION_CONSTRAINT_ID,
-    														 results.getOriginalNextOrSpecificationName(), true);
-    	tlaBuffer.append(tlaBuffers[0].toString());
-    	SpecTraceExpressionWriter.addTraceFunctionToBuffers(tlaBuffer, cfgBuffer, trace);
-    	tlaBuffer.append(tlaBuffers[1].toString());
-    	
-    	final List<String> extendedModules = results.getOriginalExtendedModules();
-    	final boolean specExtendsTLC = extendedModules.contains(TLAConstants.BuiltInModules.TLC);
-    	final boolean specExtendsToolbox = extendedModules.contains(TLAConstants.BuiltInModules.TRACE_EXPRESSIONS);
-		final TLACopier tlaCopier = new TLACopier(originalSpecName, TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME,
-												  sourceDirectory, tlaBuffer.toString(), specExtendsTLC,
-												  specExtendsToolbox);
-		tlaCopier.copy();
-		MP.printMessage(EC.GENERAL,
-						"The file " + tlaCopier.getDestinationFile().getAbsolutePath() + " has been created.");
+	public static File[] writeSpecTEFiles(final File sourceDirectory, final String osn, final String[] vars,
+			final MCParserResults results, final MCError error) throws IOException {
+		final SpecTraceExpressionWriter writer = new SpecTraceExpressionWriter();
+
+		/**
+		 * Write content of config file (SpecTE).
+		 * <p>
+		 * Contrary to the Toolbox's TraceExplorerDelegate, which reads constants,
+		 * overrides, ... from the TLC model, this implementation copies all CONSTANT
+		 * and CONSTANTS verbatim from the existing config file with which TLC ran. The
+		 * definition that appear in the .tla file (e.g. MC.tla) don't have to be copied
+		 * because SpecTE extends MC.
+		 * (see TraceExplorerDelegate#writeModelInfo)
+		 */
+		final List<String> rawConstants = results.getModelConfig().getRawConstants();
+		writer.addConstants(rawConstants);
+
+		/**
+		 * Write SpecTE.
+		 */
+		final Set<String> extendedModules = new HashSet<>();
+		extendedModules.add(TLAConstants.BuiltInModules.TLC);
+		extendedModules.add(TLAConstants.BuiltInModules.TRACE_EXPRESSIONS);
+
+		writer.addPrimer(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME, osn, extendedModules);
+
+		final List<MCState> trace = error.getStates();
 		
-		final CFGCopier cfgCopier = new CFGCopier(originalSpecName, TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME,
-												  sourceDirectory, cfgBuffer.toString());
-		cfgCopier.copy();
-		MP.printMessage(EC.GENERAL,
-						"The file " + cfgCopier.getDestinationFile().getAbsolutePath() + " has been created.");
+		final String traceFunctionId = writer.addTraceFunctionInstance();
 		
-		return new File[] { tlaCopier.getDestinationFile(), cfgCopier.getDestinationFile() };
+		writer.addProperties(trace);
+
+		// Write Init and Next with vars instead of extracting the vars from trace to
+		// always write a syntactically correct behavior spec even if trace = <<>>.
+		writer.addInitNextTraceFunction(trace, vars, SPEC_TE_INIT_ID, SPEC_TE_NEXT_ID);
+				
+		writer.addFooter();
+		
+		/**
+		 * Write commented definition of trace def override into new module.
+		 * A user simply has to provide the serialized trace and uncomment the module.
+		 */
+		writer.append(TLAConstants.CR);
+		writer.append("Parsing and semantic processing can take forever for a long trace below.")
+				.append(TLAConstants.CR);
+		writer.append("In this case, it is advised to deserialize the trace from a binary file.")
+				.append(TLAConstants.CR);
+		writer.append("To create the file, replace your spec's invariant F with:").append(TLAConstants.CR);
+		writer.append("  Inv == IF F THEN TRUE ELSE ~IOSerialize(Trace, \"file.bin\", TRUE)").append(TLAConstants.CR);
+		writer.append("(IOUtils and TLCExt modules from https://modules.tlapl.us/)");
+		
+		final Set<String> extendedModulesWithIOUtils = new HashSet<>(extendedModules);
+		extendedModulesWithIOUtils.add("IOUtils");
+		
+		final SpecTraceExpressionWriter w = new SpecTraceExpressionWriter();
+		w.append(TLAConstants.CR);
+		w.addPrimer(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + "TraceDef", osn,
+				extendedModulesWithIOUtils);
+		w.append(traceFunctionId).append(TLAConstants.DEFINES).append("IODeserialize(\"file.bin\", TRUE)\n\n");
+		w.addFooter();
+		// Users can uncomment the module if they wish to read the serialized trace.
+		writer.append(TLAConstants.CR + w.getComment() + TLAConstants.CR + TLAConstants.CR);
+		
+		/**
+		 * Write definition of trace def into new module.
+		 */
+		writer.addPrimer(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + "TraceDef", osn, extendedModules);
+
+		writer.addTraceFunction(trace, traceFunctionId);
+		
+        /**
+         * Write actual files.
+         */
+		final File specTETLA = new File(sourceDirectory,
+				TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + TLAConstants.Files.TLA_EXTENSION);
+		final File specTECFG = new File(sourceDirectory,
+				TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + TLAConstants.Files.CONFIG_EXTENSION);
+		writer.writeFiles(specTETLA, specTECFG);
+
+		return new File[] { specTETLA, specTECFG };
     }
     
     
@@ -396,12 +400,12 @@ public class TraceExplorer {
     private int executeNonStreaming() throws Exception {
     	if (!performPreFlightFileChecks()) {
 			throw new IllegalStateException("There was an issue with the input, "
-												+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + ", or "
+												+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + ", or "
 												+ TLAConstants.TraceExplore.EXPLORATION_MODULE_NAME + " file.");
     	}
     	
 		final boolean specifiedModuleIsSpecTE
-					= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME);
+					= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME);
 		final boolean needGenerateSpecTE = RunMode.GENERATE_SPEC_TE.equals(runMode) 
 											|| (!specifiedModuleIsSpecTE && RunMode.TRACE_EXPLORATION.equals(runMode));
     	if (needGenerateSpecTE) {
@@ -417,10 +421,10 @@ public class TraceExplorer {
     			final String msg;
     			if (RunMode.GENERATE_SPEC_TE.equals(runMode)) {
     				msg = "The output file contained no error-state messages, no "
-    							+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + " will be produced.";
+    							+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + " will be produced.";
     			} else {
     				msg = "The output file contained no error-state messages, no "
-								+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + " nor "
+								+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + " nor "
 								+ TLAConstants.TraceExplore.EXPLORATION_MODULE_NAME + " will be produced, and, so, "
 								+ "no trace expressions will be evaluated.";
     			}
@@ -462,14 +466,14 @@ public class TraceExplorer {
 				specGenerationOriginalSpecName = consumer.getSpecName();
 				
 				final boolean specifiedModuleIsSpecTE
-							= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME);
+							= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME);
 				final boolean needGenerateSpecTE
 							= RunMode.GENERATE_SPEC_TE.equals(runMode)
 											|| (!specifiedModuleIsSpecTE && RunMode.TRACE_EXPLORATION.equals(runMode));
 
 				if (!performPreFlightFileChecks()) {
 					throw new IllegalStateException("There was an issue with the input, "
-														+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + ", or "
+														+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + ", or "
 														+ TLAConstants.TraceExplore.EXPLORATION_MODULE_NAME + " file.");
 				}
 
@@ -498,7 +502,7 @@ public class TraceExplorer {
 		
 		MP.printMessage(EC.GENERAL, "TraceExplorer is expecting input on stdin...");
 
-		pipeConsumer.consumeOutput(false);
+		pipeConsumer.consumeOutput();
 		
 		if (pipeConsumer.outputHadNoToolMessages()) {
 			MP.printMessage(EC.GENERAL, "The output had no tool messages; was TLC not run with"
@@ -510,7 +514,7 @@ public class TraceExplorer {
 		MP.printMessage(EC.GENERAL, "Have received the final output logging message - finishing TraceExplorer work.");
 
 		final boolean specifiedModuleIsSpecTE
-				= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME);
+				= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME);
 		final boolean needGenerateSpecTE
 				= RunMode.GENERATE_SPEC_TE.equals(runMode)
 								|| (!specifiedModuleIsSpecTE && RunMode.TRACE_EXPLORATION.equals(runMode));
@@ -519,10 +523,10 @@ public class TraceExplorer {
     			final String msg;
     			if (RunMode.GENERATE_SPEC_TE.equals(runMode)) {
     				msg = "The output contained no error-state messages, no "
-    							+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + " will be produced.";
+    							+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + " will be produced.";
     			} else {
     				msg = "The output contained no error-state messages, no "
-								+ TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + " nor "
+								+ TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + " nor "
 								+ TLAConstants.TraceExplore.EXPLORATION_MODULE_NAME + " will be produced, and, so, "
 								+ "no trace expressions will be evaluated.";
     			}
@@ -588,7 +592,7 @@ public class TraceExplorer {
 		final String configContent = writer.getConfigBuffer().toString();
 		writer.writeFiles(tlaFile, null);
 
-		final CFGCopier cfgCopier = new CFGCopier(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME,
+		final CFGCopier cfgCopier = new CFGCopier(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME,
 				TLAConstants.TraceExplore.EXPLORATION_MODULE_NAME, specGenerationSourceDirectory, configContent);
 		cfgCopier.copy();
 
@@ -606,7 +610,7 @@ public class TraceExplorer {
 
     private boolean performPreFlightFileChecks() {
 		final boolean specifiedModuleIsSpecTE
-				= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME);
+				= specGenerationOriginalSpecName.equals(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME);
 		final boolean outputShouldExist = !expectedOutputFromStdIn 
 											|| (specifiedModuleIsSpecTE && RunMode.TRACE_EXPLORATION.equals(runMode));
 
@@ -648,7 +652,7 @@ public class TraceExplorer {
 			if (!overwriteGeneratedFiles) {
 				if (!specifiedModuleIsSpecTE) {
 					final File specTETLA = new File(specGenerationSourceDirectory,
-							(TLAConstants.TraceExplore.ERROR_STATES_MODULE_NAME + TLAConstants.Files.TLA_EXTENSION));
+							(TLAConstants.TraceExplore.TRACE_EXPRESSION_MODULE_NAME + TLAConstants.Files.TLA_EXTENSION));
 
 					if (specTETLA.exists()) {
 						printErrorMessage("specified source directory already contains " + specTETLA.getName()
@@ -677,9 +681,12 @@ public class TraceExplorer {
 		return true;
     }
     
-    private void writeSpecTEFiles(final MCParserResults results, final MCError error) throws IOException {
-    	writeSpecTEFiles(specGenerationSourceDirectory, specGenerationOriginalSpecName, results, error);
-    }
+	private void writeSpecTEFiles(final MCParserResults results, final MCError error) throws IOException {
+		writeSpecTEFiles(specGenerationSourceDirectory, specGenerationOriginalSpecName,
+				// Not sure TLCState.Empty is correctly initialized at this point, but I don't
+				// want to spend more time on it (screw you future Markus).
+				TLCState.Empty.getVarsAsStrings(), results, error);
+	}
     
     private void printErrorMessage(final String message) {
     	MP.printError(EC.GENERAL, message);

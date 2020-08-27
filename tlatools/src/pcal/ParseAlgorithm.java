@@ -341,11 +341,13 @@ public class ParseAlgorithm
     	   vdecls = GetVarDecls();
        }
        
-       //for Distributed pluscal, could be surrounded by an if statement
-       if (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) {
+       //For Distributed PlusCal, could be surrounded by an if statement
+       //to read channels and fifo channels
+       if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
     	   vdecls.addAll(GetChannelDecls());
        }
-	    
+
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
 			MustGobbleThis("define");
@@ -377,10 +379,10 @@ public class ParseAlgorithm
 			omitPC = false;
 		}
 
-		//For distributed pluscal
+		//For Distributed PlusCal
 		if(PcalParams.distpcalFlag) {
 			
-			//nodes can have either name, process or node
+			//nodes can have either name (process or node)
 			if (PeekAtAlgToken(1).equals("node") || PeekAtAlgToken(1).equals("process")
 					|| (PeekAtAlgToken(1).equals("fair") && (PeekAtAlgToken(2).equals("node")
 							|| (PeekAtAlgToken(2).equals("+") && PeekAtAlgToken(3).equals("node")))
@@ -445,17 +447,7 @@ public class ParseAlgorithm
 				while (i < multiNodes.nodes.size()) {
 					AST.Node node = (AST.Node) multiNodes.nodes.elementAt(i);
 
-					ExpandMacrosInStmtSeq(node.body, multiNodes.macros);
-
-					//heba refactor this to be expand channel calls
-					ExpandChannelCallersInStmtSeq(node.body, node.decls, vdecls);
-					
-					AddLabelsToStmtSeq(node.body);
-
-					node.body = MakeLabeledStmtSeq(node.body);
-
 					omitStutteringWhenDone = true;
-					checkBody(node.body);
 
 					omitStutteringWhenDoneValue = omitStutteringWhenDoneValue || omitStutteringWhenDone;
 					PcalDebug.reportInfo("omitStutteringWhenDoneValue: " + omitStutteringWhenDoneValue);
@@ -463,6 +455,7 @@ public class ParseAlgorithm
 					int j = 0;
 					while (j < node.threads.size()) {
 						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
+						
 						ExpandMacrosInStmtSeq(thread.body, multiNodes.macros);
 						ExpandChannelCallersInStmtSeq(thread.body, node.decls, vdecls);
 						AddLabelsToStmtSeq(thread.body);
@@ -483,7 +476,10 @@ public class ParseAlgorithm
 					AST.Procedure prcd = (AST.Procedure) multiNodes.prcds.elementAt(i);
 					currentProcedure = prcd.name;
 					ExpandMacrosInStmtSeq(prcd.body, multiNodes.macros);
-					//					ExpandSendAndReceiveInStmtSeq(prcd.body, prcd.decls, vdecls);
+					
+					//For Distributed PlusCal
+					//to expand the channel callers that are within a procedures body
+					ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
 
 					AddLabelsToStmtSeq(prcd.body);
 					prcd.body = MakeLabeledStmtSeq(prcd.body);
@@ -514,6 +510,95 @@ public class ParseAlgorithm
 				}
 				multiNodes.setOrigin(new Region(multiprocBegin, GetLastLocationEnd()));
 				return multiNodes;
+			} else {
+				 
+			AST.Uniprocess uniproc = new AST.Uniprocess() ;
+			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
+			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
+			uniproc.name   = name ;
+			uniproc.decls  = vdecls ;
+			uniproc.defs  = defs ;
+			uniproc.macros = macros ;
+			uniproc.prcds  = procedures ;
+			// Version 1.5 allowed "fair" to appear here
+			// to specify fairness for a sequential algorithm
+			if (PcalParams.inputVersionNumber == PcalParams.VersionToNumber("1.5")) {
+				if (PeekAtAlgToken(1).equals("fair")) {
+					GobbleThis("fair");
+					if (PeekAtAlgToken(1).equals("+")) {
+						GobbleThis("+");
+					} 
+					PcalParams.FairnessOption = "wf";
+				}
+			}
+
+			// Following if statement added by LL on 5 Oct 2011
+			// to fix bug in which --fair uniprocess algorithm
+			// wasn't producing fairness condition.
+			if (fairAlgorithm) {
+				if (!PcalParams.FairnessOption.equals("") 
+						&& !PcalParams.FairnessOption.equals("wf")
+						&& !PcalParams.FairnessOption.equals("wfNext")) {
+					PcalDebug.reportWarning("Option `" + PcalParams.FairnessOption + "' specified for --fair algorithm.");
+				}
+				PcalParams.FairnessOption = "wf";
+			} ;
+
+			GobbleBeginOrLeftBrace() ;
+			uniproc.body = GetStmtSeq() ;
+			CheckForDuplicateMacros(uniproc.macros) ;
+			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
+			// LL comment added 11 Mar 2006.
+			// I moved the following to after processing the procedures
+			// so added labels are printed in correct order-- e.g., with 
+			// -reportLabels option 
+			//           AddLabelsToStmtSeq(uniproc.body) ;
+			//           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+			int i = 0 ;
+			while (i < uniproc.prcds.size())
+			{  AST.Procedure prcd =
+			(AST.Procedure) uniproc.prcds.elementAt(i) ;
+			currentProcedure = prcd.name ;
+			ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
+			AddLabelsToStmtSeq(prcd.body);
+			prcd.body = MakeLabeledStmtSeq(prcd.body);
+			i = i + 1 ;
+			}
+			if (cSyntax) 
+			{ GobbleThis("}") ; 
+			GobbleThis("}") ; } 
+			else 
+			{ GobbleThis("end") ;
+			GobbleThis("algorithm") ;} ;
+			AddLabelsToStmtSeq(uniproc.body) ;
+			uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+			/****************************************************************
+			 * Check for added labels, report an error if there shouldn't    *
+			 * be any, and print them out if the -reportLabels was           *
+			 * specified.                                                    *
+			 ****************************************************************/
+			if (addedLabels.size() > 0)
+			{ if (hasLabel && ! PcalParams.LabelFlag) 
+			{ AddedMessagesError() ; } ;
+			if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
+			else
+				// SZ March 11, 2009: info reporting using PcalDebug added
+			{ PcalDebug.reportInfo("Labels added.") ; } ;
+			} ;
+
+			if (gotoUsed) {
+				omitPC = false;
+			}
+			if (gotoDoneUsed) {
+				omitPC = false;
+				omitStutteringWhenDone = false;
+			} else {
+				checkBody(uniproc.body);
+			}
+			uniproc.setOrigin(new Region(uniprocBegin, 
+					GetLastLocationEnd())) ;
+			return uniproc ;
+			
 			}
 		} else {
 			if ((PeekAtAlgToken(1).equals("fair") 
@@ -619,7 +704,10 @@ public class ParseAlgorithm
 						GetLastLocationEnd())) ;
 				return multiproc ;
 			} else
-			{ AST.Uniprocess uniproc = new AST.Uniprocess() ;
+			{ 
+			
+				System.out.println("in uni process");
+			AST.Uniprocess uniproc = new AST.Uniprocess() ;
 			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
 			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
 			uniproc.name   = name ;
@@ -707,7 +795,7 @@ public class ParseAlgorithm
 			return uniproc ;
 			}
 		}
-		return null;
+
        } catch (final RuntimeException e) {
 			// Catch generic/unhandled errors (ArrayIndexOutOfbounds/NullPointers/...) that
 			// the nested code might throw at us. Not converting them into a
@@ -715,7 +803,9 @@ public class ParseAlgorithm
 			// algorithm (see Github issue at https://github.com/tlaplus/tlaplus/issues/313)
     	   
     	   
-    	    //System.out.println("error position : " + e.getStackTrace()[0]);
+    	    System.out.println("error position : " + e.getStackTrace()[0]);
+    	    System.out.println("error class : " + e.getClass());
+
 	    	ParsingError("Unknown error at or before");
 	    	System.out.println(e.getMessage());
 
@@ -868,7 +958,7 @@ public class ParseAlgorithm
            lookForComma = true ;
          }
        MustGobbleThis(")") ;
-       if (   PeekAtAlgToken(1).equals("begin")
+       if (PeekAtAlgToken(1).equals("begin")
            || PeekAtAlgToken(1).equals("{"))
          { result.decls = new Vector(1) ; }
        else
@@ -905,7 +995,9 @@ public class ParseAlgorithm
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
        if (   PeekAtAlgToken(1).equals("begin")
-           || PeekAtAlgToken(1).equals("{"))
+           || PeekAtAlgToken(1).equals("{")
+           //For Distributed PlusCal, when using p-syntax
+           || PeekAtAlgToken(1).equals("subprocess"))
          { result.decls = new Vector(1) ; }
        else
          { result.decls = GetVarDecls() ; } ;
@@ -938,8 +1030,10 @@ public class ParseAlgorithm
        * The <PVarDecls> nonterminal is terminated by a "begin"            *
        * (p-syntax) or "{" (c-syntax) for the procedure.                   *
        ********************************************************************/
-       while (! (   PeekAtAlgToken(1).equals("begin")
-                 || PeekAtAlgToken(1).equals("{") ) )
+       while (! (PeekAtAlgToken(1).equals("begin")
+                 || PeekAtAlgToken(1).equals("{") 
+                 //For Distributed PlusCal, when using p-syntax
+                 || PeekAtAlgToken(1).equals("subprocess")) )
          { result.addElement(GetPVarDecl()) ;
            GobbleCommaOrSemicolon();
              /**************************************************************
@@ -996,11 +1090,15 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("fair")  
                  || PeekAtAlgToken(1).equals("define")  
                  || PeekAtAlgToken(1).equals("macro")  
+                 //For Distributed PlusCal
                  || PeekAtAlgToken(1).equals("node")
- 				 || PeekAtAlgToken(1).contains("channel") 
- 				 || PeekAtAlgToken(1).contains("fifo")))
+ 				 || PeekAtAlgToken(1).equals("channel") 
+ 				 || PeekAtAlgToken(1).equals("channels") 
+ 				 || PeekAtAlgToken(1).equals("fifos") 
+ 				 || PeekAtAlgToken(1).equals("fifo")
+ 				 || PeekAtAlgToken(1).equals("subprocess")))
          { result.addElement(GetVarDecl());
-          } ;
+          }
         return result ;
      }
 
@@ -3614,7 +3712,7 @@ public class ParseAlgorithm
      * c-syntax.  Gobbles is and sets pSyntax or cSyntax.                  *
      **********************************************************************/
      { if (pSyntax) 
-         { GobbleThis("begin") ;}
+    		 GobbleThis("begin") ;
        else if (cSyntax)
          { GobbleThis("{") ;}
        else {PcalDebug.ReportBug("Syntax not initialized.") ;} ;
@@ -3681,9 +3779,9 @@ public class ParseAlgorithm
                 || nxt.equals("}")
                 || nxt.equals("{")
                 
-                //For distributed pluscal
+                //For Distributed PlusCal
                 || nxt.equals("node")
-                //need to add function caller keywords like send receive broadcast multicast and clear
+                || nxt.equals("subprocess")
               )
              { return ;
              };                   
@@ -4660,7 +4758,8 @@ public class ParseAlgorithm
    }
 
    
-   //for Distributed pluscal 
+   //For Distributed PlusCal 
+   //parse the node with keyword 'process' or 'node' and place it inside an object of type AST.Node
    public static AST.Node GetNode() throws ParseAlgorithmException {
 		AST.Node result = new AST.Node();
 		
@@ -4692,7 +4791,7 @@ public class ParseAlgorithm
 			ParsingError("Empty node id at ");
 		}
 
-		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")) {
+		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 			result.decls = new Vector(1);
 		} else {
 
@@ -4700,40 +4799,42 @@ public class ParseAlgorithm
 				result.decls = new Vector();
 			}
 			result.decls.addAll(GetVarDecls());
-			//For Distributed pluscal	
 			result.decls.addAll(GetChannelDecls());
 		}
 		
-		GobbleBeginOrLeftBrace();
-
-		result.body = GetStmtSeq();
-
-		GobbleEndOrRightBrace("node");
-
 		// this is a vector of vectors,
 		// where each vector inside it represents a sub thread of the node
 
 		Vector<AST.Thread> threads = new Vector<>();
 
-		if (PeekAtAlgToken(1).equals("{")) {
+		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
 			int i = 0;
-			while (PeekAtAlgToken(1).equals("{")) {
+			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
-				// GobbleBeginOrLeftBrace();
 				AST.Thread thread = new AST.Thread();
-				thread.index = ++i;
+				thread.index = i++;
 				thread.id = result.id;
-				GobbleBeginOrLeftBrace();
+				
+				//read the sub-process delimiter
+				if(pSyntax){
+		    		 GobbleThis("subprocess");
+		    	 } else {
+		    		 GobbleThis("{");
+		    	 }
 
 				// check that next is not the end brace
 				thread.body = GetStmtSeq();
 
-				// something to change here
-				GobbleThis("}");
+				//to make sure this works remove the key node from the algorithm completely
+				GobbleEndOrRightBrace("subprocess");
+				
+				if(pSyntax) {
+					GobbleThis(";");
+				}
+				
 				threads.add(thread);
 			}
-
 		}
 
 		result.threads = threads;
@@ -4742,7 +4843,8 @@ public class ParseAlgorithm
 		if (PeekAtAlgToken(1).equals(";")) {
 			String tok = GetAlgToken();
 		}
-
+		
+		//TODO
 		// CheckLabeledStmtSeq(result.body) ;
 		result.plusLabels = plusLabels;
 		result.minusLabels = minusLabels;
@@ -4752,7 +4854,7 @@ public class ParseAlgorithm
 		return result;
 	}
 
-   //For Distributed pluscal	
+   //For Distributed PlusCal	
    public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
@@ -4779,17 +4881,19 @@ public class ParseAlgorithm
 				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
 				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
-				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables"))) {
+				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
+				|| PeekAtAlgToken(1).equals("subprocess"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetChannelDecl(channelType));
 		}
 		return result;
 	}
    
-   	//For Distributed pluscal	
+   	//For Distributed PlusCal	
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
 		AST.Channel pv;
+		//TODO is this default definition given here overridden at some point?
 		if (channelType.equals("Unordered")) {
 			pv = new AST.UnorderedChannel();
 			pv.val = PcalParams.DefaultChannelInit();
@@ -4846,8 +4950,8 @@ public class ParseAlgorithm
 		return pv;
 	}
 
-	public static AST.ChannelSenderCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelSenderCall result = new AST.ChannelSenderCall();
+	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
+		AST.ChannelSendCall result = new AST.ChannelSendCall();
 		result.name = GetAlgToken() ;
 
 		MustGobbleThis("(");
@@ -4883,8 +4987,8 @@ public class ParseAlgorithm
 		return result;
 	}
 
-	public static AST.ChannelReceiverCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelReceiverCall result = new AST.ChannelReceiverCall();
+	public static AST.ChannelReceiveCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
+		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
 		result.name = GetAlgToken() ;
 		MustGobbleThis("(");
 
@@ -4970,7 +5074,7 @@ public class ParseAlgorithm
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSenderCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -4979,7 +5083,7 @@ public class ParseAlgorithm
 				}
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiverCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5008,7 +5112,7 @@ public class ParseAlgorithm
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandSendCall(AST.ChannelSenderCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
+	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
 
 		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
 
@@ -5044,7 +5148,7 @@ public class ParseAlgorithm
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiverCall call, Vector nodeDecl, Vector globalDecl)
+	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
 
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
@@ -5105,12 +5209,28 @@ public class ParseAlgorithm
 		return result;
 	}
 	
+	/**
+	 * 
+	 * @param varName
+	 * @param nodeDecl
+	 * @param globalDecl
+	 * @return
+	 */
 	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
 		VarDecl chanVar = null;
 		int i = 0;
 
 		while (nodeDecl != null && i < nodeDecl.size()) {
-			AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			
+			AST.VarDecl tempVar = null;
+			try {
+				tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
+			} catch (ClassCastException e) {
+				//incase we are handling a call from a procedure body then the local procedure variables will be of type PVarChar
+				//skip this because it makes no sense that a channel is defined local to a procedure
+				break;
+			}
+			
 			if (tempVar.var.equals(varName)) {
 				chanVar = tempVar;
 			}
@@ -5135,6 +5255,4 @@ public class ParseAlgorithm
 		}
 		return chanVar;
 	}
-
- }
-
+}

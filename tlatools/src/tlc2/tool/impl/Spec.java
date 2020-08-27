@@ -43,7 +43,7 @@ import tlc2.value.impl.LazyValue;
 import tlc2.value.impl.ModelValue;
 import util.Assert;
 import util.FilenameToStream;
-import util.TLAConstants;
+import util.MonolithSpecExtractor;
 import util.UniqueString;
 
 // Note that we use all of the {@code default} defined functionality in our
@@ -89,7 +89,7 @@ abstract class Spec
         // SZ Mar 9, 2009: added initialization of the modelValue class
         ModelValue.init();
         this.configFile = configFile;
-        this.config = new ModelConfig(configFile + TLAConstants.Files.CONFIG_EXTENSION, resolver);
+        this.config = new ModelConfig(MonolithSpecExtractor.getConfig(configFile), resolver);
         this.config.parse();
         ModelValue.setValues(); // called after seeing all model values
 
@@ -201,10 +201,10 @@ abstract class Spec
         return def.getBody();
     }
 
-    /* Get the type declaration for the state variables. */
-    public final SemanticNode getTypeSpec()
+    /* Get the alias declaration for the state variables. */
+    public final SemanticNode getAliasSpec()
     {
-        String name = this.config.getType();
+        String name = this.config.getAlias();
         if (name.length() == 0)
         {
             Assert.fail(EC.TLC_CONFIG_NO_STATE_TYPE);
@@ -213,16 +213,16 @@ abstract class Spec
         Object type = this.defns.get(name);
         if (type == null)
         {
-            Assert.fail(EC.TLC_CONFIG_SPECIFIED_NOT_DEFINED, new String[] { "type", name });
+            Assert.fail(EC.TLC_CONFIG_SPECIFIED_NOT_DEFINED, new String[] { "alias", name });
         }
         if (!(type instanceof OpDefNode))
         {
-            Assert.fail(EC.TLC_CONFIG_ID_MUST_NOT_BE_CONSTANT, new String[] { "type", name });
+            Assert.fail(EC.TLC_CONFIG_ID_MUST_NOT_BE_CONSTANT, new String[] { "alias", name });
         }
         OpDefNode def = (OpDefNode) type;
         if (def.getArity() != 0)
         {
-            Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "type", name });
+            Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "alias", name });
         }
         return def.getBody();
     }

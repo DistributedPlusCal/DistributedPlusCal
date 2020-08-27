@@ -1324,7 +1324,7 @@ public class TLAExpr
         PcalDebug.printIntArray(anchorTokCol, name + ".anchorTokCol") ;
       }
 
-    //for distributed pluscal
+    //For Distributed PlusCal
     /**
      * 
      * @return

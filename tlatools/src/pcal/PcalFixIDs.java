@@ -77,7 +77,7 @@ public class PcalFixIDs {
             FixCallGoto((AST.CallGoto) ast, context);
         else if (ast.getClass().equals(AST.GotoObj.getClass()))
             FixGoto((AST.Goto) ast, context);
-        //For Distributed pluscal
+        //For Distributed PlusCal
         else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
             FixMultiNodes((AST.MultiNodes) ast, context);
         /*******************************************************************
@@ -495,7 +495,7 @@ public class PcalFixIDs {
     }
     
     
-    //For Distributed pluscal
+    //For Distributed PlusCal
     /**
      * 
      * @param ast
@@ -598,9 +598,6 @@ public class PcalFixIDs {
     private static void FixNode(AST.Node ast, String context) throws PcalFixIDException {
         for (int i = 0; i < ast.decls.size(); i++)
             FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
-        for (int i = 0; i < ast.body.size(); i++)
-            FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
-
         	for (AST.Thread thread : ast.threads) {
         		for (int i = 0; i < thread.body.size(); i++) {
         			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);

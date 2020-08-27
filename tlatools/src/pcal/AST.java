@@ -81,7 +81,7 @@ public class AST
     public static AST.Assign       AssignObj       ;
     public static AST.SingleAssign SingleAssignObj ;
     
-    //For Distributed pluscal	
+    //For Distributed PlusCal	
     public static AST.Node    	   NodeObj	       ;
     public static AST.MultiNodes MultiNodesObj     ;
       /*********************************************************************
@@ -114,9 +114,9 @@ public class AST
     public static AST.Macro        MacroObj        ;
     public static AST.MacroCall    MacroCallObj    ;
 
-    //For Distributed pluscal	
-    public static AST.ChannelSenderCall ChannelSenderObj;
-    public static AST.ChannelReceiverCall ChannelReceiverObj;
+    //For Distributed PlusCal	
+    public static AST.ChannelSendCall ChannelSenderObj;
+    public static AST.ChannelReceiveCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearCall;
     
     public static final String SELF = "slf";
@@ -236,11 +236,11 @@ public class AST
         MacroObj        = new AST.Macro() ;
         MacroCallObj    = new AST.MacroCall() ;
         
-        //For Distributed pluscal	
+        //For Distributed PlusCal	
         MultiNodesObj   = new AST.MultiNodes();
         NodeObj         = new AST.Node();
-        ChannelSenderObj =  new AST.ChannelSenderCall();
-        ChannelReceiverObj =  new AST.ChannelReceiverCall();
+        ChannelSenderObj =  new AST.ChannelSendCall();
+        ChannelReceiverObj =  new AST.ChannelReceiveCall();
         ChannelClearCall = new AST.ChannelClearCall();
       }
 
@@ -569,8 +569,6 @@ public class AST
       { public Lhs       lhs  = new Lhs() ; 
         public TLAExpr   rhs  = null ; 
         
-        //for Distributed PlusCal
-        public Integer threadIndex = null;
         public SingleAssign() { };
         public String toString()
           { return 
@@ -588,7 +586,6 @@ public class AST
       *********************************************************************/
       { public String    var  = "" ;
         public TLAExpr   sub  = null ; 
-        public Integer threadIndex = null;
         public Lhs() { };
         public String toString()
           { return lineCol() + 
@@ -1072,9 +1069,9 @@ public class AST
      }
    
    
-   //classes for Distributed pluscal
+   //classes For Distributed PlusCal
    
-   //For Distributed pluscal	
+   //For Distributed PlusCal	
    public static class MultiNodes extends AST{
    	public String  name   = "" ;
        public Vector  decls  = null ; // of VarDecl 
@@ -1104,7 +1101,7 @@ public class AST
        }
      }
    
-   //For Distributed pluscal	
+   //For Distributed PlusCal	
    public static abstract class Channel extends VarDecl{
 
    	public Channel() {};
@@ -2161,7 +2158,7 @@ public class AST
 		}
    }
 
-   public static class ChannelSenderCall extends AST{
+   public static class ChannelSendCall extends AST{
    	TLAExpr msg = null;
    	public String channelName = null ;
    	public TLAExpr callExp = new TLAExpr(new Vector());
@@ -2169,7 +2166,7 @@ public class AST
    	public Boolean isBroadcast = false;
    	
    	public Boolean isMulticast = false;
-   	public ChannelSenderCall() {};
+   	public ChannelSendCall() {};
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
@@ -2213,23 +2210,23 @@ public class AST
 
    }
   
-   public static class ChannelReceiverCall extends AST{
+   public static class ChannelReceiveCall extends AST{
 	   public String channelName = "";
 	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public Vector args;
 	   public String name = "";
 	   String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
-	   public ChannelReceiverCall() {};
+	   public ChannelReceiveCall() {};
 	   public String toString()
 	   { return 
 			   Indent(lineCol()) + 
 			   "[type |-> \"ChannelReceiver\"," + NewLine() +
-			   Indent(" channel     |-> ") + channelName + "]" +
+			   Indent(" channel     |-> ") + channelName + "," +
 			   EndIndent() +
-			   Indent(" targetVar     |-> ") + targetVarName + "]" +
+			   Indent(" targetVar     |-> ") + targetVarName + "," +
 			   EndIndent() +
-			   Indent(" callExp     |-> ") + callExp + "]" +
+			   Indent(" callExp     |-> ") + callExp + "," +
 			   EndIndent() +
 			   Indent(" targetExp     |-> ") + targetExp + "]" +
 			   EndIndent() +
@@ -2276,7 +2273,6 @@ public class AST
 	   public boolean   isEq  = true ; // true means "=", false means "\\in"
 	   public TLAExpr   id    = null ;
 	   public Vector    decls = null ; // of VarDecl
-	   public Vector    body  = null ; // of LabeledStmt
 	   public Vector<Thread> threads = null;
 
 	   public Node() { };
@@ -2295,16 +2291,15 @@ public class AST
 					   VectorToSeqString(decls) + "," + 
 					   EndIndent() + NewLine() +
 
-					   Indent(" body   |-> ") + 
-					   VectorToSeqString(body) + "]" + ", " + 
-					   EndIndent() + NewLine() +
+//					   Indent(" body   |-> ") + 
+//					   VectorToSeqString(body) + "]" + ", " + 
+//					   EndIndent() + NewLine() +
 
 					   Indent(" threads   |-> ") + 
 					   (threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
 					   EndIndent() + 
 					   EndIndent() ;
 		   } 
-
 		   return
 				   Indent(lineCol()) +
 				   "[name   |-> \"" + name + "\"," 
@@ -2321,14 +2316,10 @@ public class AST
 				   VectorToSeqString(decls) + "," + 
 				   EndIndent() + NewLine() +
 
-				   Indent(" body   |-> ") + 
-				   VectorToSeqString(body) + "]" + ", " + 
-				   EndIndent() + 
-
-				   Indent(" threads   |-> ") + 
+				   Indent(",  threads   |-> ") +
 				   (threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
 				   EndIndent() + 
-				   EndIndent() ;
+				   EndIndent() ;	   
 	   }
    }
   
