@@ -85,6 +85,7 @@
 \newcommand{\keyword}[1]{\textbf{#1}}
 \newcommand{\entity}[1]{\ensuremath{\langle}#1\ensuremath{\rangle}}
 
+\newcommand{\textHC}[1]{{\textcolor{red}{#1}}}
 
 %\bstctlcite{IEEE:BSTcontrol}
 
@@ -102,7 +103,22 @@
 
 The PlusCal language~\cite{pcalAlgo,wayne:practical} combines the expressive power of \tlaplus~\cite{tlabook} with the ``look and feel'' of imperative pseudo-code in order to allow users to express algorithms at a high level of abstraction. PlusCal algorithms are translated to \tlaplus specifications and can be formally verified using the \tlaplus Toolbox. We propose a small extension of PlusCal, tentatively called Distributed PlusCal~\cite{dpluscal}, intended for simplifying the presentation of distributed algorithms in PlusCal.
 
-Distributed systems consist of nodes that communicate by message passing. It is convenient to model a node as running several threads that share local memory. For example, one thread may execute the main algorithm, while a separate thread listens for incoming messages. Although PlusCal offers \emph{processes}, they have a single thread of execution. Different threads of the same node must therefore be modeled as individual processes, and variables representing the local memory of a node must be declared as global variables, obscuring the structure of the code. Our first extension allows a PlusCal process to have several code blocks that execute in parallel. Besides, Distributed PlusCal explicitly identifies variables representing communication channels and introduces associated send and receive operations. In contrast to using ordinary variables and writing macros or operator definitions for channel operations, making channels part of the language gives us some more flexibility in translation.
+Distributed systems consist of nodes that communicate by message
+passing. It is convenient to model a node as running several threads
+that share local memory. For example, one thread may execute the main
+algorithm, while a separate thread listens for incoming
+messages. Although PlusCal offers \emph{processes}, they have a single
+thread of execution. Different threads of the same node must therefore
+be modeled as individual processes, and variables representing the
+local memory of a node must be declared as global variables, obscuring
+the structure of the code. Our first extension allows a PlusCal
+process to have several code blocks that execute in parallel. Besides,
+Distributed PlusCal explicitly identifies variables representing
+communication channels and introduces associated send and receive
+operations. In contrast to using ordinary variables and writing macros
+or operator definitions for channel operations, making channels part
+of the language gives us some more flexibility in \textHC{the \tlaplus}
+translation. 
 
 
 \section{Distributed PlusCal Algorithms}
