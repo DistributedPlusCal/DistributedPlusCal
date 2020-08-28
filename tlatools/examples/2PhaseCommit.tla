@@ -1,4 +1,4 @@
------------------------------ MODULE 2pc -----------------------------
+----------------------------- MODULE 2PhaseCommit -----------------------------
 EXTENDS Sequences, Naturals
 
 CONSTANTS Coord, Agent
