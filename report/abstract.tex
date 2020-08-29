@@ -170,72 +170,130 @@ send messages along several channels in an array. For the latter two operations,
 
 \section{Subprocesses}
 
-A process can have multiple sub-processes. In the C-Syntax, each sub-process appears within a pair of curly braces, whereas in the P-Syntax, sub-processes are enclosed by \verb|begin subprocess| and \verb|end subprocess|. Since a single process can have several threads of execution in Distributed PlusCal, the $pc$ variable can no longer be an array indexed by process identities but becomes a two-dimensional array indexed by process identity and sub-process number. For example, the translation of the statement labeled \verb|a2| of the two-phase commmit algorithm of Figure~\ref{fig:two-phase} is shown below.
+A process can have multiple sub-processes.
+In the C-Syntax, each sub-process appears within a pair of curly braces, whereas in the P-Syntax, sub-processes are enclosed by \verb|begin subprocess| and \verb|end subprocess|. Since a process may have several threads of execution, the $pc$ variable is represented as a two-dimensional array indexed by process identity and sub-process number. For example, the translation of the statement labeled \verb|exit| of the mutual-exclusion algorithm of Figure~\ref{fig:lamport-mutex} is shown below.
 
 \begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]  
-a2(self) == 
-  /\ pc[self][2] = <@\textcolor{blue}{"a2"}@>
-  /\ \E ag \in agt[self]:
-        /\ aState' = [aState <@\textcolor{violet}{EXCEPT}@> ![self] = ag]
-        /\ agt' = [agt <@\textcolor{violet}{EXCEPT}@> ![self] = agt[self] \ {ag}]
-        /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][2] =  <@\textcolor{blue}{"Done"}@>]
-        /\ <@\textcolor{violet}{UNCHANGED}@> << coord, cState, commits, msg >>
+exit(self) == 
+  /\ pc[self][1] = <@\textcolor{blue}{"exit"}@>
+  /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+  /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->  
+                  <@\textcolor{violet}{IF}@> slf = self /\ n \in Nodes \ { self } 
+                  <@\textcolor{violet}{THEN}@> Append(network[slf, n], Release(clock'[self])) 
+                  <@\textcolor{violet}{ELSE}@> network[slf, n]]
+  /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = <@\textcolor{blue}{"ncs"}@>]]
+  /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
 \end{lstlisting}
 
-Similarly, the translation of a procedure call stores the identity of the sub-process on the call stack so that control returns to the appropriate sub-process at the end.
+Moreover, the translation of a procedure call stores the identity of the sub-process on the call stack so that control returns to the appropriate sub-process.
 
 
 \section{Evaluation}
 
 Distributed PlusCal is designed to remain backward compatible with regular PlusCal: the translation of a regular PlusCal algorithm gives rise to a \tlaplus specification that is equivalent with the one produced by the existing translator.
 
-Our version of the two-phase commit algorithm shown in Figure~\ref{fig:two-phase} illustrates the representation of distributed algorithms in Distributed PlusCal. We believe that the possibility of declaring several threads per process makes expressing such algorithms more natural. Distributed algorithms employ many kinds of communication channels beyond unordered and FIFO channels, and we envisage providing different semantics through standard \tlaplus modules that can be instantiated, rather than baking two kinds of channels into the language.
+Our version of Lamport's mutual-exclusion algorithm shown in Figure~\ref{fig:lamport-mutex} illustrates the representation of distributed algorithms in Distributed PlusCal. We believe that the possibility of declaring several threads per process makes expressing such algorithms more natural. Distributed algorithms employ many kinds of communication channels beyond unordered and FIFO channels, and we envisage providing different semantics through standard \tlaplus modules that can be instantiated, rather than baking two kinds of channels into the language.
 
 Beyond writing a fixed number of sub-processes, one could envisage extending PlusCal by identical sub-processes indexed by a parameter set. This could perhaps be useful for modeling a node containing several CPU and GPU cores.
 
 \bibliographystyle{plain}
 \bibliography{report}
 
+% \begin{figure}
+% \begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]
+% ----------------- MODULE 2PhaseCommit ---------------------
+% EXTENDS Sequences, Naturals
+% CONSTANTS Coord, Agent
+% State == {"unknown", "accept", "refuse", "commit", "abort"}
+
+% (* PlusCal options (-distpcal) *)
+% (**--algorithm TPC {
+%    channels coord, agt[Agent];
+     
+%    fair process (a \in Agent)
+%      variables aState = "unknown"; 
+%    { \* main thread
+% a1:  if (aState = "unknown") {
+%          with(st \in {"accept", "refuse"}) {
+%            aState := st;
+%            send(coord, [type |-> st, agent |-> self]);
+%          };
+%      };
+%    } { \* second thread: message reception
+% a2:  receive(agt[self], aState); 
+%    }
+
+%    fair process (c = Coord) 
+%    variables cState = "unknown", commits = {}, msg = {};
+%    { \* single-threaded node
+% c1:  while (cState = "unknown") {
+%        receive(coord, msg);
+%        if (msg.type = "refuse") { cState := "abort"; }
+%        else if (msg.type = "accept") {
+%          commits := commits \cup {msg.agent};
+%          if (commits = Agent) { cState := "commit"; }
+%        }
+%      };
+% c2:  broadcast(agt, [ag \in Agent|-> cState]);
+%    }
+%    }**)
+% ===========================================================
+% \end{lstlisting}
+%   \caption{Two-phase commit protocol in Distributed PlusCal.}
+%   \label{fig:two-phase}
+% \end{figure}
+
 \begin{figure}
 \begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]
------------------ MODULE 2PhaseCommit ---------------------
-EXTENDS Sequences, Naturals
-CONSTANTS Coord, Agent
-State == {"unknown", "accept", "refuse", "commit", "abort"}
-
+------------------------ MODULE LamportMutex -------------------------
+EXTENDS Naturals, Sequences, TLC
+CONSTANT N
+ASSUME N \in Nat 
+Nodes == 1 .. N
 (* PlusCal options (-distpcal) *)
-(**--algorithm TPC {
-   channels coord, agt[Agent];
-     
-   fair process (a \in Agent)
-     variables aState = "unknown"; 
-   { \* main thread
-a1:  if (aState = "unknown") {
-         with(st \in {"accept", "refuse"}) {
-           aState := st;
-           send(coord, [type |-> st, agent |-> self]);
-         };
-     };
-   } { \* second thread: message reception
-a2:  receive(agt[self], aState); 
+(**--algorithm LamportMutex {
+   fifos network[Nodes, Nodes];
+   define {
+     Max(c,d) == IF c > d THEN c ELSE d
+     beats(a,b) == \/ req[b] = 0
+                   \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
+     \* messages used in the algorithm
+     Request(c) == [type |-> "request", clock |-> c]
+     Release(c) == [type |-> "release", clock |-> c]
+     Acknowledge(c) == [type |-> "ack", clock |-> c]
    }
-
-   fair process (c = Coord) 
-   variables cState = "unknown", commits = {}, msg = {};
-   { \* single-threaded node
-c1:  while (cState = "unknown") {
-       receive(coord, msg);
-       if (msg.type = "refuse") { cState := "abort"; }
-       else if (msg.type = "accept") {
-         commits := commits \cup {msg.agent};
-         if (commits = Agent) { cState := "commit"; }
-       }
-     };
-c2:  broadcast(agt, [ag \in Agent|-> cState]);
-   }
-}**)
+   process(n \in Nodes)
+     variables clock = 0, req = [n \in Nodes |-> 0],
+               ack = {}, sndr, msg;
+   { \* thread executing the main algorithm
+ncs: while (<@\textcolor{blue}{TRUE}@>) {
+       skip;  \* non-critical section
+try:   clock := clock + 1; req[self] := clock; ack := {self};
+       multicast(network, [self, nd \in Nodes |-> Request(clock)]);
+enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
+cs:    skip;  \* critical section
+exit:  clock := clock + 1;
+       multicast(network, [self, n \in Nodes \ {self} |->
+                           Release(clock)]);
+     } \* end while
+  }  { \* message handling thread
+rcv:   while (<@\textcolor{blue}{TRUE}@>) { with (n \in Nodes) {
+           receive(network[n,self], msg); sndr := n;
+           clock := Max(clock, msg.clock) + 1
+        };
+handle: if (msg.type = "request") {
+           req[sndr] := msg.clock;
+           send(network[self, sndr], Acknowledge(clock))
+        }
+        else if (msg.type = "ack") { ack := ack \cup {sndr}; }
+        else if (msg.type = "release") { req[sndr] := 0; }
+     }  \* end while
+   } \* end message handling thread
+}  **)
+======================================================================
 \end{lstlisting}
-  \caption{Two-phase commit protocol in Distributed PlusCal.}
-  \label{fig:two-phase}
+  \caption{Lamport's mutual-exclusion algorithm.}
+  \label{fig:lamport-mutex}
 \end{figure}
+
 \end{document}
