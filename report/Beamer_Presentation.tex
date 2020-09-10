@@ -1,0 +1,303 @@
+\documentclass{beamer}
+\usecolortheme{orchid}
+
+
+\usepackage{capt-of}
+\usepackage{placeins}
+\usepackage[toc,page]{appendix}
+\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{tikz}
+
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{pcallst}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{orange}{rgb}{1.0,0.49,0.0}
+
+\usepackage{pifont}
+
+\lstset{frame=single,
+  language={Java},
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  basicstyle={\tiny\ttfamily},
+  numbers=left,
+  stepnumber=1,
+  numberstyle=\tiny\color{gray},
+  commentstyle=\color{dkgreen},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=1,
+  morecomment=[l]{\\*},
+  morekeywords={}
+}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
+
+\newcommand{\tlaplus}{TLA\textsuperscript{+}\xspace}
+\newcommand{\EXCEPT}{\textsc{except}}
+\newcommand{\IF}{\textsc{if}}
+\newcommand{\THEN}{\textsc{then}}
+\newcommand{\ELSE}{\textsc{else}}
+\newcommand{\seq}[1]{\langle #1 \rangle}
+
+\newcommand{\keyword}[1]{\textbf{#1}}
+\newcommand{\entity}[1]{\ensuremath{\langle}#1\ensuremath{\rangle}}
+
+% editorial comments in the text or in marginal notes
+% 1st argument: initials of the person making the comment,
+% 2nd argument: comment to insert
+\long\def\ednote#1#2{\par\noindent\framebox{\begin{minipage}{0.99\linewidth}\linespread{.7}\footnotesize #1: #2\end{minipage}}\par}
+\newcommand{\edmargin}[2]{\marginpar{\raggedright\linespread{.7}\footnotesize #1: #2}}
+
+%% make TeX use text italic font in math environments
+\makeatletter
+\newcounter{abr@ctr}
+\newcommand{\abr@c}{\c@abr@ctr\advance\c@abr@ctr\@ne}
+
+\DeclareSymbolFont{tlaitalics}{\encodingdefault}{cmr}{m}{it}
+\let\itfam\symtlaitalics
+
+\newcommand{\noTeXmath}{%
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7061\relax
+\mathcode`a=\abr@c\mathcode`b=\abr@c\mathcode`c=\abr@c\mathcode`d=\abr@c
+\mathcode`e=\abr@c\mathcode`f=\abr@c\mathcode`g=\abr@c\mathcode`h=\abr@c
+\mathcode`i=\abr@c\mathcode`j=\abr@c\mathcode`k=\abr@c\mathcode`l=\abr@c
+\mathcode`m=\abr@c\mathcode`n=\abr@c\mathcode`o=\abr@c\mathcode`p=\abr@c
+\mathcode`q=\abr@c\mathcode`r=\abr@c\mathcode`s=\abr@c\mathcode`t=\abr@c
+\mathcode`u=\abr@c\mathcode`v=\abr@c\mathcode`w=\abr@c\mathcode`x=\abr@c
+\mathcode`y=\abr@c\mathcode`z=\abr@c
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7041\relax
+\mathcode`A=\abr@c\mathcode`B=\abr@c\mathcode`C=\abr@c\mathcode`D=\abr@c
+\mathcode`E=\abr@c\mathcode`F=\abr@c\mathcode`G=\abr@c\mathcode`H=\abr@c
+\mathcode`I=\abr@c\mathcode`J=\abr@c\mathcode`K=\abr@c\mathcode`L=\abr@c
+\mathcode`M=\abr@c\mathcode`N=\abr@c\mathcode`O=\abr@c\mathcode`P=\abr@c
+\mathcode`Q=\abr@c\mathcode`R=\abr@c\mathcode`S=\abr@c\mathcode`T=\abr@c
+\mathcode`U=\abr@c\mathcode`V=\abr@c\mathcode`W=\abr@c\mathcode`X=\abr@c
+\mathcode`Y=\abr@c\mathcode`Z=\abr@c}
+
+\newcommand{\TeXmath}{%
+\mathcode`a="7161\mathcode`b="7162\mathcode`c="7163\mathcode`d="7164%
+\mathcode`e="7165\mathcode`f="7166\mathcode`g="7167\mathcode`h="7168%
+\mathcode`i="7169\mathcode`j="716A\mathcode`k="716B\mathcode`l="716C%
+\mathcode`m="716D\mathcode`n="716E\mathcode`o="716F\mathcode`p="7170%
+\mathcode`q="7171\mathcode`r="7172\mathcode`s="7173\mathcode`t="7174%
+\mathcode`u="7175\mathcode`v="7176\mathcode`w="7177\mathcode`x="7178%
+\mathcode`y="7179\mathcode`z="717A\mathcode`A="7141\mathcode`B="7142%
+\mathcode`C="7143\mathcode`D="7144\mathcode`E="7145\mathcode`F="7146%
+\mathcode`G="7147\mathcode`H="7148\mathcode`I="7149\mathcode`J="714A%
+\mathcode`K="714B\mathcode`L="714C\mathcode`M="714D\mathcode`N="714E%
+\mathcode`O="714F\mathcode`P="7150\mathcode`Q="7151\mathcode`R="7152%
+\mathcode`S="7153\mathcode`T="7154\mathcode`U="7155\mathcode`V="7156%
+\mathcode`W="7157\mathcode`X="7158\mathcode`Y="7159\mathcode`Z="715A}
+
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\noTeXmath
+\makeatother
+
+\makeatletter
+\newcommand*{\centerfloat}{%
+  \parindent \z@
+  \leftskip \z@ \@plus 1fil \@minus \textwidth
+  \rightskip\leftskip
+  \parfillskip \z@skip}
+\makeatother
+
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\title[Your Short Title]{An Extension of PlusCal for Modeling
+Distributed Algorithms}
+%\subtitle{Master of Computer Science - MFLS}
+\institute{University of Lorraine, CNRS, Inria, Nancy, France}
+\author[]{Heba Alkayed, Horatiu Cirstea, Stephan Merz}
+
+
+%\date{6th July 2020}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Uncomment these lines for an automatically generated outline.
+%\begin{frame}{Outline}
+%  \tableofcontents
+%\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{Introduction}
+
+\begin{block}{Formal methods for distributed algorithms}
+\begin{itemize}
+
+  \item Algorithms modeled using \tlaplus can be formally verified using the \tlaplus Toolbox
+ \item PlusCal algorithms have a more familiar syntax and can be translated to \tlaplus 
+\end{itemize}
+\end{block}
+\vskip 1cm
+
+\end{frame}
+
+\begin{frame}[fragile]{Distributed PlusCal Algorithms}
+
+\begin{itemize}
+  \item An extension of PlusCal offering constructs for modeling distributed algorithms 
+  \item Can be translated into a TLA+ specification
+  \item Introduces
+  \begin{itemize} 
+        \item Sub-processes
+        \item Communication channels
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{General Structure of an algorithm}
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers = none]
+(* --algorithm <<@\textcolor{black}{algorithm}@> name>
+(* Declaration section *)
+variables <variable declarations>
+<@\textcolor{blue}{channels}@> <channel declarations>
+<@\textcolor{blue}{fifos}@> <fifo declarations>
+(* ... *)
+(* Processes section *)
+process (<name> [=|\in] <Expr>))
+  variables <variable declarations>
+  <@\textcolor{blue}{<subprocesses>}@>
+*)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Communication Channels}
+    \begin{itemize}
+        \item Classified by the way they handle the addition and removal of messages 
+            \begin{itemize}
+                \item Unordered channels 
+                \item FIFO channels 
+            \end{itemize}
+     \item Supported operators 
+            \begin{itemize}
+                \item \verb|send(ch, el)|
+                \item \verb|receive(ch, var)|
+                \item \verb|broadcast(ch, [x \in S \mapsto e(x)]| 
+                \item \verb|multicast(ch, [x \in S \mapsto e(x)]|
+                \item \verb|clear(ch)|
+            \end{itemize}
+
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Sub-Processes}
+    \begin{itemize}
+     \item Enables the process to execute multiple tasks in parallel.
+     \item Each sub-process consists of labeled statements.
+     \item The special variable pc was modified to have the following definition
+
+\[
+pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
+\]	
+    where \verb|ProcSet| is a set that contains all the process identifiers, and the labels that appear in the sequence are the entry point actions for each sub-process.
+
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Distributed PlusCal Example}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ process(n \in Nodes)
+     variables clock = 0, req = [n \in Nodes |-> 0],
+               ack = {}, sndr, msg;
+   { \* thread executing the main algorithm
+ncs: while (<@\textcolor{blue}{TRUE}@>) {
+       skip;  \* non-critical section
+try:   clock := clock + 1; req[self] := clock; ack := {self};
+       multicast(network, [self, nd \in Nodes |-> Request(clock)]);
+enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
+cs:    skip;  \* critical section
+exit:  clock := clock + 1;
+       multicast(network, [self, n \in Nodes \ {self} |->
+                           Release(clock)]);
+     } \* end while
+  } 
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Translation to TLA+}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit:  
+    clock := clock + 1;
+    multicast(network, [self, n \in Nodes \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    /\ pc[self] [1] = "exit"
+    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+    /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+    <@\textcolor{violet}{IF}@> 
+        slf = self /\ n \in Nodes \ { self } 
+    <@\textcolor{violet}{THEN}@> 
+        Append(network[slf, n], Release(clock'[self])) 
+    <@\textcolor{violet}{ELSE}@>
+        network[slf, n]]
+              /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = "ncs"]
+              /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
+\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}{Contributions and future work}
+\begin{block}{Contributions}
+\begin{itemize}
+    \item An extension of PlusCal called Distributed PlusCal
+    \item Distributed PlusCal offers constructs that are designed for modeling distributed algorithms
+
+    \item A backward compatible translator that translates from Distributed PlusCal and PlusCal  to TLA+
+
+
+\end{itemize}
+\end{block}
+\begin{block}{Future Work}
+In the future we aim to introduce more types of communication channels and channel operators.
+\end{block}
+
+\end{frame}
+
+\end{document}
