@@ -224,6 +224,48 @@ process (<name> [=|\in] <Expr>))
     \end{itemize}
 \end{frame}
 
+\begin{frame}[fragile]{Unordered Channels}
+    \begin{itemize}
+        \item \keyword{channel} or \keyword{channels}, as shown below.
+        \[
+            \keyword{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+        \]
+         \item based on \tlaplus sets
+     \item Operator translation to \tlaplus
+            \begin{itemize}
+                \item \verb|send(ch, el)| $\triangleq$
+                \verb|chan' = chan \cup {el}| 
+                \newline
+                \item \verb|receive(chan, var)| $\triangleq$
+                      \verb|\E e \in chan:| \newline \tab\tab\tab\tab
+                         \verb|  /\ var' = e|\newline \tab\tab\tab\tab
+                         \verb|  /\ chan' =  chan \ {e}|
+            \end{itemize}
+
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{FIFO Channels}
+    \begin{itemize}
+        \item \keyword{fifo} or \keyword{fifos}, as shown below.
+        \[
+            \keyword{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+        \]
+         \item based on \tlaplus sequences
+     \item Operator translation to \tlaplus
+
+            \begin{itemize}
+                \item \verb|send(ch, el)| $\triangleq$
+                \verb|chan' = Append(chan, el)| 
+                \newline
+                \item \verb|receive(chan, var)| $\triangleq$
+                      \verb| /\ Len(chan) > 0 | \newline \tab\tab\tab\tab
+                         \verb|/\ var' = [Head(chan)]|\newline \tab\tab\tab\tab
+                         \verb|/\ chan' =  Tail(chan)|
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
 \begin{frame}[fragile]{Sub-Processes}
     \begin{itemize}
      \item Enables the process to execute multiple tasks in parallel.
@@ -266,21 +308,23 @@ exit:  clock := clock + 1;
                               Release(clock)]);
 \end{lstlisting}
 
+
 \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
 exit(self) == 
     /\ pc[self] [1] = "exit"
     /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
     /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
-    <@\textcolor{violet}{IF}@> 
-        slf = self /\ n \in Nodes \ { self } 
-    <@\textcolor{violet}{THEN}@> 
-        Append(network[slf, n], Release(clock'[self])) 
-    <@\textcolor{violet}{ELSE}@>
-        network[slf, n]]
-              /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = "ncs"]
-              /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
+        <@\textcolor{violet}{IF}@> 
+            slf = self /\ n \in Nodes \ { self } 
+        <@\textcolor{violet}{THEN}@> 
+            Append(network[slf, n], Release(clock'[self])) 
+        <@\textcolor{violet}{ELSE}@>
+            network[slf, n]]
+    /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = "ncs"]
+    /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
 \end{lstlisting}
 \end{frame}
+
 
 
 \begin{frame}{Contributions and future work}
