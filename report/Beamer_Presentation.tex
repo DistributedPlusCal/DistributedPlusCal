@@ -24,7 +24,6 @@
 \usepackage{pifont}
 
 \lstset{frame=single,
-  language={Java},
   aboveskip=3mm,
   belowskip=3mm,
   showstringspaces=false,
@@ -174,6 +173,8 @@ Distributed Algorithms}
 
 \end{frame}
 
+\section{Distributed PlusCal}
+
 \begin{frame}[fragile]{Distributed PlusCal Algorithms}
 
 \begin{itemize}
@@ -204,6 +205,10 @@ process (<name> [=|\in] <Expr>))
 *)
 \end{lstlisting}
 \end{frame}
+
+\section{Distributed PlusCal Features}
+
+\subsection{Communication Channels}
 
 \begin{frame}[fragile]{Communication Channels}
     \begin{itemize}
@@ -266,6 +271,8 @@ process (<name> [=|\in] <Expr>))
     \end{itemize}
 \end{frame}
 
+\subsection{Sub-Processes}
+
 \begin{frame}[fragile]{Sub-Processes}
     \begin{itemize}
      \item Enables the process to execute multiple tasks in parallel.
@@ -280,6 +287,7 @@ pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
     \end{itemize}
 \end{frame}
 
+\section{Example}
 \begin{frame}[fragile]{Distributed PlusCal Example}
  \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
  process(n \in Nodes)
@@ -297,6 +305,84 @@ exit:  clock := clock + 1;
                            Release(clock)]);
      } \* end while
   } 
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Translation to TLA+}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit:  
+    clock := clock + 1;
+    multicast(network, [self, n \in Nodes \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    @/\ pc[self] [1] = "exit"@
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Translation to TLA+}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit:  
+    @clock := clock + 1;}@
+    multicast(network, [self, n \in Nodes \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    /\ pc[self] [1] = "exit"
+    @/\ clock' = [clock EXCEPT ![self] = clock[self] + 1]}@
+\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}[fragile]{Translation to TLA+}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit:  
+    clock := clock + 1;}
+    @multicast(network, [self, n \in Nodes \ {self} |->                 Release(clock)]);@
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    /\ pc[self] [1] = "exit"
+    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+    @/\ network' = [<<slf, n>> \in DOMAIN network |->
+        IF
+            slf = self /\ n \in Nodes \ { self } 
+        THEN
+            Append(network[slf, n], Release(clock'[self])) 
+        ELSE
+            network[slf, n]]@
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Translation to TLA+}
+ \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit:  
+    clock := clock + 1;
+    multicast(network, [self, n \in Nodes \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    /\ pc[self] [1] = "exit"
+    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+    /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+        <@\textcolor{violet}{IF}@> 
+            slf = self /\ n \in Nodes \ { self } 
+        <@\textcolor{violet}{THEN}@> 
+            Append(network[slf, n], Release(clock'[self])) 
+        <@\textcolor{violet}{ELSE}@>
+            network[slf, n]]
+    @/\ pc' = [pc EXCEPT ![self][1] = "ncs"]@
 \end{lstlisting}
 \end{frame}
 
