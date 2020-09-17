@@ -11,6 +11,7 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{tikz}
+\usetikzlibrary{calc,shapes.callouts,shapes.arrows}
 
 \usepackage{color}
 \usepackage[T1]{fontenc}
@@ -24,6 +25,7 @@
 \usepackage{pifont}
 
 \lstset{frame=single,
+  language={Java},
   aboveskip=3mm,
   belowskip=3mm,
   showstringspaces=false,
@@ -58,6 +60,53 @@
 % 2nd argument: comment to insert
 \long\def\ednote#1#2{\par\noindent\framebox{\begin{minipage}{0.99\linewidth}\linespread{.7}\footnotesize #1: #2\end{minipage}}\par}
 \newcommand{\edmargin}[2]{\marginpar{\raggedright\linespread{.7}\footnotesize #1: #2}}
+
+\newcommand{\arrowthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};
+        \node[overlay,single arrow,draw=none,fill=red!50,anchor=tip,rotate=60] 
+        at (#1.south) {#2};}%
+    }%
+    \newcommand{\speechthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,ellipse callout,fill=blue!50] 
+        at ($(#1.north)+(-.5cm,0.8cm)$) {#2};}%
+    }%
+
+\newcommand{\bubblethis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,cloud callout,callout relative pointer={(0.2cm,-0.7cm)},%
+        aspect=2.5,fill=yellow!90] at ($(#1.north)+(-0.5cm,1.6cm)$) {#2};}%
+    }%
+
+\newcommand{\pointthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,rectangle callout,%
+        callout relative pointer={(0.2cm,0.7cm)},fill=green!50] at ($(#1.north)+(-.5cm,-1.4cm)$) {#2};}%
+        }%
+
+\pgfkeys{%
+    /calloutquote/.cd,
+    width/.code                   =  {\def\calloutquotewidth{#1}},
+    position/.code                =  {\def\calloutquotepos{#1}}, 
+    author/.code                  =  {\def\calloutquoteauthor{#1}},
+    /calloutquote/.unknown/.code   =  {\let\searchname=\pgfkeyscurrentname
+                                 \pgfkeysalso{\searchname/.try=#1,                                
+    /tikz/\searchname/.retry=#1},\pgfkeysalso{\searchname/.try=#1,
+                                  /pgf/\searchname/.retry=#1}}
+                            }  
+
+
+\newcommand\calloutquote[2][]{%
+       \pgfkeys{/calloutquote/.cd,
+         width               = 5cm,
+         position            = {(0,-1)},
+         author              = {}}
+  \pgfqkeys{/calloutquote}{#1}                   
+  \node [rectangle callout,callout relative pointer={\calloutquotepos},text width=\calloutquotewidth,/calloutquote/.cd,
+     #1] (tmpcall) at (0,0) {#2};
+  \node at (tmpcall.pointer){\calloutquoteauthor};    
+}  
 
 %% make TeX use text italic font in math environments
 \makeatletter
@@ -133,6 +182,7 @@
   \setbeamertemplate{navigation symbols}{}
   \setbeamertemplate{caption}[numbered]
 } 
+\setbeamertemplate{footline}[frame number]
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
@@ -146,6 +196,7 @@ Distributed Algorithms}
 
 
 %\date{6th July 2020}
+
 
 \begin{document}
 
@@ -162,7 +213,7 @@ Distributed Algorithms}
 
 \begin{frame}{Introduction}
 
-\begin{block}{Formal methods for distributed algorithms}
+\begin{block}{Formal Specification Languages}
 \begin{itemize}
 
   \item Algorithms modeled using \tlaplus can be formally verified using the \tlaplus Toolbox
@@ -177,17 +228,142 @@ Distributed Algorithms}
 
 \begin{frame}[fragile]{Distributed PlusCal Algorithms}
 
+\begin{block}{Motivation}
+An extension of PlusCal with a syntax that offers constructs for modeling distributed algorithms naturally
+\end{block}
+
+\begin{block}{Features}
 \begin{itemize}
-  \item An extension of PlusCal offering constructs for modeling distributed algorithms 
-  \item Can be translated into a TLA+ specification
   \item Introduces
   \begin{itemize} 
         \item Sub-processes
         \item Communication channels
     \end{itemize}
+  \item Can be translated into a TLA+ specification
 \end{itemize}
-
+\end{block}
 \end{frame}
+
+\begin{frame}[fragile]{Comparison through Lamport Mutex Algorithm}
+
+\begin{block}{Lamport Mutex Algorithm}
+\begin{itemize}
+  \item An algorithm for Mutual Exclusion in Distributed Systems
+  \item Critical section requests are ordered based on timestamps
+  \item Processes exchange 3 types of messages
+  \begin{itemize} 
+        \item Request
+        \item Acknowledge
+        \item Release
+    \end{itemize}
+   \item Processes need to asynchronously receive messages from each other
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+\begin{exampleblock}{Lamport Mutex Example - PlusCal}
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+(**--algorithm LamportMutex {
+variables
+(* FIFO message passing between pairs of nodes *)
+network = [p,q \in Proc |-> << >>],
+
+process (proc \in Proc) {
+ ncs: while (TRUE) {
+      \* non-critical section
+ try: \* multicast a message requesting access to cs
+ enter: \* wait for acknowledgements 
+ cs: \* critical section
+ exit: \* multicast the release message
+ } \* end while
+} \* end process
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+        \begin{exampleblock}{Lamport Mutex Example - PlusCal}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+process (comm \in Comm) {
+ rcv: while (TRUE) {
+       with (prc = node(self),
+         ...) {
+        \* handle request, acknowledge and release messages
+       }
+     } \* end while
+} \* end process
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+\begin{exampleblock}{Lamport Mutex Example - PlusCal}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+process (comm \in Comm) {
+ rcv: while (TRUE) {
+       with (prc = node(self)<@
+       \begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){Proc == 1 .. N \\
+        Comm == N+1..N+N \\
+        node(c) == c - N};
+        \end{tikzpicture}
+       @>,
+         ...) {
+         \* handle request, acknowledge and release messages
+       }
+     } \* end while
+} \* end process
+**)
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}[fragile]{Lamport Mutex in Distributed PlusCal}
+\begin{exampleblock}{Lamport Mutex Example - Distributed PlusCal}
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+fifos network[Proc, Proc];
+process(p \in Proc)
+     variables ..
+{                    <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=3cm]pic cs:aux){sub-process executing\\ the main algorithm};
+        \end{tikzpicture}
+       @>
+     ncs: \*non-critical section
+     .. 
+     exit: \* multicast the
+           \* release message 
+}  {
+                                <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){message handling \\ sub-process};
+        \end{tikzpicture}
+       @>
+    rcv: \* receive msg from channel
+    handle: \* handle request, acknowledge and release messages
+} \* end message handling thread
+**)
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Comparison in terms of communication channels}
+        \begin{exampleblock}{PlusCal}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+network = [p,q \in Proc |-> <@$\seq{}$@>]
+macro mcast(p, msg) {
+ network := [s,d \in Proc |-> IF s = p /\ d # p THEN Append(network[s,d], msg) ELSE network[s,d]]
+}
+mcast(self, Request(clock));\end{lstlisting}
+    \end{exampleblock}
+        \begin{exampleblock}{Distributed PlusCal}
+            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+fifos network[Proc, Proc];
+multicast(network, [self, p \in Proc |-> Request(clock)]);
+            \end{lstlisting}
+        \end{exampleblock}
+\end{frame}
+
 
 
 \begin{frame}[fragile]{General Structure of an algorithm}
@@ -210,7 +386,7 @@ process (<name> [=|\in] <Expr>))
 
 \subsection{Communication Channels}
 
-\begin{frame}[fragile]{Communication Channels}
+\begin{frame}[fragile]{Communication Channel Translation}
     \begin{itemize}
         \item Classified by the way they handle the addition and removal of messages 
             \begin{itemize}
@@ -229,7 +405,7 @@ process (<name> [=|\in] <Expr>))
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Unordered Channels}
+\begin{frame}[fragile]{Unordered Channels Translation}
     \begin{itemize}
         \item \keyword{channel} or \keyword{channels}, as shown below.
         \[
@@ -238,19 +414,20 @@ process (<name> [=|\in] <Expr>))
          \item based on \tlaplus sets
      \item Operator translation to \tlaplus
             \begin{itemize}
-                \item \verb|send(ch, el)| $\triangleq$
-                \verb|chan' = chan \cup {el}| 
+                \item \verb|send(chan[e], msg)| $\triangleq$
+                \verb|chan' = [chan EXCEPT ![e] = chan[e] \cup {msg}]| 
                 \newline
-                \item \verb|receive(chan, var)| $\triangleq$
-                      \verb|\E e \in chan:| \newline \tab\tab\tab\tab
-                         \verb|  /\ var' = e|\newline \tab\tab\tab\tab
-                         \verb|  /\ chan' =  chan \ {e}|
+                \item \verb|receive(chan[e], var)| $\triangleq$
+                      \verb|\E temp \in chan[e]:| \newline \tab\tab\tab\tab
+                         \verb|  /\ var' = temp|\newline \tab\tab\tab\tab
+                         \verb|  /\ chan' = [chan EXCEPT ![e]|
+                         \tab\tab\tab\tab\tab\tab\verb|   = chan[e] \ {temp}]|
             \end{itemize}
 
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{FIFO Channels}
+\begin{frame}[fragile]{FIFO Channels Translation}
     \begin{itemize}
         \item \keyword{fifo} or \keyword{fifos}, as shown below.
         \[
@@ -260,153 +437,54 @@ process (<name> [=|\in] <Expr>))
      \item Operator translation to \tlaplus
 
             \begin{itemize}
-                \item \verb|send(ch, el)| $\triangleq$
-                \verb|chan' = Append(chan, el)| 
+                \item \verb|send(chan[e], msg)| $\triangleq$
+                \verb|chan' = [chan EXCEPT ![e] = Append(@, msg)]| 
                 \newline
-                \item \verb|receive(chan, var)| $\triangleq$
-                      \verb| /\ Len(chan) > 0 | \newline \tab\tab\tab\tab
-                         \verb|/\ var' = [Head(chan)]|\newline \tab\tab\tab\tab
-                         \verb|/\ chan' =  Tail(chan)|
+                \item \verb|receive(chan[e], var)| $\triangleq$
+                      \verb| /\ Len(chan[e]) > 0 | \newline \tab\tab\tab\tab
+                         \verb|/\ var' = [Head(chan[e])]|\newline \tab\tab\tab\tab
+                         \verb|/\ chan' = [chan EXCEPT ![e]|
+                         \tab\tab\tab\tab\tab\tab\verb| = Tail(@) ]|
             \end{itemize}
     \end{itemize}
 \end{frame}
 
 \subsection{Sub-Processes}
 
-\begin{frame}[fragile]{Sub-Processes}
+\begin{frame}[fragile]{Sub-Processes Translation}
     \begin{itemize}
-     \item Enables the process to execute multiple tasks in parallel.
-     \item Each sub-process consists of labeled statements.
-     \item The special variable pc was modified to have the following definition
+     \item The special variable $pc$ was modified to have be initialized as 
 
 \[
 pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
 \]	
-    where \verb|ProcSet| is a set that contains all the process identifiers, and the labels that appear in the sequence are the entry point actions for each sub-process.
+
+    where \verb|IdSet| is a collection that contains process identifiers, and the labels that appear in the sequence are the entry point actions for each sub-process
 
     \end{itemize}
 \end{frame}
 
-\section{Example}
-\begin{frame}[fragile]{Distributed PlusCal Example}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- process(n \in Nodes)
-     variables clock = 0, req = [n \in Nodes |-> 0],
-               ack = {}, sndr, msg;
-   { \* thread executing the main algorithm
-ncs: while (<@\textcolor{blue}{TRUE}@>) {
-       skip;  \* non-critical section
-try:   clock := clock + 1; req[self] := clock; ack := {self};
-       multicast(network, [self, nd \in Nodes |-> Request(clock)]);
-enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
-cs:    skip;  \* critical section
-exit:  clock := clock + 1;
-       multicast(network, [self, n \in Nodes \ {self} |->
-                           Release(clock)]);
-     } \* end while
-  } 
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]{Translation to TLA+}
+\begin{frame}[fragile]{Translation to \tlaplus}
  \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
  exit:  
     clock := clock + 1;
-    multicast(network, [self, n \in Nodes \ {self} |->
+    multicast(network, [self, p \in Proc \ {self} |->
                               Release(clock)]);
 \end{lstlisting}
 
 
 \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
 exit(self) == 
-    @/\ pc[self] [1] = "exit"@
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]{Translation to TLA+}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- exit:  
-    @clock := clock + 1;}@
-    multicast(network, [self, n \in Nodes \ {self} |->
-                              Release(clock)]);
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
-exit(self) == 
-    /\ pc[self] [1] = "exit"
-    @/\ clock' = [clock EXCEPT ![self] = clock[self] + 1]}@
-\end{lstlisting}
-\end{frame}
-
-
-\begin{frame}[fragile]{Translation to TLA+}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- exit:  
-    clock := clock + 1;}
-    @multicast(network, [self, n \in Nodes \ {self} |->                 Release(clock)]);@
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
-exit(self) == 
-    /\ pc[self] [1] = "exit"
+    /\ pc[self]%[1]% = "exit"
     /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
-    @/\ network' = [<<slf, n>> \in DOMAIN network |->
-        IF
-            slf = self /\ n \in Nodes \ { self } 
-        THEN
-            Append(network[slf, n], Release(clock'[self])) 
-        ELSE
-            network[slf, n]]@
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]{Translation to TLA+}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- exit:  
-    clock := clock + 1;
-    multicast(network, [self, n \in Nodes \ {self} |->
-                              Release(clock)]);
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
-exit(self) == 
-    /\ pc[self] [1] = "exit"
-    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
-    /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+    %/\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
         <@\textcolor{violet}{IF}@> 
-            slf = self /\ n \in Nodes \ { self } 
+            slf = self /\ p \in Proc \ { self } 
         <@\textcolor{violet}{THEN}@> 
-            Append(network[slf, n], Release(clock'[self])) 
+            Append(network[slf, p], Release(clock'[self])) 
         <@\textcolor{violet}{ELSE}@>
-            network[slf, n]]
-    @/\ pc' = [pc EXCEPT ![self][1] = "ncs"]@
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]{Translation to TLA+}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- exit:  
-    clock := clock + 1;
-    multicast(network, [self, n \in Nodes \ {self} |->
-                              Release(clock)]);
-\end{lstlisting}
-
-
-\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
-exit(self) == 
-    /\ pc[self] [1] = "exit"
-    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
-    /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
-        <@\textcolor{violet}{IF}@> 
-            slf = self /\ n \in Nodes \ { self } 
-        <@\textcolor{violet}{THEN}@> 
-            Append(network[slf, n], Release(clock'[self])) 
-        <@\textcolor{violet}{ELSE}@>
-            network[slf, n]]
-    /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = "ncs"]
+            network[slf, p]]%
+    /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self]%[1]% = "ncs"]
     /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
 \end{lstlisting}
 \end{frame}
