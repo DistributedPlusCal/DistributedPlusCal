@@ -265,10 +265,10 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \begin{exampleblock}{Lamport Mutex Example - PlusCal}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 (**--algorithm LamportMutex {
-variables
-(* FIFO message passing between pairs of nodes *)
-network = [p,q \in Proc |-> << >>],
-
+                    <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0cm,xshift=4cm]pic cs:aux){Process executing\\ the main algorithm};
+        \end{tikzpicture}
+       @>
 process (proc \in Proc) {
  ncs: while (TRUE) {
       \* non-critical section
@@ -285,7 +285,12 @@ process (proc \in Proc) {
 \begin{frame}[fragile]{Process modelisation (in Distributed PlusCal)}
         \begin{exampleblock}{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-process (comm \in Comm) {
+        
+process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0.5cm,xshift=2cm]pic cs:aux){Process handling\\ messages};
+        \end{tikzpicture}
+       @>
+                    
  rcv: while (TRUE) {
        with (prc = node(self),
          ...) {
@@ -340,7 +345,7 @@ process(p \in Proc)
         \end{tikzpicture}
        @>
     rcv: \* receive msg from channel
-    handle: \* handle request, acknowledge and release messages
+         \* handle request, acknowledge and release messages
 } \* end message handling thread
 **)
 \end{lstlisting}
@@ -348,20 +353,51 @@ process(p \in Proc)
 \end{frame}
 
 \begin{frame}[fragile]{Channels modelisation}
-        \begin{exampleblock}{PlusCal}
+
+\begin{columns}
+\begin{column}{0.52\textwidth}
+\begin{exampleblock}{Declaration (in PlusCal)}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-network = [p,q \in Proc |-> <@$\seq{}$@>] \* Variable Definition
-macro mcast(p, msg) {\* Macro Definition
+network=[p,q \in Proc |-> <@$\seq{}$@>] 
+\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+
+\begin{column}{0.57\textwidth}
+\begin{exampleblock}{Declaration (in Distrbuted PlusCal)}
+ \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+fifos network[Proc, Proc];\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+\end{columns}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+\begin{exampleblock}{Operation (in PlusCal)}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+macro mcast(p, msg) {
  network := [s,d \in Proc |-> IF s = p /\ d # p THEN Append(network[s,d], msg) ELSE network[s,d]]
 }
-mcast(self, Request(clock));\* Macro Call\end{lstlisting}
-    \end{exampleblock}
-        \begin{exampleblock}{Distributed PlusCal}
-            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-fifos network[Proc, Proc]; \* Channel Definition
-\* Channel Operation
-multicast(network, [self, p \in Proc |-> Request(clock)]);            \end{lstlisting}
-        \end{exampleblock}
+mcast(self, Request(clock));l\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+
+\begin{column}{0.57\textwidth}
+\begin{exampleblock}{Operation (in Distrbuted PlusCal)}
+ \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+ \*  the 1st argument is the channel name and the 2nd is a TLA+ expression that specifies the message and the intended recipients
+ 
+multicast(network, [self, p \in Proc |-> Request(clock)]);
+
+\end{lstlisting}
+\newline
+
+\end{exampleblock}
+\end{column}
+\end{columns}
 \end{frame}
 
 
