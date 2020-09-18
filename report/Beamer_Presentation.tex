@@ -244,7 +244,7 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \end{block}
 \end{frame}
 
-\begin{frame}[fragile]{Comparison through Lamport Mutex Algorithm}
+\begin{frame}[fragile]{Motivating example}
 
 \begin{block}{Lamport Mutex Algorithm}
 \begin{itemize}
@@ -261,7 +261,7 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \end{block}
 \end{frame}
 
-\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+\begin{frame}[fragile]{Process modelisation (in PlusCal)}
 \begin{exampleblock}{Lamport Mutex Example - PlusCal}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 (**--algorithm LamportMutex {
@@ -282,7 +282,7 @@ process (proc \in Proc) {
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+\begin{frame}[fragile]{Process modelisation (in Distributed PlusCal)}
         \begin{exampleblock}{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {
@@ -297,7 +297,7 @@ process (comm \in Comm) {
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Lamport Mutex in PlusCal}
+\begin{frame}[fragile]{Process modelisation (in Distributed PlusCal)}
 \begin{exampleblock}{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {
@@ -347,20 +347,20 @@ process(p \in Proc)
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Comparison in terms of communication channels}
+\begin{frame}[fragile]{Channels modelisation}
         \begin{exampleblock}{PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-network = [p,q \in Proc |-> <@$\seq{}$@>]
-macro mcast(p, msg) {
+network = [p,q \in Proc |-> <@$\seq{}$@>] \* Variable Definition
+macro mcast(p, msg) {\* Macro Definition
  network := [s,d \in Proc |-> IF s = p /\ d # p THEN Append(network[s,d], msg) ELSE network[s,d]]
 }
-mcast(self, Request(clock));\end{lstlisting}
+mcast(self, Request(clock));\* Macro Call\end{lstlisting}
     \end{exampleblock}
         \begin{exampleblock}{Distributed PlusCal}
             \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-fifos network[Proc, Proc];
-multicast(network, [self, p \in Proc |-> Request(clock)]);
-            \end{lstlisting}
+fifos network[Proc, Proc]; \* Channel Definition
+\* Channel Operation
+multicast(network, [self, p \in Proc |-> Request(clock)]);            \end{lstlisting}
         \end{exampleblock}
 \end{frame}
 
@@ -371,13 +371,13 @@ multicast(network, [self, p \in Proc |-> Request(clock)]);
 (* --algorithm <<@\textcolor{black}{algorithm}@> name>
 (* Declaration section *)
 variables <variable declarations>
-<@\textcolor{blue}{channels}@> <channel declarations>
-<@\textcolor{blue}{fifos}@> <fifo declarations>
+channels <channel declarations>
+fifos <fifo declarations>
 (* ... *)
 (* Processes section *)
 process (<name> [=|\in] <Expr>))
   variables <variable declarations>
-  <@\textcolor{blue}{<subprocesses>}@>
+  <subprocesses>
 *)
 \end{lstlisting}
 \end{frame}
@@ -386,13 +386,8 @@ process (<name> [=|\in] <Expr>))
 
 \subsection{Communication Channels}
 
-\begin{frame}[fragile]{Communication Channel Translation}
+\begin{frame}[fragile]{Operation on channels}
     \begin{itemize}
-        \item Classified by the way they handle the addition and removal of messages 
-            \begin{itemize}
-                \item Unordered channels 
-                \item FIFO channels 
-            \end{itemize}
      \item Supported operators 
             \begin{itemize}
                 \item \verb|send(ch, el)|
@@ -406,36 +401,35 @@ process (<name> [=|\in] <Expr>))
 \end{frame}
 
 \begin{frame}[fragile]{Unordered Channels Translation}
-    \begin{itemize}
-        \item \keyword{channel} or \keyword{channels}, as shown below.
         \[
             \keyword{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
         \]
-         \item based on \tlaplus sets
-     \item Operator translation to \tlaplus
-            \begin{itemize}
-                \item \verb|send(chan[e], msg)| $\triangleq$
-                \verb|chan' = [chan EXCEPT ![e] = chan[e] \cup {msg}]| 
-                \newline
-                \item \verb|receive(chan[e], var)| $\triangleq$
-                      \verb|\E temp \in chan[e]:| \newline \tab\tab\tab\tab
-                         \verb|  /\ var' = temp|\newline \tab\tab\tab\tab
-                         \verb|  /\ chan' = [chan EXCEPT ![e]|
-                         \tab\tab\tab\tab\tab\tab\verb|   = chan[e] \ {temp}]|
-            \end{itemize}
+    \begin{itemize}
+
+     \item Translation based on \tlaplus sets
+     \newline
+        \begin{itemize}
+            \item \verb|send(chan[e], msg)| $\triangleq$
+            \verb|chan' = [chan EXCEPT ![e] = chan[e] \cup {msg}]| 
+            \newline
+            \item \verb|receive(chan[e], var)| $\triangleq$
+                  \verb|\E temp \in chan[e]:| \newline \tab\tab\tab\tab
+                     \verb|  /\ var' = temp|\newline \tab\tab\tab\tab
+                     \verb|  /\ chan' = [chan EXCEPT ![e]|
+                     \tab\tab\tab\tab\tab\tab\verb|   = chan[e] \ {temp}]|
+        \end{itemize}
 
     \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{FIFO Channels Translation}
-    \begin{itemize}
-        \item \keyword{fifo} or \keyword{fifos}, as shown below.
+
         \[
             \keyword{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
         \]
-         \item based on \tlaplus sequences
-     \item Operator translation to \tlaplus
-
+    \begin{itemize}    
+     \item Translation based on \tlaplus sequences
+     \newline
             \begin{itemize}
                 \item \verb|send(chan[e], msg)| $\triangleq$
                 \verb|chan' = [chan EXCEPT ![e] = Append(@, msg)]| 
@@ -449,11 +443,11 @@ process (<name> [=|\in] <Expr>))
     \end{itemize}
 \end{frame}
 
-\subsection{Sub-Processes}
+\subsection{Program counter}
 
-\begin{frame}[fragile]{Sub-Processes Translation}
+\begin{frame}[fragile]{Program counter}
     \begin{itemize}
-     \item The special variable $pc$ was modified to have be initialized as 
+     \item The special variable $pc$ was modified to take into account sub-processes
 
 \[
 pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
@@ -494,11 +488,13 @@ exit(self) ==
 \begin{frame}{Contributions and future work}
 \begin{block}{Contributions}
 \begin{itemize}
-    \item An extension of PlusCal called Distributed PlusCal
-    \item Distributed PlusCal offers constructs that are designed for modeling distributed algorithms
+    \item An extension of PlusCal offering the possibility to define
+        \begin{itemize}
+            \item Sub-Processes
+            \item Communication Channels
+        \end{itemize}
 
-    \item A backward compatible translator that translates from Distributed PlusCal and PlusCal  to TLA+
-
+    \item A backward compatible translator to \tlaplus
 
 \end{itemize}
 \end{block}
