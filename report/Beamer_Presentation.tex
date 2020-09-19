@@ -261,9 +261,12 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \end{block}
 \end{frame}
 
-\begin{frame}[fragile]{Process modelisation (in PlusCal)}
+\begin{frame}[fragile]{Process model (in PlusCal)}
 \begin{exampleblock}{Lamport Mutex Example - PlusCal}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+\* Variables must be declared globally to be used by the inter-playing processes representing this algorithm
+variables network, clock ...
+
 (**--algorithm LamportMutex {
                     <@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0cm,xshift=4cm]pic cs:aux){Process executing\\ the main algorithm};
@@ -282,10 +285,9 @@ process (proc \in Proc) {
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Process modelisation (in Distributed PlusCal)}
+\begin{frame}[fragile]{Process model (in PlusCal)}
         \begin{exampleblock}{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-        
 process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0.5cm,xshift=2cm]pic cs:aux){Process handling\\ messages};
         \end{tikzpicture}
@@ -302,7 +304,7 @@ process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Process modelisation (in Distributed PlusCal)}
+\begin{frame}[fragile]{Process model (in PlusCal)}
 \begin{exampleblock}{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {
@@ -352,7 +354,7 @@ process(p \in Proc)
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Channels modelisation}
+\begin{frame}[fragile]{Modeling channels}
 
 \begin{columns}
 \begin{column}{0.52\textwidth}
@@ -378,9 +380,12 @@ fifos network[Proc, Proc];\end{lstlisting}
 \begin{exampleblock}{Operation (in PlusCal)}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 macro mcast(p, msg) {
- network := [s,d \in Proc |-> IF s = p /\ d # p THEN Append(network[s,d], msg) ELSE network[s,d]]
+ network := [s,d \in Proc |-> 
+ <@\textcolor{violet}{IF}@> s = p /\ d # p 
+ <@\textcolor{violet}{THEN}@> Append(network[s,d], msg) 
+ <@\textcolor{violet}{ELSE}@> network[s,d]]
 }
-mcast(self, Request(clock));l\end{lstlisting}
+mcast(self, Request(clock));\end{lstlisting}
 \end{exampleblock}
 \end{column}
 \pause
@@ -422,7 +427,7 @@ process (<name> [=|\in] <Expr>))
 
 \subsection{Communication Channels}
 
-\begin{frame}[fragile]{Operation on channels}
+\begin{frame}[fragile]{Operations on channels}
     \begin{itemize}
      \item Supported operators 
             \begin{itemize}
@@ -436,7 +441,7 @@ process (<name> [=|\in] <Expr>))
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Unordered Channels Translation}
+\begin{frame}[fragile]{Translation of Unordered Channels}
         \[
             \keyword{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
         \]
@@ -448,17 +453,16 @@ process (<name> [=|\in] <Expr>))
             \item \verb|send(chan[e], msg)| $\triangleq$
             \verb|chan' = [chan EXCEPT ![e] = chan[e] \cup {msg}]| 
             \newline
-            \item \verb|receive(chan[e], var)| $\triangleq$
-                  \verb|\E temp \in chan[e]:| \newline \tab\tab\tab\tab
-                     \verb|  /\ var' = temp|\newline \tab\tab\tab\tab
-                     \verb|  /\ chan' = [chan EXCEPT ![e]|
-                     \tab\tab\tab\tab\tab\tab\verb|   = chan[e] \ {temp}]|
+            \item \verb|receive(chan[e], var)| $\triangleq$\newline
+                  \verb|\E temp \in chan[e]:| \newline 
+                  \verb|   /\ var' = temp|\newline 
+                  \verb|   /\ chan' = [chan EXCEPT ![e] = chan[e] \ {temp}]|
         \end{itemize}
 
     \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{FIFO Channels Translation}
+\begin{frame}[fragile]{Translation of FIFO Channels}
 
         \[
             \keyword{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
@@ -470,11 +474,10 @@ process (<name> [=|\in] <Expr>))
                 \item \verb|send(chan[e], msg)| $\triangleq$
                 \verb|chan' = [chan EXCEPT ![e] = Append(@, msg)]| 
                 \newline
-                \item \verb|receive(chan[e], var)| $\triangleq$
-                      \verb| /\ Len(chan[e]) > 0 | \newline \tab\tab\tab\tab
-                         \verb|/\ var' = [Head(chan[e])]|\newline \tab\tab\tab\tab
-                         \verb|/\ chan' = [chan EXCEPT ![e]|
-                         \tab\tab\tab\tab\tab\tab\verb| = Tail(@) ]|
+                \item \verb|receive(chan[e], var)| $\triangleq$\newline
+                      \verb|/\ Len(chan[e]) > 0 | \newline
+                      \verb|/\ var' = [Head(chan[e])]|\newline 
+                      \verb|/\ chan' = [chan EXCEPT ![e]= Tail(@)]|
             \end{itemize}
     \end{itemize}
 \end{frame}
@@ -483,15 +486,21 @@ process (<name> [=|\in] <Expr>))
 
 \begin{frame}[fragile]{Program counter}
     \begin{itemize}
-     \item The special variable $pc$ was modified to take into account sub-processes
+     \item The variable $pc$ is indexed by processes and sub-processes
 
-\[
-pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
-\]	
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+pc = [self \in ProcSet|->
+                    <@\textcolor{violet}{IF}@> self \in P_1 
+                    <@\textcolor{violet}{THEN}@> << lbl_{11}, lbl_{12}, ...>>
+                    <@\textcolor{violet}{IF}@> IF ...]
+                    
+                    
+\end{lstlisting}
+	
 
-    where \verb|IdSet| is a collection that contains process identifiers, and the labels that appear in the sequence are the entry point actions for each sub-process
+where the $lbl_{ij}$ are the entry labels of the subprocesses of the process type $P_i$.
 
-    \end{itemize}
+\end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Translation to \tlaplus}
@@ -507,7 +516,7 @@ pc = [self \in ProcSet \mapsto [self \in IdSet \mapsto \seq{"lbl",\dots}]]
 exit(self) == 
     /\ pc[self]%[1]% = "exit"
     /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
-    %/\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+    %/\ network' = [<<slf, p>> \in <@\textcolor{violet}{DOMAIN}@> network |->
         <@\textcolor{violet}{IF}@> 
             slf = self /\ p \in Proc \ { self } 
         <@\textcolor{violet}{THEN}@> 
