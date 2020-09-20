@@ -393,7 +393,7 @@ mcast(self, Request(clock));\end{lstlisting}
 \begin{column}{0.57\textwidth}
 \begin{exampleblock}{Operation (in Distrbuted PlusCal)}
  \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
- \*  the 1st argument is the channel name and the 2nd is a TLA+ expression that specifies the message and the intended recipients
+ \* the 1st argument is the channel name and the 2nd is a TLA+ expression that specifies the message and the intended recipients
  
 multicast(network, [self, p \in Proc |-> Request(clock)]);
 
@@ -437,7 +437,7 @@ process (<name> [=|\in] <Expr>))
                 \item \verb|multicast(ch, [x \in S \mapsto e(x)]|
                 \item \verb|clear(ch)|
             \end{itemize}
-
+     %\item Operators get their definitions from a Standard \tlaplus module
     \end{itemize}
 \end{frame}
 
@@ -544,7 +544,11 @@ exit(self) ==
 \end{itemize}
 \end{block}
 \begin{block}{Future Work}
-In the future we aim to introduce more types of communication channels and channel operators.
+\begin{itemize}
+    \item We aim to introduce more types of communication channels
+    \item We're working on defining a Standard \tlaplus Module to contain the common channel operators
+\end{itemize}
+
 \end{block}
 
 \end{frame}
