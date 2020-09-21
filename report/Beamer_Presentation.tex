@@ -11,11 +11,15 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{tikz}
-\usetikzlibrary{calc,shapes.callouts,shapes.arrows}
+\usepackage[usestackEOL]{stackengine}
+\usepackage{xparse}
+\usetikzlibrary{calc,shapes.callouts,shapes.arrows,decorations.pathreplacing}
 
 \usepackage{color}
 \usepackage[T1]{fontenc}
 \usepackage{pcallst}
+\usepackage{stackengine}
+\parskip 1em
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -40,6 +44,28 @@
   morecomment=[l]{\\*},
   morekeywords={}
 }
+
+\newcommand{\tikzmark}[1]{%
+  \tikz[overlay,remember picture,baseline] \node [anchor=base] (#1) {};}
+\newcommand*{\BracektStubSize}{0.5em}%
+\NewDocumentCommand\LeftBracket{%
+    O{}% #1 = draw options
+    O{0pt}% #2 = shift to be applied (optional, for use with nested braces)
+    m% #3 = top \tikzmark name
+    m% #4 = bottom \tikzmark name
+    m% #5 = node text
+}{%
+    \begin{tikzpicture}[overlay,remember picture,baseline]
+        \coordinate (Top Start of Bracket) at ([shift={(#2-5pt,5pt)}]#3.north east);
+        \coordinate (Bottom Start of Bracket) at ([shift={(#2-5pt,2pt)}]#4.south east);
+        \draw[thick, #1, dkgreen, line width=0.6mm] 
+            (Top Start of Bracket) --++(-\BracektStubSize,0) 
+                |-(Bottom Start of Bracket) ;
+
+        \node[xshift=18pt, align=center, anchor=east, #1, color=black]
+            at ($(Bottom Start of Bracket)!0.5!(Top Start of Bracket)$) {#5};
+    \end{tikzpicture}    
+}  
 
 \newcommand\tab[1][1cm]{\hspace*{#1}}
 \renewcommand{\floatpagefraction}{.99}
@@ -190,15 +216,12 @@
 
 \title[Your Short Title]{An Extension of PlusCal for Modeling
 Distributed Algorithms}
-%\subtitle{Master of Computer Science - MFLS}
 \institute{University of Lorraine, CNRS, Inria, Nancy, France}
 \author[]{Heba Alkayed, Horatiu Cirstea, Stephan Merz}
 
-
-%\date{6th July 2020}
-
-
 \begin{document}
+
+\setstackgap{L}{9pt}
 
 \begin{frame}
   \titlepage
@@ -262,7 +285,7 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \end{frame}
 
 \begin{frame}[fragile]{Algorithm in PlusCal: main process}
-\begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
+\begin{exampleblock}{}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 \* Variables must be declared globally to be used by the inter-playing processes representing this algorithm
 variables network, clock ...
@@ -286,7 +309,7 @@ process (proc \in Proc) {
 \end{frame}
 
 \begin{frame}[fragile]{Algorithm in PlusCal: helper process}
-        \begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
+        \begin{exampleblock}{}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0.5cm,xshift=2cm]pic cs:aux){Process handling\\ messages};
@@ -304,7 +327,7 @@ process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
 \end{frame}
 
 \begin{frame}[fragile]{Algorithm in PlusCal: helper process}
-\begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
+\begin{exampleblock}{}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {
  rcv: while (TRUE) {
@@ -326,7 +349,7 @@ process (comm \in Comm) {
 
 
 \begin{frame}[fragile]{Lamport Mutex in Distributed PlusCal}
-\begin{exampleblock}{} %{Lamport Mutex Example - Distributed PlusCal}
+\begin{exampleblock}{} 
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 fifos network[Proc, Proc];
 process(p \in Proc)
@@ -436,7 +459,6 @@ process (<name> [= | \in] <Expr>))
                 \item \verb|multicast(ch, [x \in S \mapsto e(x)]|
                 \item \verb|clear(ch)|
             \end{itemize}
-     %\item Operators get their definitions from a Standard \tlaplus module
     \end{itemize}
 \end{frame}
 
@@ -506,25 +528,25 @@ where the $lbl_{ij}$ are the entry labels of the subprocesses of the process typ
 \end{frame}
 
 \begin{frame}[fragile]{Translation to \tlaplus}
- \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
- exit:  
-    clock := clock + 1;
-    multicast(network, [self, p \in Proc \ {self} |->
-                              Release(clock)]);
-\end{lstlisting}
-
 
 \begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit: clock := clock + 1;
+        multicast(network, [self, p \in Proc \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
 exit(self) == 
-    /\ pc[self]%[1]% = "exit"
+    /\ pc[self][1] = "exit"
     /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
-    %/\ network' = [<<slf, p>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+    <@\tikzmark{Mark A}@>/\ network' = [<<slf, p>> \in <@\textcolor{violet}{DOMAIN}@> network |->
         <@\textcolor{violet}{IF}@> 
             slf = self /\ p \in Proc \ { self } 
         <@\textcolor{violet}{THEN}@> 
             Append(network[slf, p], Release(clock'[self])) 
         <@\textcolor{violet}{ELSE}@>
-            network[slf, p]]%
+            network[slf, p]]
+    <@\tikzmark{End A}
+    \LeftBracket[black][0pt]{Mark A}{End A}{\Centerstack{Multicast \\ Translation}}@>
     /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self]%[1]% = "ncs"]
     /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
 \end{lstlisting}
@@ -549,7 +571,6 @@ exit(self) ==
 \begin{itemize}
     \item Introduce more types of communication channels
     \item Consider defining channel operations in a \tlaplus module
-%    \item We're working on defining a Standard \tlaplus Module to contain the common channel operators
 \end{itemize}
 
 \end{block}
