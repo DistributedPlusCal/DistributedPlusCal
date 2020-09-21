@@ -246,7 +246,7 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 
 \begin{frame}[fragile]{Motivating example}
 
-\begin{block}{Lamport Mutex Algorithm}
+\begin{block}{Lamport's Mutex Algorithm}
 \begin{itemize}
   \item An algorithm for Mutual Exclusion in Distributed Systems
   \item Critical section requests are ordered based on timestamps
@@ -256,13 +256,13 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
         \item Acknowledge
         \item Release
     \end{itemize}
-   \item Processes need to asynchronously receive messages from each other
+   \item Processes asynchronously receive messages from each other
 \end{itemize}
 \end{block}
 \end{frame}
 
-\begin{frame}[fragile]{Process model (in PlusCal)}
-\begin{exampleblock}{Lamport Mutex Example - PlusCal}
+\begin{frame}[fragile]{Algorithm in PlusCal: main process}
+\begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 \* Variables must be declared globally to be used by the inter-playing processes representing this algorithm
 variables network, clock ...
@@ -285,8 +285,8 @@ process (proc \in Proc) {
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Process model (in PlusCal)}
-        \begin{exampleblock}{Lamport Mutex Example - PlusCal}
+\begin{frame}[fragile]{Algorithm in PlusCal: helper process}
+        \begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0.5cm,xshift=2cm]pic cs:aux){Process handling\\ messages};
@@ -294,9 +294,8 @@ process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
        @>
                     
  rcv: while (TRUE) {
-       with (prc = node(self),
-         ...) {
-        \* handle request, acknowledge and release messages
+       with (prc = node(self), ...) {
+        \* handle request, ack and release messages
        }
      } \* end while
 } \* end process
@@ -304,8 +303,8 @@ process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
 \end{exampleblock}
 \end{frame}
 
-\begin{frame}[fragile]{Process model (in PlusCal)}
-\begin{exampleblock}{Lamport Mutex Example - PlusCal}
+\begin{frame}[fragile]{Algorithm in PlusCal: helper process}
+\begin{exampleblock}{} %{Lamport Mutex Example - PlusCal}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 process (comm \in Comm) {
  rcv: while (TRUE) {
@@ -315,9 +314,8 @@ process (comm \in Comm) {
         Comm == N+1..N+N \\
         node(c) == c - N};
         \end{tikzpicture}
-       @>,
-         ...) {
-         \* handle request, acknowledge and release messages
+       @>, ...) {
+         \* handle request, ack and release messages
        }
      } \* end while
 } \* end process
@@ -328,7 +326,7 @@ process (comm \in Comm) {
 
 
 \begin{frame}[fragile]{Lamport Mutex in Distributed PlusCal}
-\begin{exampleblock}{Lamport Mutex Example - Distributed PlusCal}
+\begin{exampleblock}{} %{Lamport Mutex Example - Distributed PlusCal}
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 fifos network[Proc, Proc];
 process(p \in Proc)
@@ -341,13 +339,12 @@ process(p \in Proc)
      .. 
      exit: \* multicast the
            \* release message 
-}  {
-                                <@\begin{tikzpicture}[overlay, remember picture]
+}  {                            <@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){message handling \\ sub-process};
         \end{tikzpicture}
        @>
     rcv: \* receive msg from channel
-         \* handle request, acknowledge and release messages
+         \* handle request, ack and release messages
 } \* end message handling thread
 **)
 \end{lstlisting}
@@ -367,7 +364,7 @@ network=[p,q \in Proc |-> <@$\seq{}$@>]
 \pause
 
 \begin{column}{0.57\textwidth}
-\begin{exampleblock}{Declaration (in Distrbuted PlusCal)}
+\begin{exampleblock}{Declaration (in Distributed PlusCal)}
  \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 fifos network[Proc, Proc];\end{lstlisting}
 \end{exampleblock}
@@ -376,13 +373,13 @@ fifos network[Proc, Proc];\end{lstlisting}
 \end{columns}
 
 \begin{columns}
-\begin{column}{0.5\textwidth}
+\begin{column}{0.52\textwidth}
 \begin{exampleblock}{Operation (in PlusCal)}
         \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
-macro mcast(p, msg) {
+macro mcast(p, m) {
  network := [s,d \in Proc |-> 
  <@\textcolor{violet}{IF}@> s = p /\ d # p 
- <@\textcolor{violet}{THEN}@> Append(network[s,d], msg) 
+ <@\textcolor{violet}{THEN}@> Append(network[s,d], m) 
  <@\textcolor{violet}{ELSE}@> network[s,d]]
 }
 mcast(self, Request(clock));\end{lstlisting}
@@ -391,12 +388,14 @@ mcast(self, Request(clock));\end{lstlisting}
 \pause
 
 \begin{column}{0.57\textwidth}
-\begin{exampleblock}{Operation (in Distrbuted PlusCal)}
+\begin{exampleblock}{Operation (in Distributed PlusCal)}
  \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
- \* the 1st argument is the channel name and the 2nd is a TLA+ expression that specifies the message and the intended recipients
+ \* 1st argument: channel name
+ \* 2nd argument specifies recipients and message
  
-multicast(network, [self, p \in Proc |-> Request(clock)]);
-
+multicast(network, 
+          [self, p \in Proc |-> 
+           Request(clock)]);
 \end{lstlisting}
 \newline
 
@@ -416,7 +415,7 @@ channels <channel declarations>
 fifos <fifo declarations>
 (* ... *)
 (* Processes section *)
-process (<name> [=|\in] <Expr>))
+process (<name> [= | \in] <Expr>))
   variables <variable declarations>
   <subprocesses>
 *)
@@ -488,15 +487,18 @@ process (<name> [=|\in] <Expr>))
     \begin{itemize}
      \item The variable $pc$ is indexed by processes and sub-processes
 
+\medskip
+
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 pc = [self \in ProcSet|->
                     <@\textcolor{violet}{IF}@> self \in <@$P_{1}$@> 
                     <@\textcolor{violet}{THEN}@> << <@$lbl_{11}$@>, <@$lbl_{12}$@>, ...>>
-                    <@\textcolor{violet}{IF}@> IF ...]
+                    <@\textcolor{violet}{ELSE IF}@> ...]
                     
                     
 \end{lstlisting}
 	
+\medskip
 
 where the $lbl_{ij}$ are the entry labels of the subprocesses of the process type $P_i$.
 
@@ -545,8 +547,9 @@ exit(self) ==
 \end{block}
 \begin{block}{Future Work}
 \begin{itemize}
-    \item We aim to introduce more types of communication channels
-    \item We're working on defining a Standard \tlaplus Module to contain the common channel operators
+    \item Introduce more types of communication channels
+    \item Consider defining channel operations in a \tlaplus module
+%    \item We're working on defining a Standard \tlaplus Module to contain the common channel operators
 \end{itemize}
 
 \end{block}
