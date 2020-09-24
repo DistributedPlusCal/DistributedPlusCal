@@ -267,12 +267,14 @@ An extension of PlusCal with a syntax that offers constructs for modeling distri
 \end{block}
 \end{frame}
 
+\section{Motivating example - Lamport's Mutex Algorithm}
+
 \begin{frame}[fragile]{Motivating example}
 
 \begin{block}{Lamport's Mutex Algorithm}
 \begin{itemize}
   \item An algorithm for Mutual Exclusion in Distributed Systems
-  \item Critical section requests are ordered based on timestamps
+  \item Critical section requests are ordered based on logical clocks
   \item Processes exchange 3 types of messages
   \begin{itemize} 
         \item Request
@@ -358,16 +360,19 @@ process(p \in Proc)
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=3cm]pic cs:aux){sub-process executing\\ the main algorithm};
         \end{tikzpicture}
        @>
-     ncs: \*non-critical section
-     .. 
+     ncs: while (TRUE) {\*non-critical section
+     ... 
      exit: \* multicast the
            \* release message 
+    } \* end while
 }  {                            <@\begin{tikzpicture}[overlay, remember picture]
         \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){message handling \\ sub-process};
         \end{tikzpicture}
        @>
-    rcv: \* receive msg from channel
+    rcv: while (TRUE) {\* receive msg from channel
          \* handle request, ack and release messages
+         ...
+    } \* end while
 } \* end message handling thread
 **)
 \end{lstlisting}
@@ -429,8 +434,9 @@ multicast(network,
 
 
 
-\begin{frame}[fragile]{General Structure of an algorithm}
-\begin{lstlisting}[language=pluscal, frame = tlrb, numbers = none]
+\begin{frame}[fragile]{Distributed PlusCal}
+\begin{exampleblock}{General Structure of an algorithm}
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 (* --algorithm <<@\textcolor{black}{algorithm}@> name>
 (* Declaration section *)
 variables <variable declarations>
@@ -443,9 +449,10 @@ process (<name> [= | \in] <Expr>))
   <subprocesses>
 *)
 \end{lstlisting}
+\end{exampleblock}
 \end{frame}
 
-\section{Distributed PlusCal Features}
+\section{Distributed PlusCal to TLA+}
 
 \subsection{Communication Channels}
 
@@ -464,7 +471,7 @@ process (<name> [= | \in] <Expr>))
 
 \begin{frame}[fragile]{Translation of Unordered Channels}
         \[
-            \keyword{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+            \textcolor{orange}{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
         \]
     \begin{itemize}
 
@@ -472,13 +479,17 @@ process (<name> [= | \in] <Expr>))
      \newline
         \begin{itemize}
             \item \verb|send(chan[e], msg)| $\triangleq$
-            \verb|chan' = [chan EXCEPT ![e] = chan[e] \cup {msg}]| 
+            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = chan[e] \cup {msg}]
+\end{lstlisting}
             \newline
-            \item \verb|receive(chan[e], var)| $\triangleq$\newline
-                  \verb|\E temp \in chan[e]:| \newline 
-                  \verb|   /\ var' = temp|\newline 
-                  \verb|   /\ chan' = [chan EXCEPT ![e] = chan[e] \ {temp}]|
-        \end{itemize}
+            \item \verb|receive(chan[e], var)| $\triangleq$            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+\E temp \in chan[e]:
+  /\ var' = temp
+  /\ chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = chan[e] \ {temp}]
+                    
+\end{lstlisting}
+\end{itemize}
 
     \end{itemize}
 \end{frame}
@@ -486,19 +497,24 @@ process (<name> [= | \in] <Expr>))
 \begin{frame}[fragile]{Translation of FIFO Channels}
 
         \[
-            \keyword{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+            \textcolor{orange}{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
         \]
     \begin{itemize}    
      \item Translation based on \tlaplus sequences
      \newline
             \begin{itemize}
                 \item \verb|send(chan[e], msg)| $\triangleq$
-                \verb|chan' = [chan EXCEPT ![e] = Append(@, msg)]| 
-                \newline
-                \item \verb|receive(chan[e], var)| $\triangleq$\newline
-                      \verb|/\ Len(chan[e]) > 0 | \newline
-                      \verb|/\ var' = [Head(chan[e])]|\newline 
-                      \verb|/\ chan' = [chan EXCEPT ![e]= Tail(@)]|
+                \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = Append(@, msg)]
+                \end{lstlisting}
+                \item \verb|receive(chan[e], var)| $\triangleq$
+                \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+/\ Len(chan[e]) > 0
+/\ var' = Head(chan[e])
+/\ chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e]= Tail(@)]
+                    
+\end{lstlisting}
+                     
             \end{itemize}
     \end{itemize}
 \end{frame}
@@ -513,10 +529,8 @@ process (<name> [= | \in] <Expr>))
 
 \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
 pc = [self \in ProcSet|->
-                    <@\textcolor{violet}{IF}@> self \in <@$P_{1}$@> 
-                    <@\textcolor{violet}{THEN}@> << <@$lbl_{11}$@>, <@$lbl_{12}$@>, ...>>
-                    <@\textcolor{violet}{ELSE IF}@> ...]
-                    
+            <@\textcolor{violet}{CASE}@> self \in <@$P_{1}$@> -> << <@$lbl_{11}$@>, <@$lbl_{12}$@>, ...>>
+              [] self \in ...]
                     
 \end{lstlisting}
 	
