@@ -8,6 +8,6 @@
 
 
 -Translate from Distributed Pcal
-  - navigate to trans.java inside distpcal package
-  - configure run command ex : "-label /../../test.tla"
+  - navigate to trans.java inside pcal package
+  - configure run command ex : "-distpcal /../../test.tla"
   
