@@ -65,9 +65,9 @@ Next == P0
 
 Spec == /\ Init /\ [][Next]_vars
         /\ WF_vars(P0)
-        /\ \A self \in 1..(N-1) : WF_vars(Pi(self))
+        /\ \A self \in 1..(N-1) : \A subprocess \in SubProcSet[self] : WF_vars(Pi(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-80735c28b54285a89ec67fce31b85c9d
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-035ee0060065cad9725dbaa3ab8a1bfc
 
 HasToken(self) == \/ (self = 0) /\ (M[0] = M[N - 1])
                   \/ (self > 0) /\ (M[self] # M[self - 1])

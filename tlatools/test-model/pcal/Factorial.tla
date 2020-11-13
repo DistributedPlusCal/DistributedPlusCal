@@ -36,10 +36,10 @@ Init == (* Global variables *)
 
 p1 == /\ pc = "p1"
       /\ IF arg1 = 0
-            THEN /\ pc' = Head(stack).pc
+            THEN /\ pc' = Head(stack[self][subprocess]).pc
                  /\ u' = Head(stack).u
                  /\ arg1' = Head(stack).arg1
-                 /\ stack' = Tail(stack)
+                 /\ stack' = Tail(stack[self][subprocess])
                  /\ UNCHANGED result
             ELSE /\ result' = result * arg1
                  /\ arg1' = arg1 - 1
@@ -76,7 +76,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-53ca468546a563a45762642894b2b2a3
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-b81587936417ed030469bfe31e495a82
 
 
 Invariant == result \in Nat

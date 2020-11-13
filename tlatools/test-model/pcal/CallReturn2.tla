@@ -77,11 +77,11 @@ P1 == /\ pc = "P1"
       /\ Assert(a = 1, "Failure of assertion at line 14, column 17.")
       /\ Assert(x_ = a, "Failure of assertion at line 15, column 17.")
       /\ Assert(y = a+1, "Failure of assertion at line 16, column 17.")
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ x_' = Head(stack).x_
       /\ y' = Head(stack).y
       /\ a' = Head(stack).a
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << depth, aa, xx, yy, r, x, s >>
 
 P == P1
@@ -89,11 +89,11 @@ P == P1
 Q1 == /\ pc = "Q1"
       /\ /\ a' = 1
          /\ stack' = << [ procedure |->  "P",
-                          pc        |->  Head(stack).pc,
+                          pc        |->  Head(stack[self][subprocess]).pc,
                           x_        |->  x_,
                           y         |->  y,
                           a         |->  a ] >>
-                      \o Tail(stack)
+                      \o Tail(stack[self][subprocess])
       /\ x_' = a'
       /\ y' = x_'+1
       /\ pc' = "P1"
@@ -115,11 +115,11 @@ PP1 == /\ pc = "PP1"
                   /\ yy' = xx'+1
                   /\ pc' = "PP1"
                   /\ stack' = stack
-             ELSE /\ pc' = Head(stack).pc
+             ELSE /\ pc' = Head(stack[self][subprocess]).pc
                   /\ xx' = Head(stack).xx
                   /\ yy' = Head(stack).yy
                   /\ aa' = Head(stack).aa
-                  /\ stack' = Tail(stack)
+                  /\ stack' = Tail(stack[self][subprocess])
                   /\ depth' = depth
        /\ UNCHANGED << a, x_, y, r, x, s >>
 
@@ -133,9 +133,9 @@ R1 == /\ pc = "R1"
 R2 == /\ pc = "R2"
       /\ /\ s' = x
          /\ stack' = << [ procedure |->  "S",
-                          pc        |->  Head(stack).pc,
+                          pc        |->  Head(stack[self][subprocess]).pc,
                           s         |->  s ] >>
-                      \o Tail(stack)
+                      \o Tail(stack[self][subprocess])
          /\ x' = Head(stack).x
       /\ pc' = "S1"
       /\ UNCHANGED << depth, a, x_, y, aa, xx, yy, r >>
@@ -144,9 +144,9 @@ R == R1 \/ R2
 
 S1 == /\ pc = "S1"
       /\ Assert(s = 2, "Failure of assertion at line 42, column 15.")
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ s' = Head(stack).s
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << depth, a, x_, y, aa, xx, yy, r, x >>
 
 S == S1
@@ -195,5 +195,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c8e76178d4d24aee35fa88a19dd439d8
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-94a5ed67c830934c70782f46bffb5b19
 =============================================================================

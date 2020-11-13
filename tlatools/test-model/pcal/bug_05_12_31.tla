@@ -32,11 +32,11 @@ P1 == /\ pc = "P1"
       /\ Assert(a = 1, "Failure of assertion at line 10, column 17.")
       /\ Assert(x = a, "Failure of assertion at line 11, column 17.")
       /\ Assert(y = a+1, "Failure of assertion at line 12, column 17.")
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ x' = Head(stack).x
       /\ y' = Head(stack).y
       /\ a' = Head(stack).a
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
 
 P == P1
 
@@ -62,5 +62,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6df4c643b7934c47f1761b2b8aced244
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-2e3872e100d24ea8a11a27eca370c8a8
 =============================================================================

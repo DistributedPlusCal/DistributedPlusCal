@@ -70,11 +70,11 @@ qs1 == /\ pc = "qs1"
                             A' = Ap
                   /\ pc' = "qs2"
                   /\ UNCHANGED << stack, qlo, qhi, pivot >>
-             ELSE /\ pc' = Head(stack).pc
+             ELSE /\ pc' = Head(stack[self][subprocess]).pc
                   /\ pivot' = Head(stack).pivot
                   /\ qlo' = Head(stack).qlo
                   /\ qhi' = Head(stack).qhi
-                  /\ stack' = Tail(stack)
+                  /\ stack' = Tail(stack[self][subprocess])
                   /\ UNCHANGED << A, returnVal >>
 
 qs2 == /\ pc = "qs2"
@@ -90,7 +90,7 @@ qs3 == /\ pc = "qs3"
                            pivot     |->  pivot,
                            qlo       |->  qlo,
                            qhi       |->  qhi ] >>
-                       \o stack
+                       \o stack[self][subprocess]
        /\ pivot' = 1
        /\ pc' = "qs1"
        /\ UNCHANGED << A, returnVal >>
@@ -128,7 +128,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f36591cc8efd54110514a4b1f13d3500
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3b85e37a0464ec0cb7cd652a088187f7
 
 Invariant == 
    (pc = "Done") => \A i, j \in 1..ArrayLen :

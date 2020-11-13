@@ -48,14 +48,14 @@ Init == (* Global variables *)
 Even1 == /\ pc = "Even1"
          /\ IF xEven = 0
                THEN /\ result' = TRUE
-                    /\ pc' = Head(stack).pc
+                    /\ pc' = Head(stack[self][subprocess]).pc
                     /\ xEven' = Head(stack).xEven
-                    /\ stack' = Tail(stack)
+                    /\ stack' = Tail(stack[self][subprocess])
                     /\ xOdd' = xOdd
                ELSE /\ /\ stack' = << [ procedure |->  "Odd",
-                                        pc        |->  Head(stack).pc,
+                                        pc        |->  Head(stack[self][subprocess]).pc,
                                         xOdd      |->  xOdd ] >>
-                                    \o Tail(stack)
+                                    \o Tail(stack[self][subprocess])
                        /\ xOdd' = xEven - 1
                     /\ pc' = "Odd1"
                     /\ UNCHANGED << result, xEven >>
@@ -70,16 +70,16 @@ Odd1 == /\ pc = "Odd1"
               ELSE /\ /\ stack' = << [ procedure |->  "Even",
                                        pc        |->  "Odd2",
                                        xEven     |->  xEven ] >>
-                                   \o stack
+                                   \o stack[self][subprocess]
                       /\ xEven' = xOdd - 1
                    /\ pc' = "Even1"
                    /\ UNCHANGED result
         /\ xOdd' = xOdd
 
 Odd2 == /\ pc = "Odd2"
-        /\ pc' = Head(stack).pc
+        /\ pc' = Head(stack[self][subprocess]).pc
         /\ xOdd' = Head(stack).xOdd
-        /\ stack' = Tail(stack)
+        /\ stack' = Tail(stack[self][subprocess])
         /\ UNCHANGED << result, xEven >>
 
 Odd == Odd1 \/ Odd2
@@ -109,7 +109,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c666315b11da5eecc32bda536975b934
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c1ffd411a0a033fa02f4e9e2aae22ab5
 
 ==============================================
 

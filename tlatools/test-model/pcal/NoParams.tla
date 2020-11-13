@@ -29,8 +29,8 @@ Init == (* Global variables *)
 
 s1 == /\ pc = "s1"
       /\ sum' = sum + 1
-      /\ pc' = Head(stack).pc
-      /\ stack' = Tail(stack)
+      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ stack' = Tail(stack[self][subprocess])
 
 Sum == s1
 
@@ -64,6 +64,6 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-621925aa8b4c5ddf90178ffc7da092a5
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1458c2723316c77c7e5ed07e8c0141e2
 
 =============================================================================

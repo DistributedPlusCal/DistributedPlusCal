@@ -91,10 +91,10 @@ pt1 == /\ pc = "pt1"
                              /\ (\A i \in lo..piv, j \in (piv+1)..hi :
                                      AA[i] \leq AA[j])}:
                  /\ A' = Ap
-                 /\ pc' = Head(stack).pc
+                 /\ pc' = Head(stack[self][subprocess]).pc
                  /\ lo' = Head(stack).lo
                  /\ hi' = Head(stack).hi
-                 /\ stack' = Tail(stack)
+                 /\ stack' = Tail(stack[self][subprocess])
        /\ UNCHANGED << qlo, qhi, pivot, qlo2, qhi2, pivot2 >>
 
 Partition == pt1
@@ -107,14 +107,14 @@ qs1 == /\ pc = "qs1"
                                       pc        |->  "qs2",
                                       lo        |->  lo,
                                       hi        |->  hi ] >>
-                                  \o stack
+                                  \o stack[self][subprocess]
                   /\ pc' = "pt1"
                   /\ UNCHANGED << qlo, qhi, pivot >>
-             ELSE /\ pc' = Head(stack).pc
+             ELSE /\ pc' = Head(stack[self][subprocess]).pc
                   /\ pivot' = Head(stack).pivot
                   /\ qlo' = Head(stack).qlo
                   /\ qhi' = Head(stack).qhi
-                  /\ stack' = Tail(stack)
+                  /\ stack' = Tail(stack[self][subprocess])
                   /\ UNCHANGED << lo, hi >>
        /\ UNCHANGED << A, returnVal, qlo2, qhi2, pivot2 >>
 
@@ -132,7 +132,7 @@ qs3 == /\ pc = "qs3"
                            pivot2    |->  pivot2,
                            qlo2      |->  qlo2,
                            qhi2      |->  qhi2 ] >>
-                       \o stack
+                       \o stack[self][subprocess]
        /\ pivot2' = 99
        /\ pc' = "2qs1"
        /\ UNCHANGED << A, returnVal, lo, hi, qlo, qhi, pivot >>
@@ -142,11 +142,11 @@ qs4 == /\ pc = "qs4"
           /\ qhi2' = qhi
           /\ qlo2' = pivot +1
           /\ stack' = << [ procedure |->  "QS2",
-                           pc        |->  Head(stack).pc,
+                           pc        |->  Head(stack[self][subprocess]).pc,
                            pivot2    |->  pivot2,
                            qlo2      |->  qlo2,
                            qhi2      |->  qhi2 ] >>
-                       \o Tail(stack)
+                       \o Tail(stack[self][subprocess])
        /\ pivot2' = 99
        /\ pc' = "2qs1"
        /\ UNCHANGED << A, returnVal, lo, hi, qlo, qhi >>
@@ -161,14 +161,14 @@ QS == qs1 \/ qs2 \/ qs3 \/ qs4
                                        pc        |->  "2qs2",
                                        lo        |->  lo,
                                        hi        |->  hi ] >>
-                                   \o stack
+                                   \o stack[self][subprocess]
                    /\ pc' = "pt1"
                    /\ UNCHANGED << qlo2, qhi2, pivot2 >>
-              ELSE /\ pc' = Head(stack).pc
+              ELSE /\ pc' = Head(stack[self][subprocess]).pc
                    /\ pivot2' = Head(stack).pivot2
                    /\ qlo2' = Head(stack).qlo2
                    /\ qhi2' = Head(stack).qhi2
-                   /\ stack' = Tail(stack)
+                   /\ stack' = Tail(stack[self][subprocess])
                    /\ UNCHANGED << lo, hi >>
         /\ UNCHANGED << A, returnVal, qlo, qhi, pivot >>
 
@@ -186,7 +186,7 @@ QS == qs1 \/ qs2 \/ qs3 \/ qs4
                             pivot     |->  pivot,
                             qlo       |->  qlo,
                             qhi       |->  qhi ] >>
-                        \o stack
+                        \o stack[self][subprocess]
         /\ pivot' = 99
         /\ pc' = "qs1"
         /\ UNCHANGED << A, returnVal, lo, hi, qlo2, qhi2, pivot2 >>
@@ -196,11 +196,11 @@ QS == qs1 \/ qs2 \/ qs3 \/ qs4
            /\ qhi' = qhi2
            /\ qlo' = pivot2 +1
            /\ stack' = << [ procedure |->  "QS",
-                            pc        |->  Head(stack).pc,
+                            pc        |->  Head(stack[self][subprocess]).pc,
                             pivot     |->  pivot,
                             qlo       |->  qlo,
                             qhi       |->  qhi ] >>
-                        \o Tail(stack)
+                        \o Tail(stack[self][subprocess])
         /\ pivot' = 99
         /\ pc' = "qs1"
         /\ UNCHANGED << A, returnVal, lo, hi, qlo2, qhi2 >>
@@ -231,7 +231,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-da193a603aa89ac5bf05f91d5ffaf922
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ec686ef42b36b7d6d75e697f0c87c6c8
 
 Invariant == 
    (pc = "Done") => \A i, j \in 1..ArrayLen :
