@@ -25,6 +25,9 @@
 	<sonar.surefire.reportsPath>target/surefire-reports</sonar.surefire.reportsPath>
 	<sonar.junit.reportsPath>target/surefire-reports</sonar.junit.reportsPath>
 	<sonar.jacoco.reportPaths>target/code-coverage.exec</sonar.jacoco.reportPaths>
+	
+   <maven.compiler.source>1.8</maven.compiler.source>
+   <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
 <build>
