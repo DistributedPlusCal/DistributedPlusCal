@@ -1,91 +1,50 @@
 ------------------------ MODULE LamportMutex -------------------------
-
 EXTENDS Naturals, Sequences, TLC
-
 CONSTANT N
-
 ASSUME N \in Nat 
-
 Nodes == 1 .. N
-
 (* PlusCal options (-distpcal) *)
-
-(**
---algorithm LamportMutex {
-
-   fifo network[Nodes, Nodes];
-       
+(**--algorithm LamportMutex {
+   fifos network[Nodes, Nodes];
    define {
      Max(c,d) == IF c > d THEN c ELSE d
+     beats(a,b) == \/ req[b] = 0
+                   \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
      \* messages used in the algorithm
      Request(c) == [type |-> "request", clock |-> c]
      Release(c) == [type |-> "release", clock |-> c]
      Acknowledge(c) == [type |-> "ack", clock |-> c]
    }
-     
    process(n \in Nodes)
-     variables clock = 0,
-               req = [n \in Nodes |-> 0],
-               ack = {},
-               sndr, msg;
-   {
-      
-     p0: while (TRUE) {
-         p1:   skip;  \* non-critical section
-         p2:   clock := clock + 1;
-
-               \*sender is the specific node, receivers are all other nodes
-               multicast(network, [self, nd \in Nodes |-> Request(clock)]);
-               req[self] := clock;
-               ack := {self};
-               
-         p3:   await (/\ ack = Nodes
-                      /\ \A n \in Nodes \ {self} : \/ req[n] = 0
-                                                   \/ req[self] < req[n]
-                                                   \/ (self < n /\ req[self] = req[n]));
-
-         cs:   skip;
-         p4:   clock := clock + 1;
-               multicast(network, [self, n \in Nodes \ {self} |-> Release(clock)]);
-               
-               \*to be used on the entire channel not sub-parts
-               \* clear(network); \* if we want to add this add -label to the options
-       } \* end while
-   }{
-
-rcv:
-     while (TRUE) {
-        with (n \in Nodes) {
-           sndr := n;
-           receive(network[n,self], msg);
+     variables clock = 0, req = [n \in Nodes |-> 0],
+               ack = {}, sndr, msg;
+   { \* thread executing the main algorithm
+ncs: while (TRUE) {
+       skip;  \* non-critical section
+try:   clock := clock + 1; req[self] := clock; ack := {self};
+       multicast(network, [self, nd \in Nodes |-> Request(clock)]);
+enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
+cs:    skip;  \* critical section
+exit:  clock := clock + 1;
+       multicast(network, [self, n \in Nodes \ {self} |->  Release(clock)]);
+     } \* end while
+  }  { \* message handling thread
+rcv:   while (TRUE) { with (n \in Nodes) {
+           receive(network[n,self], msg); sndr := n;
            clock := Max(clock, msg.clock) + 1
         };
-handle:
-        if (msg.type = "request") {
+handle: if (msg.type = "request") {
            req[sndr] := msg.clock;
-           
            send(network[self, sndr], Acknowledge(clock))
         }
-        else if (msg.type = "ack") {
-           ack := ack \cup {sndr};
-        }
-        else if (msg.type = "release") {
-           req[sndr] := 0;
-        }
+        else if (msg.type = "ack") { ack := ack \cup {sndr}; }
+        else if (msg.type = "release") { req[sndr] := 0; }
      }  \* end while
-   } 
-}
-**)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-24c3ef96093575f8b57def32df87920b
+   } \* end message handling thread
+}  **)
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-58c261f739df0a3487219675206874a4
 CONSTANT defaultInitValue
 VARIABLES network, pc
-
-(* define statement *)
-Max(c,d) == IF c > d THEN c ELSE d
-
-Request(c) == [type |-> "request", clock |-> c]
-Release(c) == [type |-> "release", clock |-> c]
-Acknowledge(c) == [type |-> "ack", clock |-> c]
 
 VARIABLES clock, req, ack, sndr, msg
 
@@ -103,56 +62,58 @@ Init == (* Global variables *)
         /\ ack = [self \in Nodes |-> {}]
         /\ sndr = [self \in Nodes |-> defaultInitValue]
         /\ msg = [self \in Nodes |-> defaultInitValue]
-        /\ pc = [self \in ProcSet |-> <<"p0","rcv">>]
+        /\ pc = [self \in ProcSet |-> <<"ncs","rcv">>]
 
-p0(self) == /\ pc[self] [1] = "p0"
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p1"]]
-            /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
+(* define statement *)
+Max(c,d) == IF c > d THEN c ELSE d
+beats(a,b) == \/ req[b] = 0
+              \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
 
-p1(self) == /\ pc[self] [1] = "p1"
-            /\ TRUE
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p2"]]
-            /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
+Request(c) == [type |-> "request", clock |-> c]
+Release(c) == [type |-> "release", clock |-> c]
+Acknowledge(c) == [type |-> "ack", clock |-> c]
 
-p2(self) == /\ pc[self] [1] = "p2"
-            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-            /\ network' = [<<slf, nd>> \in DOMAIN network |->  IF slf = self 
-                           /\ nd \in Nodes THEN 
-                           Append(network[slf, nd], Request(clock'[self])) ELSE network[slf, nd]]
-            /\ req' = [req EXCEPT ![self][self] = clock'[self]]
-            /\ ack' = [ack EXCEPT ![self] = {self}]
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p3"]]
-            /\ UNCHANGED << sndr, msg >>
+ncs(self) == /\ pc[self] [1] = "ncs"
+             /\ TRUE
+             /\ pc' = [pc EXCEPT ![self][1] = "try"]
+             /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
-p3(self) == /\ pc[self] [1] = "p3"
-            /\ (/\ ack[self] = Nodes
-                /\ \A n \in Nodes \ {self} : \/ req[self][n] = 0
-                                             \/ req[self][self] < req[self][n]
-                                             \/ (self < n /\ req[self][self] = req[self][n]))
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "cs"]]
-            /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
+try(self) == /\ pc[self] [1] = "try"
+             /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+             /\ req' = [req EXCEPT ![self][self] = clock'[self]]
+             /\ ack' = [ack EXCEPT ![self] = {self}]
+             /\ network' = [<<slf, nd>> \in DOMAIN network |->  IF slf = self 
+                            /\ nd \in Nodes THEN 
+                            Append(network[slf, nd], Request(clock'[self])) ELSE network[slf, nd]]
+             /\ pc' = [pc EXCEPT ![self][1] = "enter"]
+             /\ UNCHANGED << sndr, msg >>
+
+enter(self) == /\ pc[self] [1] = "enter"
+               /\ (ack[self] = Nodes /\ \A n \in Nodes \ {self} : beats(self, n))
+               /\ pc' = [pc EXCEPT ![self][1] = "cs"]
+               /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
 cs(self) == /\ pc[self] [1] = "cs"
             /\ TRUE
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p4"]]
+            /\ pc' = [pc EXCEPT ![self][1] = "exit"]
             /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
-p4(self) == /\ pc[self] [1] = "p4"
-            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-            /\ network' = [<<slf, n>> \in DOMAIN network |->  IF slf = self 
-                           /\ n \in Nodes \ { self } THEN 
-                           Append(network[slf, n], Release(clock'[self])) ELSE network[slf, n]]
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "p0"]]
-            /\ UNCHANGED << req, ack, sndr, msg >>
+exit(self) == /\ pc[self] [1] = "exit"
+              /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+              /\ network' = [<<slf, n>> \in DOMAIN network |->  IF slf = self 
+                             /\ n \in Nodes \ { self } THEN 
+                             Append(network[slf, n], Release(clock'[self])) ELSE network[slf, n]]
+              /\ pc' = [pc EXCEPT ![self][1] = "ncs"]
+              /\ UNCHANGED << req, ack, sndr, msg >>
 
 rcv(self) == /\ pc[self] [2] = "rcv"
              /\ \E n \in Nodes:
-                  /\ sndr' = [sndr EXCEPT ![self] = n]
                   /\ Len(network[n,self]) > 0 
                   /\ msg' = [msg EXCEPT ![self] = Head(network[n,self])]
                   /\ network' = [network EXCEPT ![n,self] =  Tail(@) ]
+                  /\ sndr' = [sndr EXCEPT ![self] = n]
                   /\ clock' = [clock EXCEPT ![self] = Max(clock[self], msg'[self].clock) + 1]
-             /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "handle"]]
+             /\ pc' = [pc EXCEPT ![self][2] = "handle"]
              /\ UNCHANGED << req, ack >>
 
 handle(self) == /\ pc[self] [2] = "handle"
@@ -169,19 +130,15 @@ handle(self) == /\ pc[self] [2] = "handle"
                                                  /\ req' = req
                                       /\ ack' = ack
                            /\ UNCHANGED network
-                /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "rcv"]]
+                /\ pc' = [pc EXCEPT ![self][2] = "rcv"]
                 /\ UNCHANGED << clock, sndr, msg >>
 
-n(self) == p0(self) \/ p1(self) \/ p2(self) \/ p3(self) \/ cs(self)
-              \/ p4(self) \/ rcv(self) \/ handle(self)
+n(self) ==  \/ ncs(self) \/ try(self) \/ enter(self) \/ cs(self) \/ exit(self)
+              \/ rcv(self) \/ handle(self)
 
 Next == (\E self \in Nodes: n(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-13dd55fbf79a70a8b6a5b18b10ccc792
-
-StateConstraint == 
-  /\ \A x \in Nodes : clock[x] < 4
-  /\ \A x,y \in Nodes : Len(network[x,y]) < 3
-=============================================================================
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-d44b5f7fa8de17dba79eb4bb2762c474
+=======================
