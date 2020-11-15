@@ -1,4 +1,4 @@
------------------------------ MODULE 2pc -----------------------------
+----------------------------- MODULE 2PhaseCommit -----------------------------
 EXTENDS Sequences, Naturals
 
 CONSTANTS Coord, Agent
@@ -57,7 +57,7 @@ a1: if (aState = "unknown") {
   }
  }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9996db68e02f1c4b6e8dd415760c926a
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-10ef0782d682811a6209bc7ae9380d8a
 VARIABLES coord, agt, pc, aState, cState, commits, msg
 
 vars == << coord, agt, pc, aState, cState, commits, msg >>
@@ -86,12 +86,12 @@ a1(self) == /\ pc[self] [1] = "a1"
                             /\ coord' = (coord \cup {[type |-> st, agent |-> self]})
                   ELSE /\ TRUE
                        /\ UNCHANGED << coord, aState >>
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "a2"]]
+            /\ pc' = [pc EXCEPT ![self][1] = "a2"]
             /\ UNCHANGED << agt, cState, commits, msg >>
 
 a2(self) == /\ pc[self] [1] = "a2"
             /\ (aState[self] \in {"commit", "abort"})
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![1] = "Done"]]
+            /\ pc' = [pc EXCEPT ![self][1] = "Done"]
             /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
 
 a3(self) == /\ pc[self] [2] = "a3"
@@ -99,20 +99,20 @@ a3(self) == /\ pc[self] [2] = "a3"
             /\ \E a1519 \in agt[self]:
                  /\ aState' = [aState EXCEPT ![self] = a1519]
                  /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1519}]
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "a4"]]
+            /\ pc' = [pc EXCEPT ![self][2] = "a4"]
             /\ UNCHANGED << coord, cState, commits, msg >>
 
 a4(self) == /\ pc[self] [2] = "a4"
             /\ agt' = [a0 \in Agent |-> {}]
-            /\ pc' = [pc EXCEPT ![self] = [@  EXCEPT ![2] = "Done"]]
+            /\ pc' = [pc EXCEPT ![self][2] = "Done"]
             /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-a(self) == a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
+a(self) ==  \/ a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
 
 c1 == /\ pc[Coord] [1] = "c1"
       /\ (cState \in {"commit", "abort"})
       /\ agt' = [ag \in Agent |-> agt[ag] \cup  {cState} ]
-      /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![1] = "Done"]]
+      /\ pc' = [pc EXCEPT ![Coord][1] = "Done"]
       /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
 c2 == /\ pc[Coord] [2] = "c2"
@@ -131,27 +131,20 @@ c2 == /\ pc[Coord] [2] = "c2"
                                                   /\ UNCHANGED cState
                                   ELSE /\ TRUE
                                        /\ UNCHANGED << cState, commits >>
-                 /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "c2"]]
-            ELSE /\ pc' = [pc EXCEPT ![Coord] = [@  EXCEPT ![2] = "Done"]]
+                 /\ pc' = [pc EXCEPT ![Coord][2] = "c2"]
+            ELSE /\ pc' = [pc EXCEPT ![Coord][2] = "Done"]
                  /\ UNCHANGED << coord, cState, commits, msg >>
       /\ UNCHANGED << agt, aState >>
 
-c == c1 \/ c2
-
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
-               /\ UNCHANGED vars
+c ==  \/ c1 \/ c2
 
 Next == c
            \/ (\E self \in Agent: a(self))
-           \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in Agent : WF_vars(a(self))
+        /\ \A self \in Agent : \A subprocess \in SubProcSet[self] : WF_vars(a(self))
         /\ WF_vars(c)
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
-
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0fd06c388a589f07d1bb571b4efd366b
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4f64cd31513ae9ab5fb4c4d834f56ead
 
 =============================================================================

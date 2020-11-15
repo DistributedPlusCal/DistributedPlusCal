@@ -33,6 +33,7 @@ public class TLCOverrides implements ITLCOverrides {
 	@Override
 	public Class[] get() {
 		try {
+			
 			Json.resolves();
 			return new Class[] { TLCExt.class, IOUtils.class, SVG.class, SequencesExt.class, Json.class, Bitwise.class };
 		} catch (NoClassDefFoundError e) {

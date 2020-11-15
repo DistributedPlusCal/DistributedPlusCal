@@ -302,12 +302,15 @@ public class SpecObj
             		nis = null;
             	}
             }
+			
+			System.out.println("found nis : " + nis);
 
             if (nis != null)
             {
                 // if a non-null NamedInputStream exists, create ParseUnit
                 // from "nis", but don't parse it yet
                 parseUnit = new ParseUnit(this, nis);
+
 
                 // put "parseUnit" and its name in "parseUnitContext" table
                 parseUnitContext.put(parseUnit.getName(), parseUnit);

@@ -165,7 +165,7 @@ public class CheckImplFile extends CheckImpl
      *    Defaults to no coverage if not specified
      **/
     public static void main(String[] args) {
-    ToolIO.out.println("TLC CheckImpl" + TLCGlobals.versionOfTLC);
+    ToolIO.out.println("TLC CheckImpl " + TLCGlobals.versionOfTLC);
 
     String mainFile = null;
     String configFile = null;

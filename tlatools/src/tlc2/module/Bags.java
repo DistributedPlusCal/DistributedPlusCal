@@ -166,9 +166,13 @@ public class Bags implements ValueConstants
             for (int j = 0; j < domain1.length; j++)
             {
                 if (domain2[i].equals(domain1[j]))
-                {
+                {	
+                	//v1 is the bag1[element]
                     int v1 = ((IntValue) values1[j]).val;
+                    //v2 is the bag2[element]
                     int v2 = ((IntValue) values2[i]).val;
+                    
+                    //the resulting bag will contain : resultBag[element] = bag1[element] + bag2[element]
                     vVec.setElementAt(IntValue.gen(v1 + v2), j);
                     found = true;
                     break;
@@ -187,6 +191,8 @@ public class Bags implements ValueConstants
             domain[i] = dVec.elementAt(i);
             values[i] = vVec.elementAt(i);
         }
+        
+        //create a new function with the results obtained
         return new FcnRcdValue(domain, values, false);
     }
 

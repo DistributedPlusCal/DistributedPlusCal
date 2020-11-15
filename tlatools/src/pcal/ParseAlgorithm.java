@@ -804,6 +804,8 @@ public class ParseAlgorithm
     	   
     	   
     	    System.out.println("error position : " + e.getStackTrace()[0]);
+    	    System.out.println("error position : " + e.getStackTrace()[1]);
+
     	    System.out.println("error class : " + e.getClass());
 
 	    	ParsingError("Unknown error at or before");

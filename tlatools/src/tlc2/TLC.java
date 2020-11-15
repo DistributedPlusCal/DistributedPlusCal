@@ -236,6 +236,8 @@ public class TLC {
     {
         final TLC tlc = new TLC();
 
+        System.out.println("run tlc");
+        
         // Try to parse parameters.
         if (!tlc.handleParameters(args)) {
             // This is a tool failure. We must exit with a non-zero exit

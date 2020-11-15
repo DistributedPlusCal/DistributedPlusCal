@@ -42,10 +42,10 @@ i1 == /\ pc = "i1"
       /\ UNCHANGED << y, n, i, stack, incr, z >>
 
 i2 == /\ pc = "i2"
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ z' = Head(stack).z
       /\ incr' = Head(stack).incr
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << x, y, n, i >>
 
 Incr == i1 \/ i2
@@ -77,5 +77,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1145b37773754e0c960b38596f8082a0
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-72366222313c0e2e78dae7271fba3682
 =============================================================================

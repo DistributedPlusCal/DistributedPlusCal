@@ -47,16 +47,16 @@ Even1 == /\ pc = "Even1"
                ELSE /\ /\ stack' = << [ procedure |->  "Odd",
                                         pc        |->  "e1",
                                         xOdd      |->  xOdd ] >>
-                                    \o stack
+                                    \o stack[self][subprocess]
                        /\ xOdd' = xEven - 1
                     /\ pc' = "Odd1"
                     /\ UNCHANGED result
          /\ xEven' = xEven
 
 e1 == /\ pc = "e1"
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ xEven' = Head(stack).xEven
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << result, xOdd >>
 
 Even == Even1 \/ e1
@@ -69,16 +69,16 @@ Odd1 == /\ pc = "Odd1"
               ELSE /\ /\ stack' = << [ procedure |->  "Even",
                                        pc        |->  "o1",
                                        xEven     |->  xEven ] >>
-                                   \o stack
+                                   \o stack[self][subprocess]
                       /\ xEven' = xOdd - 1
                    /\ pc' = "Even1"
                    /\ UNCHANGED result
         /\ xOdd' = xOdd
 
 o1 == /\ pc = "o1"
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ xOdd' = Head(stack).xOdd
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << result, xEven >>
 
 Odd == Odd1 \/ o1
@@ -108,6 +108,6 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7dc8ff54d82fc57126829898458b6c6f
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c4df5a53bd8589858d7b42ead8456197
 
 =============================================================================

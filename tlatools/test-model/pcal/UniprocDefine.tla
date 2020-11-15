@@ -39,10 +39,10 @@ Init == (* Global variables *)
 
 foo == /\ pc = "foo"
        /\ n' = nplus2 + a + b
-       /\ pc' = Head(stack).pc
+       /\ pc' = Head(stack[self][subprocess]).pc
        /\ b' = Head(stack).b
        /\ a' = Head(stack).a
-       /\ stack' = Tail(stack)
+       /\ stack' = Tail(stack[self][subprocess])
 
 Foo == foo
 
@@ -72,5 +72,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bb2646c148c04705a11ba77b1f981f05
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ae85212511687c6ba2abb669a4f18023
 =============================================================================

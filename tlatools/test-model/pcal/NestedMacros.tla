@@ -64,9 +64,9 @@ Next == (\E self \in {1,2}: foob(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in {1,2} : WF_vars(foob(self))
+        /\ \A self \in {1,2} : \A subprocess \in SubProcSet[self] : WF_vars(foob(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-5f6bcf611a462be83724e9522b1f4062
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-91aa6b747bc7b58fc1df22698e015c19
 =============================================================================

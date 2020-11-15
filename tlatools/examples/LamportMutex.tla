@@ -1,4 +1,4 @@
----------------------------- MODULE lm ----------------------------
+------------------------ MODULE LamportMutex -------------------------
 
 EXTENDS Naturals, Sequences, TLC
 

@@ -268,6 +268,7 @@ public class ParseUnit {
 			ToolIO.out.println(TLAFlightRecorder.message(String.format("%s %s", TLAConstants.LoggingAtoms.PARSING_FILE, absoluteResolvedPath)));
         } else
         {
+        	System.out.println("!!!!!!!!!! in modanalyzer");
             ToolIO.out.println(TLAFlightRecorder.message(String.format("Parsing module %s in file %s", nis.getModuleName(), absoluteResolvedPath)));
         }
 

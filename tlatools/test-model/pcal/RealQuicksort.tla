@@ -74,9 +74,9 @@ pt1 == /\ pc = "pt1"
                                /\ (\A i \in new1, j \in new2 :
                                        AA[i] \leq AA[j])}:
                    /\ A' = Ap
-                   /\ pc' = Head(stack).pc
+                   /\ pc' = Head(stack[self][subprocess]).pc
                    /\ parg' = Head(stack).parg
-                   /\ stack' = Tail(stack)
+                   /\ stack' = Tail(stack[self][subprocess])
        /\ Uns' = Uns
 
 Part == pt1
@@ -116,7 +116,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4de5033005d037379ed702fb72c5f705
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-14d6e5b6af6f722294f1cff27164e83c
 
 Invariant == 
    (pc = "Done") => \A i, j \in 1..Len(A) :

@@ -138,6 +138,10 @@
 			<classpath>
 				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
 				<pathelement location="lib/jmh/jmh-core-1.21.jar" />
+				<pathelement location="lib/jackson-core-2.10.2.jar" />
+				<pathelement location="lib/jackson-databind-2.10.2.jar" />
+				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
+				<pathelement location="lib/jline/jline-terminal-3.14.1.jar" />
 			</classpath>
 		</javac>
 

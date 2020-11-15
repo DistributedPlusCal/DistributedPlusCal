@@ -37,6 +37,7 @@ import tlc2.value.impl.Value;
 public final class SequencesExt {
 	
 	private SequencesExt() {
+		System.out.println("!!!!!!!!!!!!!!!!!!!!!! creating SequencesExt");
 		// no-instantiation!
 	}
 	
@@ -87,6 +88,9 @@ public final class SequencesExt {
 	 */
 	@TLAPlusOperator(identifier = "SetToSeq", module = "SequencesExt", warn = false)
 	public static Value SetToSeq(final Value val) {
+		
+		System.out.println("!!!!!!!!!!!!!!!!!!!!!!  @TLAPlusOperator SetToSeq");
+
 		// TODO: This should eventually be replaced with SetEnumValue#toTupleValue.
 		// I don't want to make CommunityModules depend on the most recent TLC nightly
 		// build right now.

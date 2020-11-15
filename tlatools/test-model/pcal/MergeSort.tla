@@ -118,7 +118,7 @@ l2 == /\ pc = "l2"
                           m         |->  m,
                           l         |->  l,
                           r         |->  r ] >>
-                      \o stack
+                      \o stack[self][subprocess]
       /\ i' = defaultInitValue
       /\ j' = defaultInitValue
       /\ k' = defaultInitValue
@@ -137,7 +137,7 @@ l3 == /\ pc = "l3"
                           m         |->  m,
                           l         |->  l,
                           r         |->  r ] >>
-                      \o stack
+                      \o stack[self][subprocess]
       /\ i' = defaultInitValue
       /\ j' = defaultInitValue
       /\ k' = defaultInitValue
@@ -198,14 +198,14 @@ l7 == /\ pc = "l7"
       /\ UNCHANGED << b, stack, l, r, m >>
 
 l8 == /\ pc = "l8"
-      /\ pc' = Head(stack).pc
+      /\ pc' = Head(stack[self][subprocess]).pc
       /\ i' = Head(stack).i
       /\ j' = Head(stack).j
       /\ k' = Head(stack).k
       /\ m' = Head(stack).m
       /\ l' = Head(stack).l
       /\ r' = Head(stack).r
-      /\ stack' = Tail(stack)
+      /\ stack' = Tail(stack[self][subprocess])
       /\ UNCHANGED << a, b >>
 
 mergesort == l1 \/ l2 \/ l3 \/ l4 \/ l5 \/ l6 \/ l7 \/ l8
@@ -240,7 +240,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ff6c7e89b9c9baac60a504f5cbacb5a2
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6825564cd5c34bab8092afd58de9dc45
 
 Invariant == 
    (pc = "Done") => \A x, y \in DOMAIN a :

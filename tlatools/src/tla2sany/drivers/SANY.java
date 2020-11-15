@@ -302,6 +302,7 @@ public class SANY {
  
           // Generate semantic graph for the entire external module
           syserr.println("Semantic processing of module " + moduleStringName);
+          
           // create new Generator object
           Generator gen = new Generator(externalModuleTable, semanticErrors);
     
