@@ -1,0 +1,13 @@
+\contentsline {section}{\numberline {1}TLA\textsuperscript {+}\xspace }{2}%
+\contentsline {section}{\numberline {2}PlusCal algorithm language}{3}%
+\contentsline {paragraph}{Translation to TLA\textsuperscript {+}\xspace .}{7}%
+\contentsline {section}{\numberline {3}Structure of an algorithm}{9}%
+\contentsline {section}{\numberline {4}Communication Channels}{11}%
+\contentsline {subsection}{\numberline {4.1}Unordered Channels}{11}%
+\contentsline {subsection}{\numberline {4.2}FIFO channels}{13}%
+\contentsline {section}{\numberline {5}Sub-Processes}{15}%
+\contentsline {subsection}{\numberline {5.1}TLA\textsuperscript {+}\xspace Translation}{16}%
+\contentsline {section}{\numberline {6}Evaluation}{20}%
+\contentsline {section}{Appendices}{20}%
+\contentsline {section}{\numberline {A}Two Phase Commit}{20}%
+\contentsline {section}{\numberline {B}Lamport Mutex}{24}%
