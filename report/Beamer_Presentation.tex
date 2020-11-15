@@ -1,0 +1,594 @@
+\documentclass{beamer}
+\usecolortheme{orchid}
+
+
+\usepackage{capt-of}
+\usepackage{placeins}
+\usepackage[toc,page]{appendix}
+\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage[usestackEOL]{stackengine}
+\usepackage{xparse}
+\usetikzlibrary{calc,shapes.callouts,shapes.arrows,decorations.pathreplacing}
+
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{pcallst}
+\usepackage{stackengine}
+\parskip 1em
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{orange}{rgb}{1.0,0.49,0.0}
+
+\usepackage{pifont}
+
+\lstset{frame=single,
+  language={Java},
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  basicstyle={\tiny\ttfamily},
+  numbers=left,
+  stepnumber=1,
+  numberstyle=\tiny\color{gray},
+  commentstyle=\color{dkgreen},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=1,
+  morecomment=[l]{\\*},
+  morekeywords={}
+}
+
+\newcommand{\tikzmark}[1]{%
+  \tikz[overlay,remember picture,baseline] \node [anchor=base] (#1) {};}
+\newcommand*{\BracektStubSize}{0.5em}%
+\NewDocumentCommand\LeftBracket{%
+    O{}% #1 = draw options
+    O{0pt}% #2 = shift to be applied (optional, for use with nested braces)
+    m% #3 = top \tikzmark name
+    m% #4 = bottom \tikzmark name
+    m% #5 = node text
+}{%
+    \begin{tikzpicture}[overlay,remember picture,baseline]
+        \coordinate (Top Start of Bracket) at ([shift={(#2-5pt,5pt)}]#3.north east);
+        \coordinate (Bottom Start of Bracket) at ([shift={(#2-5pt,2pt)}]#4.south east);
+        \draw[thick, #1, dkgreen, line width=0.6mm] 
+            (Top Start of Bracket) --++(-\BracektStubSize,0) 
+                |-(Bottom Start of Bracket) ;
+
+        \node[xshift=18pt, align=center, anchor=east, #1, color=black]
+            at ($(Bottom Start of Bracket)!0.5!(Top Start of Bracket)$) {#5};
+    \end{tikzpicture}    
+}  
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
+
+\newcommand{\tlaplus}{TLA\textsuperscript{+}\xspace}
+\newcommand{\EXCEPT}{\textsc{except}}
+\newcommand{\IF}{\textsc{if}}
+\newcommand{\THEN}{\textsc{then}}
+\newcommand{\ELSE}{\textsc{else}}
+\newcommand{\seq}[1]{\langle #1 \rangle}
+
+\newcommand{\keyword}[1]{\textbf{#1}}
+\newcommand{\entity}[1]{\ensuremath{\langle}#1\ensuremath{\rangle}}
+
+% editorial comments in the text or in marginal notes
+% 1st argument: initials of the person making the comment,
+% 2nd argument: comment to insert
+\long\def\ednote#1#2{\par\noindent\framebox{\begin{minipage}{0.99\linewidth}\linespread{.7}\footnotesize #1: #2\end{minipage}}\par}
+\newcommand{\edmargin}[2]{\marginpar{\raggedright\linespread{.7}\footnotesize #1: #2}}
+
+\newcommand{\arrowthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};
+        \node[overlay,single arrow,draw=none,fill=red!50,anchor=tip,rotate=60] 
+        at (#1.south) {#2};}%
+    }%
+    \newcommand{\speechthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,ellipse callout,fill=blue!50] 
+        at ($(#1.north)+(-.5cm,0.8cm)$) {#2};}%
+    }%
+
+\newcommand{\bubblethis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,cloud callout,callout relative pointer={(0.2cm,-0.7cm)},%
+        aspect=2.5,fill=yellow!90] at ($(#1.north)+(-0.5cm,1.6cm)$) {#2};}%
+    }%
+
+\newcommand{\pointthis}[2]{
+        \tikz[remember picture,baseline]{\node[anchor=base,inner sep=0,outer sep=0]%
+        (#1) {\underline{#1}};\node[overlay,rectangle callout,%
+        callout relative pointer={(0.2cm,0.7cm)},fill=green!50] at ($(#1.north)+(-.5cm,-1.4cm)$) {#2};}%
+        }%
+
+\pgfkeys{%
+    /calloutquote/.cd,
+    width/.code                   =  {\def\calloutquotewidth{#1}},
+    position/.code                =  {\def\calloutquotepos{#1}}, 
+    author/.code                  =  {\def\calloutquoteauthor{#1}},
+    /calloutquote/.unknown/.code   =  {\let\searchname=\pgfkeyscurrentname
+                                 \pgfkeysalso{\searchname/.try=#1,                                
+    /tikz/\searchname/.retry=#1},\pgfkeysalso{\searchname/.try=#1,
+                                  /pgf/\searchname/.retry=#1}}
+                            }  
+
+
+\newcommand\calloutquote[2][]{%
+       \pgfkeys{/calloutquote/.cd,
+         width               = 5cm,
+         position            = {(0,-1)},
+         author              = {}}
+  \pgfqkeys{/calloutquote}{#1}                   
+  \node [rectangle callout,callout relative pointer={\calloutquotepos},text width=\calloutquotewidth,/calloutquote/.cd,
+     #1] (tmpcall) at (0,0) {#2};
+  \node at (tmpcall.pointer){\calloutquoteauthor};    
+}  
+
+%% make TeX use text italic font in math environments
+\makeatletter
+\newcounter{abr@ctr}
+\newcommand{\abr@c}{\c@abr@ctr\advance\c@abr@ctr\@ne}
+
+\DeclareSymbolFont{tlaitalics}{\encodingdefault}{cmr}{m}{it}
+\let\itfam\symtlaitalics
+
+\newcommand{\noTeXmath}{%
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7061\relax
+\mathcode`a=\abr@c\mathcode`b=\abr@c\mathcode`c=\abr@c\mathcode`d=\abr@c
+\mathcode`e=\abr@c\mathcode`f=\abr@c\mathcode`g=\abr@c\mathcode`h=\abr@c
+\mathcode`i=\abr@c\mathcode`j=\abr@c\mathcode`k=\abr@c\mathcode`l=\abr@c
+\mathcode`m=\abr@c\mathcode`n=\abr@c\mathcode`o=\abr@c\mathcode`p=\abr@c
+\mathcode`q=\abr@c\mathcode`r=\abr@c\mathcode`s=\abr@c\mathcode`t=\abr@c
+\mathcode`u=\abr@c\mathcode`v=\abr@c\mathcode`w=\abr@c\mathcode`x=\abr@c
+\mathcode`y=\abr@c\mathcode`z=\abr@c
+\c@abr@ctr=\itfam
+\multiply\c@abr@ctr"100\relax
+\advance\c@abr@ctr "7041\relax
+\mathcode`A=\abr@c\mathcode`B=\abr@c\mathcode`C=\abr@c\mathcode`D=\abr@c
+\mathcode`E=\abr@c\mathcode`F=\abr@c\mathcode`G=\abr@c\mathcode`H=\abr@c
+\mathcode`I=\abr@c\mathcode`J=\abr@c\mathcode`K=\abr@c\mathcode`L=\abr@c
+\mathcode`M=\abr@c\mathcode`N=\abr@c\mathcode`O=\abr@c\mathcode`P=\abr@c
+\mathcode`Q=\abr@c\mathcode`R=\abr@c\mathcode`S=\abr@c\mathcode`T=\abr@c
+\mathcode`U=\abr@c\mathcode`V=\abr@c\mathcode`W=\abr@c\mathcode`X=\abr@c
+\mathcode`Y=\abr@c\mathcode`Z=\abr@c}
+
+\newcommand{\TeXmath}{%
+\mathcode`a="7161\mathcode`b="7162\mathcode`c="7163\mathcode`d="7164%
+\mathcode`e="7165\mathcode`f="7166\mathcode`g="7167\mathcode`h="7168%
+\mathcode`i="7169\mathcode`j="716A\mathcode`k="716B\mathcode`l="716C%
+\mathcode`m="716D\mathcode`n="716E\mathcode`o="716F\mathcode`p="7170%
+\mathcode`q="7171\mathcode`r="7172\mathcode`s="7173\mathcode`t="7174%
+\mathcode`u="7175\mathcode`v="7176\mathcode`w="7177\mathcode`x="7178%
+\mathcode`y="7179\mathcode`z="717A\mathcode`A="7141\mathcode`B="7142%
+\mathcode`C="7143\mathcode`D="7144\mathcode`E="7145\mathcode`F="7146%
+\mathcode`G="7147\mathcode`H="7148\mathcode`I="7149\mathcode`J="714A%
+\mathcode`K="714B\mathcode`L="714C\mathcode`M="714D\mathcode`N="714E%
+\mathcode`O="714F\mathcode`P="7150\mathcode`Q="7151\mathcode`R="7152%
+\mathcode`S="7153\mathcode`T="7154\mathcode`U="7155\mathcode`V="7156%
+\mathcode`W="7157\mathcode`X="7158\mathcode`Y="7159\mathcode`Z="715A}
+
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+\noTeXmath
+\makeatother
+
+\makeatletter
+\newcommand*{\centerfloat}{%
+  \parindent \z@
+  \leftskip \z@ \@plus 1fil \@minus \textwidth
+  \rightskip\leftskip
+  \parfillskip \z@skip}
+\makeatother
+
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+} 
+\setbeamertemplate{footline}[frame number]
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\title[Your Short Title]{An Extension of PlusCal for Modeling
+Distributed Algorithms}
+\institute{University of Lorraine, CNRS, Inria, Nancy, France}
+\author[]{Heba Alkayed, Horatiu Cirstea, Stephan Merz}
+
+\begin{document}
+
+\setstackgap{L}{9pt}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Uncomment these lines for an automatically generated outline.
+%\begin{frame}{Outline}
+%  \tableofcontents
+%\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{Introduction}
+
+\begin{block}{Formal Specification Languages}
+\begin{itemize}
+
+  \item Algorithms modeled using \tlaplus can be formally verified using the \tlaplus Toolbox
+ \item PlusCal algorithms have a more familiar syntax and can be translated to \tlaplus 
+\end{itemize}
+\end{block}
+\vskip 1cm
+
+\end{frame}
+
+\section{Distributed PlusCal}
+
+\begin{frame}[fragile]{Distributed PlusCal Algorithms}
+
+\begin{block}{Motivation}
+An extension of PlusCal with a syntax that offers constructs for modeling distributed algorithms naturally
+\end{block}
+
+\begin{block}{Features}
+\begin{itemize}
+  \item Introduces
+  \begin{itemize} 
+        \item Sub-processes
+        \item Communication channels
+    \end{itemize}
+  \item Can be translated into a TLA+ specification
+\end{itemize}
+\end{block}
+\end{frame}
+
+\section{Motivating example - Lamport's Mutex Algorithm}
+
+\begin{frame}[fragile]{Motivating example}
+
+\begin{block}{Lamport's Mutex Algorithm}
+\begin{itemize}
+  \item An algorithm for Mutual Exclusion in Distributed Systems
+  \item Critical section requests are ordered based on logical clocks
+  \item Processes exchange 3 types of messages
+  \begin{itemize} 
+        \item Request
+        \item Acknowledge
+        \item Release
+    \end{itemize}
+   \item Processes asynchronously receive messages from each other
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]{Algorithm in PlusCal: main process}
+\begin{exampleblock}{}
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+\* Variables must be declared globally to be used by the inter-playing processes representing this algorithm
+variables network, clock ...
+
+(**--algorithm LamportMutex {
+                    <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0cm,xshift=4cm]pic cs:aux){Process executing\\ the main algorithm};
+        \end{tikzpicture}
+       @>
+process (proc \in Proc) {
+ ncs: while (TRUE) {
+      \* non-critical section
+ try: \* multicast a message requesting access to cs
+ enter: \* wait for acknowledgements 
+ cs: \* critical section
+ exit: \* multicast the release message
+ } \* end while
+} \* end process
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Algorithm in PlusCal: helper process}
+        \begin{exampleblock}{}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+process (comm \in Comm) {<@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=0.5cm,xshift=2cm]pic cs:aux){Process handling\\ messages};
+        \end{tikzpicture}
+       @>
+                    
+ rcv: while (TRUE) {
+       with (prc = node(self), ...) {
+        \* handle request, ack and release messages
+       }
+     } \* end while
+} \* end process
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Algorithm in PlusCal: helper process}
+\begin{exampleblock}{}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+process (comm \in Comm) {
+ rcv: while (TRUE) {
+       with (prc = node(self)<@
+       \begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){Proc == 1 .. N \\
+        Comm == N+1..N+N \\
+        node(c) == c - N};
+        \end{tikzpicture}
+       @>, ...) {
+         \* handle request, ack and release messages
+       }
+     } \* end while
+} \* end process
+**)
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+
+\begin{frame}[fragile]{Lamport Mutex in Distributed PlusCal}
+\begin{exampleblock}{} 
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+fifos network[Proc, Proc];
+process(p \in Proc)
+     variables ..
+{                    <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=3cm]pic cs:aux){sub-process executing\\ the main algorithm};
+        \end{tikzpicture}
+       @>
+     ncs: while (TRUE) {\*non-critical section
+     ... 
+     exit: \* multicast the
+           \* release message 
+    } \* end while
+}  {                            <@\begin{tikzpicture}[overlay, remember picture]
+        \node[fill=white, rectangle callout, rounded corners, callout absolute pointer={(pic cs:aux)}, draw, align=left] at ([yshift=1cm,xshift=2cm]pic cs:aux){message handling \\ sub-process};
+        \end{tikzpicture}
+       @>
+    rcv: while (TRUE) {\* receive msg from channel
+         \* handle request, ack and release messages
+         ...
+    } \* end while
+} \* end message handling thread
+**)
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}[fragile]{Modeling channels}
+
+\begin{columns}
+\begin{column}{0.52\textwidth}
+\begin{exampleblock}{Declaration (in PlusCal)}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+network=[p,q \in Proc |-> <@$\seq{}$@>] 
+\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+
+\begin{column}{0.57\textwidth}
+\begin{exampleblock}{Declaration (in Distributed PlusCal)}
+ \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+fifos network[Proc, Proc];\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+\end{columns}
+
+\begin{columns}
+\begin{column}{0.52\textwidth}
+\begin{exampleblock}{Operation (in PlusCal)}
+        \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+macro mcast(p, m) {
+ network := [s,d \in Proc |-> 
+ <@\textcolor{violet}{IF}@> s = p /\ d # p 
+ <@\textcolor{violet}{THEN}@> Append(network[s,d], m) 
+ <@\textcolor{violet}{ELSE}@> network[s,d]]
+}
+mcast(self, Request(clock));\end{lstlisting}
+\end{exampleblock}
+\end{column}
+\pause
+
+\begin{column}{0.57\textwidth}
+\begin{exampleblock}{Operation (in Distributed PlusCal)}
+ \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+ \* 1st argument: channel name
+ \* 2nd argument specifies recipients and message
+ 
+multicast(network, 
+          [self, p \in Proc |-> 
+           Request(clock)]);
+\end{lstlisting}
+\newline
+
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Distributed PlusCal}
+\begin{exampleblock}{General Structure of an algorithm}
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+(* --algorithm <<@\textcolor{black}{algorithm}@> name>
+(* Declaration section *)
+variables <variable declarations>
+channels <channel declarations>
+fifos <fifo declarations>
+(* ... *)
+(* Processes section *)
+process (<name> [= | \in] <Expr>))
+  variables <variable declarations>
+  <subprocesses>
+*)
+\end{lstlisting}
+\end{exampleblock}
+\end{frame}
+
+\section{Distributed PlusCal to TLA+}
+
+\subsection{Communication Channels}
+
+\begin{frame}[fragile]{Operations on channels}
+    \begin{itemize}
+     \item Supported operators 
+        \begin{itemize}
+        \item \verb|send(ch, el)|
+        \item \verb|receive(ch, var)|
+        \item \verb|broadcast(ch, [x |$\in$ \verb|S| $\mapsto$ \verb|e(x)]|
+        \item \verb|multicast(ch, [x |$\in$ \verb|S| $\mapsto$ \verb|e(x)]|
+        \item \verb|clear(ch)|
+    \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Translation of Unordered Channels}
+        \[
+            \textcolor{orange}{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+        \]
+    \begin{itemize}
+
+     \item Translation based on \tlaplus sets
+     \newline
+        \begin{itemize}
+            \item \verb|send(chan[e], msg)| $\triangleq$
+            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = chan[e] \cup {msg}]
+\end{lstlisting}
+            \newline
+            \item \verb|receive(chan[e], var)| $\triangleq$            \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+\E temp \in chan[e]:
+  /\ var' = temp
+  /\ chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = chan[e] \ {temp}]
+                    
+\end{lstlisting}
+\end{itemize}
+
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Translation of FIFO Channels}
+
+        \[
+            \textcolor{orange}{fifo}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+        \]
+    \begin{itemize}    
+     \item Translation based on \tlaplus sequences
+     \newline
+            \begin{itemize}
+                \item \verb|send(chan[e], msg)| $\triangleq$
+                \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e] = Append(@, msg)]
+                \end{lstlisting}
+                \item \verb|receive(chan[e], var)| $\triangleq$
+                \begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+/\ Len(chan[e]) > 0
+/\ var' = Head(chan[e])
+/\ chan' = [chan <@\textcolor{violet}{EXCEPT}@> ![e]= Tail(@)]
+                    
+\end{lstlisting}
+                     
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\subsection{Program counter}
+
+\begin{frame}[fragile]{Program counter}
+    \begin{itemize}
+     \item The variable $pc$ is indexed by processes and sub-processes
+
+\medskip
+
+\begin{lstlisting}[language=pluscal, frame = none, numbers = none]
+pc = [self \in ProcSet|->
+            <@\textcolor{violet}{CASE}@> self \in <@$P_{1}$@> -> << <@$lbl_{11}$@>, <@$lbl_{12}$@>, ...>>
+              [] self \in ...]
+                    
+\end{lstlisting}
+	
+\medskip
+
+where the $lbl_{ij}$ are the entry labels of the subprocesses of the process type $P_i$.
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Translation to \tlaplus}
+
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+ exit: clock := clock + 1;
+        multicast(network, [self, p \in Proc \ {self} |->
+                              Release(clock)]);
+\end{lstlisting}
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers=none]  
+exit(self) == 
+    /\ pc[self][1] = "exit"
+    /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+    <@\tikzmark{Mark A}@>/\ network' = [<<slf, p>> \in <@\textcolor{violet}{DOMAIN}@> network |->
+        <@\textcolor{violet}{IF}@> 
+            slf = self /\ p \in Proc \ { self } 
+        <@\textcolor{violet}{THEN}@> 
+            Append(network[slf, p], Release(clock'[self])) 
+        <@\textcolor{violet}{ELSE}@>
+            network[slf, p]]
+    <@\tikzmark{End A}
+    \LeftBracket[black][0pt]{Mark A}{End A}{\Centerstack{Multicast \\ Translation}}@>
+    /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self]%[1]% = "ncs"]
+    /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
+\end{lstlisting}
+\end{frame}
+
+
+
+\begin{frame}{Contributions and future work}
+\begin{block}{Contributions}
+\begin{itemize}
+    \item An extension of PlusCal offering the possibility to define
+        \begin{itemize}
+            \item Sub-Processes
+            \item Communication Channels
+        \end{itemize}
+
+    \item A backward compatible translator to \tlaplus
+
+\end{itemize}
+\end{block}
+\begin{block}{Future Work}
+\begin{itemize}
+    \item Introduce more types of communication channels
+    \item Consider defining channel operations in a \tlaplus module
+\end{itemize}
+
+\end{block}
+
+\end{frame}
+
+\end{document}

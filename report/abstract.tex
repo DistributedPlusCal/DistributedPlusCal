@@ -1,0 +1,299 @@
+% \documentclass[journal]{IEEEtran}
+\documentclass{article}
+
+%\title{Formal Verification of Distributed Algorithms using Distributed PlusCal}
+\title{An Extension of PlusCal for Modeling Distributed Algorithms}
+\author{%
+  Heba Alkayed, Horatiu Cirstea, Stephan Merz\\
+  University of Lorraine, CNRS, Inria, Nancy, France%
+}
+\date{}
+
+\usepackage{capt-of}
+\usepackage{placeins}
+%\usepackage[toc,page]{appendix}
+\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{latexsym}
+\usepackage{amssymb}
+% \usepackage{listings}
+\usepackage{pcallst}
+%\usepackage{tikz}
+
+\usepackage{color}
+\usepackage[T1]{fontenc}
+
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{orange}{rgb}{1.0,0.49,0.0}
+
+\usepackage{enumitem}
+\usepackage{pifont}
+
+% \lstset{frame=single,
+%   language={Java},
+%   aboveskip=3mm,
+%   belowskip=3mm,
+%   showstringspaces=false,
+%   basicstyle={\small\ttfamily},
+%   numbers=left,
+%   stepnumber=1,
+%   numberstyle=\tiny\color{gray},
+%   keywordstyle=\color{orange},
+%   commentstyle=\color{dkgreen},
+%   breaklines=true,
+%   breakatwhitespace=true,
+%   tabsize=1,
+%   morecomment=[l]{\\*},
+%   morekeywords={}
+% }
+%\usepackage[retainorgcmds]{IEEEtrantools}
+%\usepackage{bibentry}  
+\usepackage{xcolor,soul,framed} %,caption
+
+\colorlet{shadecolor}{yellow}
+% \usepackage{color,soul}
+%\usepackage[pdftex]{graphicx}
+%\graphicspath{{../pdf/}{../jpeg/}}
+
+%\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+
+\usepackage[cmex10]{amsmath}
+%Mathabx do not work on ScribTex => Removed
+%\usepackage{mathabx}
+\usepackage{array}
+\usepackage{mdwmath}
+\usepackage{mdwtab}
+\usepackage{eqparbox}
+\usepackage{url}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\renewcommand{\floatpagefraction}{.99}
+\renewcommand{\textfraction}{.01}
+
+\newcommand{\tlaplus}{TLA\textsuperscript{+}\xspace}
+\newcommand{\EXCEPT}{\textsc{except}}
+\newcommand{\IF}{\textsc{if}}
+\newcommand{\THEN}{\textsc{then}}
+\newcommand{\ELSE}{\textsc{else}}
+\newcommand{\seq}[1]{\langle #1 \rangle}
+
+\newcommand{\keyword}[1]{\textbf{#1}}
+\newcommand{\entity}[1]{\ensuremath{\langle}#1\ensuremath{\rangle}}
+
+%\bstctlcite{IEEE:BSTcontrol}
+
+
+%=== TITLE & AUTHORS ====================================================================
+\begin{document}
+%\bstctlcite{IEEEexample:BSTcontrol}
+
+% ====================================================================
+\maketitle
+
+%\IEEEpeerreviewmaketitle
+
+\section{Motivations}
+
+The PlusCal language~\cite{pcalAlgo,wayne:practical} combines the expressive power of \tlaplus~\cite{tlabook} with the ``look and feel'' of imperative pseudo-code in order to allow users to express algorithms at a high level of abstraction. PlusCal algorithms are translated to \tlaplus specifications and can be formally verified using the \tlaplus Toolbox. We propose a small extension of PlusCal, tentatively called Distributed PlusCal~\cite{dpluscal}, intended for simplifying the presentation of distributed algorithms in PlusCal.
+
+Distributed systems consist of nodes that communicate by message
+passing. It is convenient to model a node as running several threads
+that share local memory. For example, one thread may execute the main
+algorithm, while a separate thread listens for incoming
+messages. Although PlusCal offers \emph{processes}, they have a single
+thread of execution. Different threads of the same node must therefore
+be modeled as individual processes, and variables representing the
+local memory of a node must be declared as global variables, obscuring
+the structure of the code. Our first extension allows a PlusCal
+process to have several code blocks that execute in parallel. Besides,
+Distributed PlusCal explicitly identifies variables representing
+communication channels and introduces associated send and receive
+operations. In contrast to using ordinary variables and writing macros
+or operator definitions for channel operations, making channels part
+of the language gives us some more flexibility in the \tlaplus
+translation. 
+
+
+\section{Distributed PlusCal Algorithms}
+
+Distributed PlusCal extends the syntax of PlusCal in two places, as shown in Figure~\ref{dpluscal-struct}. In addition to \emph{variables}, the declaration section may contain \emph{channel} and \emph{fifo} declarations. These represent (arrays of) communication channels, with the second kind of channels guaranteeing FIFO communication. Moreover, a process may have several sub-processes. Each sub-process contains statements (a \emph{CompoundStmt} according to the PlusCal BNF syntax), they are executed in parallel and may refer to the variables declared in the process.
+
+\begin{figure}
+\begin{lstlisting}[language=pluscal, frame = tlrb, numbers = none]
+(* --algorithm <<@\textcolor{black}{algorithm}@> name>
+(* Declaration section *)
+variables <variable declarations>
+<@\textcolor{blue}{channels}@> <channel declarations>
+<@\textcolor{blue}{fifos}@> <fifo declarations>
+(* ... *)
+(* Processes section *)
+process (<name> [=|\in] <Expr>))
+  variables <variable declarations>
+  <@\textcolor{blue}{<subprocesses>}@>
+*)
+\end{lstlisting}
+
+\caption{Syntactic extensions introduced by Distributed PlusCal.}
+\label{dpluscal-struct}
+\end{figure}
+
+We added an option \verb|-distpcal| to the PlusCal translator in order to switch between regular and Distributed PlusCal.
+
+
+\section{Communication Channels}
+
+The syntax for a channel declaration, introduced with the keyword \keyword{channel} or \keyword{channels}, is shown below.
+\[
+ \keyword{channel}\ \entity{id}[\entity{Expr_1},\dots,\entity{Expr_N}];
+\]
+This declaration introduces an $N$-dimensional matrix of unordered channels indexed by the sets $\entity{Expr_i}$, which may be omitted for a simple channel. It gives rise to the following conjunct in the initial condition of the corresponding \tlaplus specification
+\[
+ id = [x1 \in Expr_1,\dots,xN \in Expr_N \mapsto \{ \}];
+\]
+or just $id = \{\}$ for a simple channel.
+%
+A FIFO channel is similarly declared with the keyword \keyword{fifo} or \keyword{fifos} and is initialized to a matrix of empty sequences.
+
+Distributed PlusCal supports the following operations on (unordered or FIFO) channels: $send(ch, e)$ sends a single value $e$ on a channel, $receive(ch, var)$ is enabled when $ch$ is non-empty and receives a message into variable $var$, $clear(ch)$ empties the channel, and
+\[ broadcast(ch, [x \in S \mapsto e(x)])
+   \quad\textrm{and}\quad
+   multicast(ch, [x \in S \mapsto e(x)])
+\]
+send messages along several channels in an array. For the latter two operations, if $ch$ is a (one-dimensional) array of channels, $S$ is expected to be the domain of the array for broadcast and a subset of the domain for multicast.
+% Generalizations\marginpar{sm: correct?} to multi-dimensional channels are straightforward.
+
+
+\section{Subprocesses}
+
+A process can have multiple sub-processes.
+In the C-Syntax, each sub-process appears within a pair of curly braces, whereas in the P-Syntax, sub-processes are enclosed by \verb|begin subprocess| and \verb|end subprocess|. Since a process may have several threads of execution, the $pc$ variable is represented as a two-dimensional array indexed by process identity and sub-process number. For example, the translation of the statement labeled \verb|exit| of the mutual-exclusion algorithm of Figure~\ref{fig:lamport-mutex} is shown below.
+
+\begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]  
+exit(self) == 
+  /\ pc[self][1] = <@\textcolor{blue}{"exit"}@>
+  /\ clock' = [clock <@\textcolor{violet}{EXCEPT}@> ![self] = clock[self] + 1]
+  /\ network' = [<<slf, n>> \in <@\textcolor{violet}{DOMAIN}@> network |->  
+                  <@\textcolor{violet}{IF}@> slf = self /\ n \in Nodes \ { self } 
+                  <@\textcolor{violet}{THEN}@> Append(network[slf, n], Release(clock'[self])) 
+                  <@\textcolor{violet}{ELSE}@> network[slf, n]]
+  /\ pc' = [pc <@\textcolor{violet}{EXCEPT}@> ![self][1] = <@\textcolor{blue}{"ncs"}@>]]
+  /\ <@\textcolor{violet}{UNCHANGED}@> << req, ack, sndr, msg >>
+\end{lstlisting}
+
+Moreover, the translation of a procedure call stores the identity of the sub-process on the call stack so that control returns to the appropriate sub-process.
+
+
+\section{Evaluation}
+
+Distributed PlusCal is designed to remain backward compatible with regular PlusCal: the translation of a regular PlusCal algorithm gives rise to a \tlaplus specification that is equivalent with the one produced by the existing translator.
+
+Our version of Lamport's mutual-exclusion algorithm shown in Figure~\ref{fig:lamport-mutex} illustrates the representation of distributed algorithms in Distributed PlusCal. We believe that the possibility of declaring several threads per process makes expressing such algorithms more natural. Distributed algorithms employ many kinds of communication channels beyond unordered and FIFO channels, and we envisage providing different semantics through standard \tlaplus modules that can be instantiated, rather than baking two kinds of channels into the language.
+
+Beyond writing a fixed number of sub-processes, one could envisage extending PlusCal by identical sub-processes indexed by a parameter set. This could perhaps be useful for modeling a node containing several CPU and GPU cores.
+
+\bibliographystyle{plain}
+\bibliography{report}
+
+% \begin{figure}
+% \begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]
+% ----------------- MODULE 2PhaseCommit ---------------------
+% EXTENDS Sequences, Naturals
+% CONSTANTS Coord, Agent
+% State == {"unknown", "accept", "refuse", "commit", "abort"}
+
+% (* PlusCal options (-distpcal) *)
+% (**--algorithm TPC {
+%    channels coord, agt[Agent];
+     
+%    fair process (a \in Agent)
+%      variables aState = "unknown"; 
+%    { \* main thread
+% a1:  if (aState = "unknown") {
+%          with(st \in {"accept", "refuse"}) {
+%            aState := st;
+%            send(coord, [type |-> st, agent |-> self]);
+%          };
+%      };
+%    } { \* second thread: message reception
+% a2:  receive(agt[self], aState); 
+%    }
+
+%    fair process (c = Coord) 
+%    variables cState = "unknown", commits = {}, msg = {};
+%    { \* single-threaded node
+% c1:  while (cState = "unknown") {
+%        receive(coord, msg);
+%        if (msg.type = "refuse") { cState := "abort"; }
+%        else if (msg.type = "accept") {
+%          commits := commits \cup {msg.agent};
+%          if (commits = Agent) { cState := "commit"; }
+%        }
+%      };
+% c2:  broadcast(agt, [ag \in Agent|-> cState]);
+%    }
+%    }**)
+% ===========================================================
+% \end{lstlisting}
+%   \caption{Two-phase commit protocol in Distributed PlusCal.}
+%   \label{fig:two-phase}
+% \end{figure}
+
+\begin{figure}
+\begin{lstlisting}[language=pluscal,frame = tlrb, numbers=none]
+------------------------ MODULE LamportMutex -------------------------
+EXTENDS Naturals, Sequences, TLC
+CONSTANT N
+ASSUME N \in Nat 
+Nodes == 1 .. N
+(* PlusCal options (-distpcal) *)
+(**--algorithm LamportMutex {
+   fifos network[Nodes, Nodes];
+   define {
+     Max(c,d) == IF c > d THEN c ELSE d
+     beats(a,b) == \/ req[b] = 0
+                   \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
+     \* messages used in the algorithm
+     Request(c) == [type |-> "request", clock |-> c]
+     Release(c) == [type |-> "release", clock |-> c]
+     Acknowledge(c) == [type |-> "ack", clock |-> c]
+   }
+   process(n \in Nodes)
+     variables clock = 0, req = [n \in Nodes |-> 0],
+               ack = {}, sndr, msg;
+   { \* thread executing the main algorithm
+ncs: while (<@\textcolor{blue}{TRUE}@>) {
+       skip;  \* non-critical section
+try:   clock := clock + 1; req[self] := clock; ack := {self};
+       multicast(network, [self, nd \in Nodes |-> Request(clock)]);
+enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
+cs:    skip;  \* critical section
+exit:  clock := clock + 1;
+       multicast(network, [self, n \in Nodes \ {self} |->
+                           Release(clock)]);
+     } \* end while
+  }  { \* message handling thread
+rcv:   while (<@\textcolor{blue}{TRUE}@>) { with (n \in Nodes) {
+           receive(network[n,self], msg); sndr := n;
+           clock := Max(clock, msg.clock) + 1
+        };
+handle: if (msg.type = "request") {
+           req[sndr] := msg.clock;
+           send(network[self, sndr], Acknowledge(clock))
+        }
+        else if (msg.type = "ack") { ack := ack \cup {sndr}; }
+        else if (msg.type = "release") { req[sndr] := 0; }
+     }  \* end while
+   } \* end message handling thread
+}  **)
+======================================================================
+\end{lstlisting}
+  \caption{Lamport's mutual-exclusion algorithm.}
+  \label{fig:lamport-mutex}
+\end{figure}
+
+\end{document}
