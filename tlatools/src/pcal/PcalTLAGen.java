@@ -2274,7 +2274,7 @@ public class PcalTLAGen
 //                    {
                        //For Distributed PlusCal 
                        if(PcalParams.distpcalFlag){
-                           is.append("[ self \\in ProcSet, subprocess \\in SubProcSet[self] |-> ");
+                           is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
                        } else{
                     	   is.append("[ self \\in ProcSet |-> ");
                        }
@@ -2287,6 +2287,11 @@ public class PcalTLAGen
                                               new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
+                        
+                        if(PcalParams.distpcalFlag) {
+                        	addOneTokenToTLA("]");
+                        }
+                        
                         addRightParen(decl.getOrigin());
                         endCurrentLineOfTLA();
                         
@@ -2350,7 +2355,7 @@ public class PcalTLAGen
 //                    {
                         //For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
-                            is.append("[ self \\in ProcSet, subprocess \\in SubProcSet[self] |-> ");
+                            is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
                         } else{
                      	   is.append("[ self \\in ProcSet |-> ");
                         }//                    }
@@ -2362,6 +2367,11 @@ public class PcalTLAGen
                                         new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
+                        
+                        if(PcalParams.distpcalFlag) {
+                        	addOneTokenToTLA("]");
+                        }
+                        
                         addRightParen(decl.getOrigin());
                         endCurrentLineOfTLA();
 
