@@ -1,4 +1,4 @@
------------------------- MODULE SequentialAlgoC -------------------------
+------------------------ MODULE SingleProcessSendP -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
