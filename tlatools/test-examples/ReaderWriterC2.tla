@@ -1,36 +1,30 @@
------------------------- MODULE ReaderWriterC2 -------------------------
+ ------------------------ MODULE ReaderWriterC1 -------------------------
 EXTENDS TLC, Integers, Sequences
 
-CONSTANT N
-ASSUME N \in Nat 
-Nodes == 1 .. N
-
 (* PlusCal options (-distpcal) *)
-
+ 
 (*
 --algorithm message_queue {
 
-variable cur = "none";
-channel chan;
+channel queue;
 
 process ( w = "writer" )
 {
 	Write:
   	while ( TRUE ) 
   	{
-            send(chan, "msg");
+      	    send(queue, "msg");
   	}
 }
 
 process ( r = "reader" )
+variable current_message = "none";
 {
 	Read:
   	while ( TRUE ) {
-    	     receive(chan, cur);
+    	    receive(queue, current_message);
   	}
 }
 
 }
 *)
-
-==========================================================

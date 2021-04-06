@@ -1,0 +1,14 @@
+* ReaderWriter
+
+** ReaderWriterC1  
+Process "writer" sends continuously "msg" to process "reader" which
+receives it into current_message. 
+- used FIFO
+- compiles
+- not parsed by TLA (because of strings as identifiers?)
+
+** ReaderWriterC2
+Same as ReaderWriterC1
+- used CHANNEL
+- compiles
+- not parsed by TLA (because of strings as identifiers?)
