@@ -4673,7 +4673,8 @@ public class PcalTLAGen
         }
         
     	//for distributed pcal
-		if(decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel
+      // HC: fix bug FIFO (06/04/21)
+        if((decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel)
 				&& ((Channel) decl).dimensions != null) {
 			RewriteVarDeclDimensions(((Channel)decl));
 		}

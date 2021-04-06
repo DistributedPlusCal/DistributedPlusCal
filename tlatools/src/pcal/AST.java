@@ -1743,7 +1743,8 @@ public class AST
 			sass.lhs.var = targetVar.var;
 
 			TLAExpr expr = new TLAExpr();
-			expr.addLine();
+      // HC: fix bug FIFO (06/04/21)
+			// expr.addLine(); 
 			if(targetExp.tokens != null) {
 				for(int i = 0; i < targetExp.tokens.size(); i++) {
 
