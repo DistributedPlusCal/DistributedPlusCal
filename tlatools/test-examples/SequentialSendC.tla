@@ -1,4 +1,4 @@
------------------------- MODULE SequentialAlgoC -------------------------
+------------------------ MODULE SequentialSendC -------------------------
 EXTENDS Naturals, TLC
 
 
