@@ -12,6 +12,6 @@
   - navigate to trans.java inside pcal package
   - configure run command ex : "-distpcal /../../test.tla"
 
-- Run translator
+-Run translator
 - java -cp dist/tla2tools.jar distpcal.trans -label <path to spec>/<spec>
 - example: java -cp dist/tla2tools.jar pcal.trans -label examples/2PhaseCommit.tla
