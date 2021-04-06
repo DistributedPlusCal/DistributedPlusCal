@@ -11,21 +11,21 @@ Nodes == 1 .. N
 --algorithm chan_msg_algo
 
 variable cur = "none";
-channel chan[Nodes];
+channel chan;
 
-process w \in Nodes
+process w = "Writer"
 begin
 	Write:
   	while ( TRUE ) do
-      	    send(chan[self], "msg");
+      	    send(chan, "msg");
   	end while;
 end process;
 
-process r \in Nodes
+process r = "Reader"
 begin
 	Read:
   	while ( TRUE ) do
-    	    receive(chan[self], cur);
+    	    receive(chan, cur);
   	end while;
 end process;
 
