@@ -10,7 +10,7 @@ Nodes == 1 .. N
 (*
 --algorithm message_queue {
 
-variable cur = "";
+variable cur = "none";
 fifo f_queue;
 
 process ( w = "writer" )
