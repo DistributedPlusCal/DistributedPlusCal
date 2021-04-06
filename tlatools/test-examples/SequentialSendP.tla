@@ -1,4 +1,4 @@
------------------------- MODULE SequentialAlgoP -------------------------
+------------------------ MODULE SequentialSendP -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
