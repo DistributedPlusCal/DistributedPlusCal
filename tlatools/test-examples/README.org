@@ -13,6 +13,12 @@ Same as ReaderWriterC1stringId but using constant Ids
 - compiles
 - NOT parsed by TLA (because of FIFO translation --> @)
 
+** ReaderWriterC1array  
+Same as ReaderWriterC1 but using an array of FIFOs
+- uses FIFO arrays
+- compiles (NOT correctly)
+- parsed by TLA (but incorrect specification)
+
 ** ReaderWriterC2stringId
 Same as ReaderWriterC1 but using channels
 - uses CHANNEL
