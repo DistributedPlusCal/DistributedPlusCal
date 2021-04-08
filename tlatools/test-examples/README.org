@@ -30,3 +30,10 @@ Same as ReaderWriterC2stringId but using constant Ids
 - uses CHANNEL
 - compiles
 - parsed by TLA
+
+** SequentialClearP
+- uses a channel without dimension
+- complies
+- Not parsed by TLA (because clear is not handled properly)
+what we have as a translation of clear command is: chan' = ( |-> {}])
+which should be chan' = {} for a channel without dimension.
