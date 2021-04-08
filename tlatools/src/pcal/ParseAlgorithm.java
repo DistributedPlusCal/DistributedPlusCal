@@ -601,6 +601,7 @@ public class ParseAlgorithm
 			
 			}
 		} else {
+			// for test commit.
 			if ((PeekAtAlgToken(1).equals("fair") 
 					&& ((PeekAtAlgToken(2).equals("process") || (PeekAtAlgToken(2).equals("+")
 							&& PeekAtAlgToken(3).equals("process")
@@ -663,6 +664,7 @@ public class ParseAlgorithm
 				AddLabelsToStmtSeq(proc.body) ;
 				proc.body = MakeLabeledStmtSeq(proc.body);
 
+				System.out.println("test");
 				omitStutteringWhenDone = true;
 				checkBody(proc.body);
 				omitStutteringWhenDoneValue = 
