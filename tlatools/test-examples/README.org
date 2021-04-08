@@ -20,3 +20,9 @@ Same as ReaderWriterC1 but using channels
 Same as ReaderWriterC2stringId but using constant Ids
 ** ReaderWriterC2array  
 Same as ReaderWriterC2 but using an array of channels
+
+
+* SequentialClearP
+- uses an unordered channel without dimensions
+- compiles
+- parsed by TLA
