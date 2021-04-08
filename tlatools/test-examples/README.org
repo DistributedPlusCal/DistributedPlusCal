@@ -30,3 +30,8 @@ Same as ReaderWriterC2stringId but using constant Ids
 - uses CHANNEL
 - compiles
 - parsed by TLA
+
+** SequentialClearP
+- uses an unordered channel without dimensions
+- compiles
+- parsed by TLA
