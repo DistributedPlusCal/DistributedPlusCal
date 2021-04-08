@@ -511,7 +511,7 @@ public class ParseAlgorithm
 				multiNodes.setOrigin(new Region(multiprocBegin, GetLastLocationEnd()));
 				return multiNodes;
 			} else {
-				 
+			// distributed pluscal for uni-process algorithms	 
 			AST.Uniprocess uniproc = new AST.Uniprocess() ;
 			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
 			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
@@ -548,6 +548,9 @@ public class ParseAlgorithm
 			uniproc.body = GetStmtSeq() ;
 			CheckForDuplicateMacros(uniproc.macros) ;
 			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
+
+			ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
+			PcalDebug.reportInfo("Distributed Pluscal Uni process ExpandChannelCallersInStmtSeq() is OK");
 			// LL comment added 11 Mar 2006.
 			// I moved the following to after processing the procedures
 			// so added labels are printed in correct order-- e.g., with 
@@ -600,8 +603,10 @@ public class ParseAlgorithm
 			return uniproc ;
 			
 			}
-		} else {
-			// for test commit.
+		} 		
+		// end of distributed pluscal part.
+		
+		else {
 			if ((PeekAtAlgToken(1).equals("fair") 
 					&& ((PeekAtAlgToken(2).equals("process") || (PeekAtAlgToken(2).equals("+")
 							&& PeekAtAlgToken(3).equals("process")
@@ -4810,13 +4815,40 @@ public class ParseAlgorithm
 		// where each vector inside it represents a sub thread of the node
 
 		Vector<AST.Thread> threads = new Vector<>();
+		int i = 0;
+		AST.Thread thread = new AST.Thread();
+		thread.index = i++;
+		thread.id = result.id;
+		
+		//read the sub-process delimiter
+		GobbleBeginOrLeftBrace() ;
+		/* GobbleBeginOrLeftBrace() ; instead of the following if/else block
+		if(pSyntax){
+    		 GobbleThis("process");
+    	 } else {
+    		 GobbleThis("{");
+    	 }
+    	 */
+		
+		// GobbleBeginOrLeftBrace() ; returns error. This code is from getProcess method but does not work in distributed pluscal
+		// check that next is not the end brace
+		thread.body = GetStmtSeq();
 
+		//to make sure this works remove the key node from the algorithm completely
+		GobbleEndOrRightBrace("process");
+		
+		/*
+		if(pSyntax) {
+			GobbleThis(";");
+		}
+		*/
+		
+		threads.add(thread);	
 		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
-			int i = 0;
 			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
 
-				AST.Thread thread = new AST.Thread();
+				thread = new AST.Thread();
 				thread.index = i++;
 				thread.id = result.id;
 				
@@ -4854,7 +4886,7 @@ public class ParseAlgorithm
 		result.minusLabels = minusLabels;
 		result.proceduresCalled = proceduresCalled;
 		result.setOrigin(new Region(beginLoc, endLoc));
-
+		PcalDebug.reportInfo("Finished without errors AST.NODE");
 		return result;
 	}
 
