@@ -30,7 +30,7 @@ variable current_message = "none";
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-d6c72faf09ad595b9552b92149683b07
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-05107243201037ddec80754e6657d6df
 VARIABLES queue, current_message
 
 vars == << queue, current_message >>
@@ -45,7 +45,7 @@ Init == (* Global variables *)
         (* Node r *)
         /\ current_message = "none"
 
-w == /\ queue' =  Append(@, "msg")
+w == /\ queue' =  Append(queue, "msg")
      /\ UNCHANGED current_message
 
 r == /\ Len(queue) > 0 
@@ -56,5 +56,5 @@ Next == w \/ r
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f1920de3c08e5a34dc8c11fe13c4baf3
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6a0232ce07bda9d10e79aeeb8f44871e
 =============================================================================
