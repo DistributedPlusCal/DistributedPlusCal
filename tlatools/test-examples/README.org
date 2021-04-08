@@ -5,7 +5,7 @@ Process "writer" sends continuously "msg" to process "reader" which
 receives it into current_message. 
 - uses FIFO
 - compiles
-- NOT parsed by TLA (because of strings as identifiers?)
+- NOT parsed by TLA (because of strings as identifiers?) Dostonbek Update: FIXED NOT IT PARSES CORRECTLY.
 
 ** ReaderWriterC1  
 Same as ReaderWriterC1stringId but using constant Ids
@@ -23,7 +23,7 @@ Same as ReaderWriterC1 but using an array of FIFOs
 Same as ReaderWriterC1 but using channels
 - uses CHANNEL
 - compiles
-- NOT parsed by TLA (because of strings as identifiers?)
+- NOT parsed by TLA (because of strings as identifiers?) Dostonbek Update: the problem seems to be with SubProcSet definition? TLA+ toolbox raises error on this line
 
 ** ReaderWriterC2
 Same as ReaderWriterC2stringId but using constant Ids
