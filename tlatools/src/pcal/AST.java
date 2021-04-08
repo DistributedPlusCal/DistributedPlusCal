@@ -1665,19 +1665,37 @@ public class AST
 				sass.lhs.sub = new TLAExpr(new Vector());
 			}
 			
+      // HC: fix bug FIFO (08/04/21)
+   		expr = new TLAExpr();
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+			// expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+			expr.addToken(PcalTranslate.BuiltInToken(" Append("));
+   		expr.addToken(PcalTranslate.IdentToken(channelName));
 
-			for(int i = 0; i < msg.tokens.size(); i++) {
-				
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
+   		if(callExp.tokens != null) {
+   			for(int i = 0; i < callExp.tokens.size(); i++) {
 
-					expr.addToken(tok);
-				}
-			}
-			
+   				Vector tv = (Vector) callExp.tokens.elementAt(i);
+   				for (int j = 0; j < tv.size(); j++) {
+   					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+   					expr.addToken(tok);
+   				}
+   			}
+   		}
+
+			expr.addToken(PcalTranslate.BuiltInToken(", "));
+
+      for(int i = 0; i < msg.tokens.size(); i++) {
+        
+        Vector tv = (Vector) msg.tokens.elementAt(i);
+        for (int j = 0; j < tv.size(); j++) {
+          TLAToken tok = (TLAToken) tv.elementAt(j);
+          
+          expr.addToken(tok);
+        }
+      }
+      
 			expr.addToken(PcalTranslate.BuiltInToken(")"));
 			sass.rhs = expr;
 
@@ -1799,9 +1817,26 @@ public class AST
 				sass.lhs.sub = new TLAExpr(new Vector());
 			}
 			
+      // HC: fix bug FIFO (08/04/21)
 			expr = new TLAExpr();
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
+			// expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
+			expr.addToken(PcalTranslate.BuiltInToken(" Tail("));
+			expr.addToken(PcalTranslate.IdentToken(channelName));
+			
+			if(callExp.tokens != null) {
+
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+						expr.addToken(tok);
+					}
+				}
+			}
+      
+			expr.addToken(PcalTranslate.BuiltInToken(") "));
 
 			sass.rhs = expr;
 

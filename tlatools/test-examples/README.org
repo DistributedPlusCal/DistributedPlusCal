@@ -6,27 +6,17 @@ receives it into current_message.
 - uses FIFO
 - compiles
 - NOT parsed by TLA (because of strings as identifiers?)
-
 ** ReaderWriterC1  
 Same as ReaderWriterC1stringId but using constant Ids
-- uses FIFO
-- compiles
-- NOT parsed by TLA (because of FIFO translation --> @)
-
 ** ReaderWriterC1array  
 Same as ReaderWriterC1 but using an array of FIFOs
-- uses FIFO arrays
-- compiles (NOT correctly)
-- parsed by TLA (but incorrect specification)
 
 ** ReaderWriterC2stringId
 Same as ReaderWriterC1 but using channels
 - uses CHANNEL
 - compiles
 - NOT parsed by TLA (because of strings as identifiers?)
-
 ** ReaderWriterC2
 Same as ReaderWriterC2stringId but using constant Ids
-- uses CHANNEL
-- compiles
-- parsed by TLA
+** ReaderWriterC2array  
+Same as ReaderWriterC2 but using an array of channels

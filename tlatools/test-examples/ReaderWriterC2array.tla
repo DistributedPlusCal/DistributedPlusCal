@@ -1,4 +1,4 @@
------------------------- MODULE ReaderWriterC1 -------------------------
+------------------------		 MODULE ReaderWriterC1array -------------------------
 EXTENDS TLC, Integers, Sequences
 
 CONSTANTS Writer, Reader
@@ -8,14 +8,14 @@ CONSTANTS Writer, Reader
 (***
 --algorithm message_queue {
 
-fifo queue;
+channel queue[Nat];
 
 process ( w = Writer )
 {
 	Write:
   	while ( TRUE ) 
   	{
-      	    send(queue, "msg");
+      	    send(queue[1], "msg");
   	}
 }
 
@@ -24,13 +24,13 @@ variable current_message = "none";
 {
 	Read:
   	while ( TRUE ) {
-    	    receive(queue, current_message);
+    	    receive(queue[1], current_message);
   	}
 }
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3b2585575f288b5dfe2e4d140d7960c9
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-b61101a665c042d847fb08708b354b7f
 VARIABLES queue, current_message
 
 vars == << queue, current_message >>
@@ -41,20 +41,20 @@ SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
                            ELSE (**Reader**) 1]
 
 Init == (* Global variables *)
-        /\ queue = <<>>
+        /\ queue = [n0 \in Nat |-> {}]
         (* Node r *)
         /\ current_message = "none"
 
-w == /\ queue' =  Append(queue, "msg")
+w == /\ queue' = [queue EXCEPT ![1] = queue[1] \cup {"msg"}]
      /\ UNCHANGED current_message
 
-r == /\ Len(queue) > 0 
-     /\ current_message' = Head(queue)
-     /\ queue' =  Tail(queue) 
+r == \E q119 \in queue[1]:
+       /\ current_message' = q119
+       /\ queue' = [queue EXCEPT ![1] = queue[1] \ {q119}]
 
 Next == w \/ r
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-14d96ecab5f562a8ed7d6f9a78295620
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-86909122465862a232f8fce1009e9229
 =============================================================================
