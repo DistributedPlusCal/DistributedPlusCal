@@ -1598,32 +1598,39 @@ public class AST
 
 			TLAExpr expr = new TLAExpr();
 			expr.addLine();
-
-			for(int i = 0; i < channel.dimensions.size(); i++) {
-				String dimension = (String) channel.dimensions.get(i);
-
-				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
-
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
+			
+			if (! (channel.dimensions == null) ) {
+				for(int i = 0; i < channel.dimensions.size(); i++) {
+					String dimension = (String) channel.dimensions.get(i);
+	
+					String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+	
+					if(i == 0) {
+						expr.addToken(PcalTranslate.BuiltInToken("["));
+					}
+					expr.addToken(PcalTranslate.IdentToken(tempVarName));
+					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+					expr.addToken(PcalTranslate.IdentToken(dimension));
+	
+	
+					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+						expr.addToken(PcalTranslate.BuiltInToken(", "));
+					}
 				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-				expr.addToken(PcalTranslate.IdentToken(dimension));
+				
+				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
 
-				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
+				expr.addToken(PcalTranslate.BuiltInToken("]"));
+			} else {
+			
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
+
 			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
+			
 			expr.setOrigin(this.getOrigin());
 			expr.normalize();
 
@@ -1638,7 +1645,8 @@ public class AST
 			assign.ass.addElement(sass);
 
 			result.addElement(assign);
-
+			
+			PcalDebug.reportInfo("AST.java clear: " + result);
 			return result;
 		}
    	

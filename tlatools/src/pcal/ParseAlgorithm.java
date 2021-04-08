@@ -567,12 +567,14 @@ public class ParseAlgorithm
 			prcd.body = MakeLabeledStmtSeq(prcd.body);
 			i = i + 1 ;
 			}
+			
 			if (cSyntax) 
 			{ GobbleThis("}") ; 
 			GobbleThis("}") ; } 
 			else 
 			{ GobbleThis("end") ;
 			GobbleThis("algorithm") ;} ;
+			
 			AddLabelsToStmtSeq(uniproc.body) ;
 			uniproc.body = MakeLabeledStmtSeq(uniproc.body);
 			/****************************************************************
@@ -607,6 +609,7 @@ public class ParseAlgorithm
 		// end of distributed pluscal part.
 		
 		else {
+			// PLUSCAL multi-process part begin
 			if ((PeekAtAlgToken(1).equals("fair") 
 					&& ((PeekAtAlgToken(2).equals("process") || (PeekAtAlgToken(2).equals("+")
 							&& PeekAtAlgToken(3).equals("process")
@@ -5220,16 +5223,18 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
-
+		PcalDebug.reportInfo("At ExpandClearCall: " + call + " : " + nodeDecl + " : " + globalDecl);
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 
 		if(chanVar == null) {
-			//throw and exception
+			PcalDebug.reportInfo("Throw error chanVar == null");
+			//throw and exceptionExpandClearCall
 		}
 		
 		//construct body based on type 
 		Vector result = call.generateBodyTemplate((AST.Channel)chanVar);
-
+		PcalDebug.reportInfo("Body constructed OK.");
+		
 		if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
           first.lbl = call.lbl;
@@ -5257,7 +5262,7 @@ public class ParseAlgorithm
 		int i = 0;
 
 		while (nodeDecl != null && i < nodeDecl.size()) {
-			
+			PcalDebug.reportInfo("While loop WAS NOT SUPPOSED to execute!!!!!!!!!");
 			AST.VarDecl tempVar = null;
 			try {
 				tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
@@ -5280,15 +5285,18 @@ public class ParseAlgorithm
 				AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
 
 				if (tempVar.var.equals(varName)) {
+					PcalDebug.reportInfo("found matching channel.");
 					chanVar = tempVar;
 				}
 				i = i + 1;
 			}
 
 			if(chanVar == null) {
+				PcalDebug.reportInfo("Throwing error from findVarDeclByVarName. ");
 				//throw an error
 			}
 		}
+		PcalDebug.reportInfo("found variable declaration name: " + chanVar);
 		return chanVar;
 	}
 }
