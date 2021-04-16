@@ -4842,16 +4842,15 @@ public class ParseAlgorithm
 		//to make sure this works remove the key node from the algorithm completely
 		GobbleEndOrRightBrace("process");
 		
-		/*
+	
 		if(pSyntax) {
 			GobbleThis(";");
 		}
-		*/
 		
 		threads.add(thread);	
-		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
+		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
 
-			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
+			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
 
 				thread = new AST.Thread();
 				thread.index = i++;
@@ -4859,7 +4858,7 @@ public class ParseAlgorithm
 				
 				//read the sub-process delimiter
 				if(pSyntax){
-		    		 GobbleThis("subprocess");
+		    		 GobbleThis("begin");
 		    	 } else {
 		    		 GobbleThis("{");
 		    	 }
