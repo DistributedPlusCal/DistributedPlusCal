@@ -883,7 +883,9 @@ public class ParseAlgorithm
            return;
        }
        Vector line = (Vector) tokens.elementAt(0);
-       if (line.size() != 1) {
+       // dostonbek. add || PcalParams.distpcalFlag condition to correct label handling in sub-processes. 
+       if (line.size() != 1 || PcalParams.distpcalFlag) {
+    	   
            omitPC = false;
            omitStutteringWhenDone = false;
            return;
