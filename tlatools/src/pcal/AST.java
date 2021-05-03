@@ -82,15 +82,12 @@ public class AST
     public static AST.Assign       AssignObj       ;
     public static AST.SingleAssign SingleAssignObj ;
     
-    //For Distributed PlusCal	
-    public static AST.Node    	   NodeObj	       ;
-    public static AST.MultiNodes MultiNodesObj     ;
-      /*********************************************************************
-      * We added an explicit SINGLEASSIGN type to represent a single       *
-      * assignment within a multi-assignment.  We did this because Java    *
-      * doesn't allow a record (struct) to be constructed as anything      *
-      * other than an object of some class.                                *
-      *********************************************************************/
+    /*********************************************************************
+     * We added an explicit SINGLEASSIGN type to represent a single       *
+     * assignment within a multi-assignment.  We did this because Java    *
+     * doesn't allow a record (struct) to be constructed as anything      *
+     * other than an object of some class.                                *
+     *********************************************************************/
     public static AST.Lhs          LhsObj          ;
     public static AST.If           IfObj           ;
     public static AST.Either       EitherObj       ;
@@ -238,8 +235,6 @@ public class AST
         MacroCallObj    = new AST.MacroCall() ;
         
         //For Distributed PlusCal	
-        MultiNodesObj   = new AST.MultiNodes();
-        NodeObj         = new AST.Node();
         ChannelSenderObj =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
         ChannelClearCall = new AST.ChannelClearCall();
@@ -421,6 +416,9 @@ public class AST
         public TLAExpr   id    = null ;
         public Vector    decls = null ; // of VarDecl
         public Vector    body  = null ; // of LabeledStmt
+        // For Distributed PlusCal	
+        public Vector<Thread> threads = null;
+        // end For Distributed PlusCal	
         public Process() { };
         public String toString() 
           { 
@@ -437,7 +435,11 @@ public class AST
                     VectorToSeqString(decls) + "," + 
                  EndIndent() + NewLine() +
                  Indent(" body   |-> ") + 
-                    VectorToSeqString(body) + "]" +
+                ((body == null) ? "_" :VectorToSeqString(body)) + "]" + 
+        // For Distributed PlusCal	
+                 Indent(",  threads   |-> ") +
+                ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
+        // end For Distributed PlusCal	
                  EndIndent() + 
               EndIndent() ;
             } 
@@ -1070,39 +1072,7 @@ public class AST
      }
    
    
-   //classes For Distributed PlusCal
-   
-   //For Distributed PlusCal	
-   public static class MultiNodes extends AST{
-   	public String  name   = "" ;
-       public Vector  decls  = null ; // of VarDecl 
-       public TLAExpr defs   = null ;
-       public Vector  macros = null ; // of Macro
-       public Vector  prcds  = null ; // of Procedure
-       public Vector nodes  = null ; // of nodes
-
-       public MultiNodes() {} ;
-       public String  toString() 
-       {
-       	return
-       			Indent(lineCol()) +
-       			"[type    |-> \"multiNodes\", " + NewLine() +
-       			" name  |-> \"" + name + "\", " + NewLine() +
-       			Indent(" decls |-> ") + VectorToSeqString(decls) + ","
-       			+ 
-       			EndIndent() + NewLine() +
-       			Indent(" defs  |-> ") + defs.toString() + ","
-       			+ 
-       			EndIndent() + NewLine() +
-       			Indent(" prcds |-> ") + VectorToSeqString(prcds) + ","
-       			+ 
-       			EndIndent() + NewLine() +
-       			Indent(" nodes |-> ") + VectorToSeqString(nodes) + "]"
-       			+ EndIndent();
-       }
-     }
-   
-   //For Distributed PlusCal	
+    //For Distributed PlusCal	
    public static abstract class Channel extends VarDecl{
 
    	public Channel() {};
@@ -2309,71 +2279,6 @@ public class AST
 	   }
    }
 
-   /**
-   *
-   * 
-   * @author hebak
-   *
-   */
-   public static class Node extends AST{
-	   public String    name  = "" ;
-	   public int fairness = UNFAIR_PROC ;
-	   public Vector  minusLabels = new Vector();
-	   public Vector  plusLabels = new Vector();
-	   public Vector  proceduresCalled = new Vector();
-	   public boolean   isEq  = true ; // true means "=", false means "\\in"
-	   public TLAExpr   id    = null ;
-	   public Vector    decls = null ; // of VarDecl
-	   public Vector<Thread> threads = null;
-
-	   public Node() { };
-	   public String toString() 
-	   { 
-		   // For versions earlier than 1.5 need to return those versions'
-		   // value since toString() is used to generate the AST module
-		   // used when TLC is doing the translation.
-		   if (PcalParams.inputVersionNumber < PcalParams.VersionToNumber("1.5")){
-			   return
-					   Indent(lineCol()) +
-					   "[name   |-> \"" + name + "\", " + NewLine() +
-					   " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
-					   " id     |-> " + id.toString() + "," + NewLine() +
-					   Indent(" decls  |-> ") + 
-					   VectorToSeqString(decls) + "," + 
-					   EndIndent() + NewLine() +
-
-//					   Indent(" body   |-> ") + 
-//					   VectorToSeqString(body) + "]" + ", " + 
-//					   EndIndent() + NewLine() +
-
-					   Indent(" threads   |-> ") + 
-					   (threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
-					   EndIndent() + 
-					   EndIndent() ;
-		   } 
-		   return
-				   Indent(lineCol()) +
-				   "[name   |-> \"" + name + "\"," 
-				   + NewLine() +
-				   " fairness |-> \"" 
-				   + FairnessString[fairness] + "\", minusLabels |-> "
-				   + VectorToSeqQuotedString(minusLabels) + ", plusLabels |->"
-				   + VectorToSeqQuotedString(plusLabels) + ", proceduresCalled |->"
-				   + VectorToSeqQuotedString(proceduresCalled) + ","
-				   + NewLine() +
-				   " eqOrIn |-> " + boolToEqOrIn(isEq) + "," + NewLine() +
-				   " id     |-> " + id.toString() + "," + NewLine() +
-				   Indent(" decls  |-> ") + 
-				   VectorToSeqString(decls) + "," + 
-				   EndIndent() + NewLine() +
-
-				   Indent(",  threads   |-> ") +
-				   (threads == null || threads.size() == 0 ? "<<>>" : VectorToSeqString(threads)) + "]" +
-				   EndIndent() + 
-				   EndIndent() ;	   
-	   }
-   }
-  
   public static class Thread extends AST{
 	  public String    name  = "" ;
 	  public Vector  minusLabels = new Vector();
