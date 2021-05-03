@@ -434,7 +434,7 @@ public class AST
                     VectorToSeqString(decls) + "," + 
                  EndIndent() + NewLine() +
                  Indent(" body   |-> ") + 
-                ((body == null) ? "_" :VectorToSeqString(body) + "]" + 
+                ((body == null) ? "_" :VectorToSeqString(body)) + "]" + 
         // For Distributed PlusCal	
                  Indent(",  threads   |-> ") +
                 ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
