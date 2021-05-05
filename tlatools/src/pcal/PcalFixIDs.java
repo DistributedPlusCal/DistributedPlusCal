@@ -78,8 +78,8 @@ public class PcalFixIDs {
         else if (ast.getClass().equals(AST.GotoObj.getClass()))
             FixGoto((AST.Goto) ast, context);
         //For Distributed PlusCal
-        else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
-            FixMultiNodes((AST.MultiNodes) ast, context);
+        //else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
+            //FixMultiNodes((AST.MultiNodes) ast, context);
         /*******************************************************************
         * Handling of Either and LabelEither added by LL on 24 Jan 2006.   *
         *******************************************************************/
@@ -502,7 +502,7 @@ public class PcalFixIDs {
      * @param context
      * @throws PcalFixIDException
      */
-    private static void FixMultiNodes (AST.MultiNodes ast, String context) throws PcalFixIDException {
+    /*private static void FixMultiNodes (AST.MultiNodes ast, String context) throws PcalFixIDException {
         for (int i = 0; i < ast.decls.size(); i++)
             FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), "");
         
@@ -587,7 +587,7 @@ public class PcalFixIDs {
                 }
             }
         }
-    }
+    }*/
     
     /**
      * 
@@ -595,7 +595,7 @@ public class PcalFixIDs {
      * @param context
      * @throws PcalFixIDException
      */
-    private static void FixNode(AST.Node ast, String context) throws PcalFixIDException {
+    /* private static void FixNode(AST.Node ast, String context) throws PcalFixIDException {
         for (int i = 0; i < ast.decls.size(); i++)
             FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
         	for (AST.Thread thread : ast.threads) {
@@ -635,7 +635,7 @@ public class PcalFixIDs {
         p.iPC = sb;
         ast.name = st.UseThis(PcalSymTab.NODE, ast.name, "");
         p.name = ast.name;
-   }
+   } */
 }
 
 /***************************  the file FloydWarshall *************************************

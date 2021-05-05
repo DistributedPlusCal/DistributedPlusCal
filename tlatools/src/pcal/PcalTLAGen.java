@@ -3,8 +3,8 @@ package pcal;
 import java.util.Vector;
 
 import pcal.AST.Channel;
-import pcal.AST.MultiNodes;
-import pcal.AST.Node;
+//import pcal.AST.MultiNodes;
+//import pcal.AST.Node;
 import pcal.AST.VarDecl;
 import pcal.exception.PcalTLAGenException;
 import pcal.exception.TLAExprException;
@@ -273,10 +273,10 @@ public class PcalTLAGen
             GenLabeledStmt((AST.LabeledStmt) ast, context);
         
         //For Distributed PlusCal
-        else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
-			GenMultiNodes((AST.MultiNodes) ast, context);
-        else if (ast.getClass().equals(AST.NodeObj.getClass()))
-			GenNodes((AST.Node) ast, context);
+        //else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
+			//GenMultiNodes((AST.MultiNodes) ast, context);
+        //else if (ast.getClass().equals(AST.NodeObj.getClass()))
+			//GenNodes((AST.Node) ast, context);
     }
 
     private void GenUniprocess(AST.Uniprocess ast, String context) throws PcalTLAGenException
@@ -304,6 +304,9 @@ public class PcalTLAGen
         mp = true;
         GenVarsAndDefs(ast.decls, ast.prcds, ast.procs, ast.defs, null);
         GenProcSet();
+        if ( PcalParams.distpcalFlag )
+    		GenSubProcSet();
+        	
         GenInit(ast.decls, ast.prcds, ast.procs, null);
         for (int i = 0; i < ast.prcds.size(); i++)
             GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -471,10 +474,11 @@ public class PcalTLAGen
             nextStepSelf.addElement(ast.name + "(self)");
         } else
             nextStep.addElement(ast.name);
-        
-        for (int i = 0; i < ast.body.size(); i++) {
-            AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
-            GenLabeledStmt(stmt, "process");
+        for(AST.Thread thread : ast.threads) {
+        	for (int i = 0; i < ast.body.size(); i++) {
+        		AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
+        		GenLabeledStmt(stmt, "process");
+        	}
         }
         
         /*
@@ -1002,7 +1006,7 @@ public class PcalTLAGen
                 
                 if (mp
                         && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) 
-                        		|| IsNodeSetVar(sass.lhs.var) || sass.lhs.var.equals("stack")))
+                        		/*|| IsNodeSetVar(sass.lhs.var)*/ || sass.lhs.var.equals("stack")))
                 {
                 	
                 	//if the context is not a procedure then we are handling a procedure call and we need to update
@@ -1200,7 +1204,7 @@ public class PcalTLAGen
                 if (i == 0) {
                     cc = cc + prefix.length();
                 }
-                boolean subscript = (mp && (IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) || IsNodeSetVar(sass.lhs.var)));
+                boolean subscript = (mp && (IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) /*|| IsNodeSetVar(sass.lhs.var)*/));
                 while (iFirst <= iLast)
                 {
                     sass = (AST.SingleAssign) ast.ass.elementAt(iFirst);
@@ -1965,7 +1969,7 @@ public class PcalTLAGen
         /*******************************************************************
 		 * Add local node variables to lVars, vars, and psV for * variables local to
 		 * node sets. *
-		 *******************************************************************/
+		 ******************************************************************
 		if (nodes != null)
 			for (int i = 0; i < nodes.size(); i++) {
 				AST.Node node = (AST.Node) nodes.elementAt(i);
@@ -1979,7 +1983,7 @@ public class PcalTLAGen
 						if (!node.isEq)
 							psV.addElement(decl.var);
 					}
-			}
+			} */
 			
         /********************************************************************
         * Add a declaration of the constant defaultInitValue if it is       *
@@ -2682,9 +2686,9 @@ public class PcalTLAGen
         }
 
         //For Distributed PlusCal
-        if (nodes != null && nodes.size() > 0) {
+        //if (nodes != null && nodes.size() > 0) {
 			/* nodes variables */
-			for (int i = 0; i < nodes.size(); i++) {
+			/*for (int i = 0; i < nodes.size(); i++) {
 				AST.Node node = (AST.Node) nodes.elementAt(i);
 				if (node.decls.size() == 0) // No variables in this node
 					continue;
@@ -2699,12 +2703,12 @@ public class PcalTLAGen
 					 * In the comments below, (( and )) represent MappingObject.LeftParen and
 					 * MappingObject.RightParen objects.
 					 */
-					AST.VarDecl decl = (AST.VarDecl) node.decls.elementAt(n);
+					/*AST.VarDecl decl = (AST.VarDecl) node.decls.elementAt(n);
 					is.append("/\\ ");
 					/*
 					 * The following adds /\ (( to the TLA+ output.
 					 */
-					addOneTokenToTLA(is.toString());
+					/*addOneTokenToTLA(is.toString());
 					addLeftParen(decl.getOrigin());
 
 					if (node.isEq) {
@@ -2762,7 +2766,7 @@ public class PcalTLAGen
 							/*
 							 * Now we output the TLA+ code.
 							 */
-							is = new StringBuffer(decl.var);
+							/*is = new StringBuffer(decl.var);
 							is.append(" \\in [");
 							addOneTokenToTLA(is.toString());
 							addLeftParen(node.id.getOrigin());
@@ -2778,12 +2782,12 @@ public class PcalTLAGen
 					/*
 					 * This adds the final )) .
 					 */
-					addRightParen(decl.getOrigin());
+					/*addRightParen(decl.getOrigin());
 					endCurrentLineOfTLA();
 					is = new StringBuffer(NSpaces(col));
 				} // end of for p loop.
 			}
-		}
+		}*/
         
         /* stack initial value */
         if (procs != null && procs.size() > 0)
@@ -2806,7 +2810,7 @@ public class PcalTLAGen
         				if (boxUnderCASE)
         					colPC = colPC - 3;
         				for (int n = 0; n < st.nodes.size(); n++) {
-        					PcalSymTab.NodeEntry ne = (PcalSymTab.NodeEntry) st.nodes.elementAt(n);
+        					PcalSymTab.ProcessEntry ne = (PcalSymTab.ProcessEntry) st.nodes.elementAt(n);
         					if (useCase) {
         						is.append("self ");
         						if (ne.isEq) {
@@ -2905,7 +2909,7 @@ public class PcalTLAGen
         if (! ParseAlgorithm.omitPC) {
         	
         	//For Distributed PlusCal
-        	if(PcalParams.distpcalFlag) {
+        	/*if(PcalParams.distpcalFlag) {
     			if (mp) {
     				boolean useCase = st.nodes.size() != 1;
     				
@@ -2918,7 +2922,8 @@ public class PcalTLAGen
     				if (boxUnderCASE)
     					colPC = colPC - 3;
     				for (int n = 0; n < st.nodes.size(); n++) {
-    					PcalSymTab.NodeEntry ne = (PcalSymTab.NodeEntry) st.nodes.elementAt(n);
+    					//PcalSymTab.NodeEntry ne = (PcalSymTab.NodeEntry) st.nodes.elementAt(n);
+    					PcalSymTab.ProcessEntry ne = (PcalSymTab.ProcessEntry) st.nodes.elementAt(n);
     					if (useCase) {
     						is.append("self ");
     						if (ne.isEq) {
@@ -3003,7 +3008,7 @@ public class PcalTLAGen
     				addOneLineOfTLA(is.toString());
     			}
     		
-        	} else {
+        	} else { */
         		if (mp)
         		{
         			// On 4 May 2012, LL added useCase flag to inhibit adding of CASE for
@@ -3059,18 +3064,62 @@ public class PcalTLAGen
         						addRightParen(pe.id.getOrigin());
 
         					}
-        					// is.append(" -> \"");
-        					is = new StringBuffer(" -> \"");
-        					is.append(pe.iPC);
-        					if (p == st.processes.size() - 1)
-        						is.append("\"]");
-        					else if (!boxUnderCASE)
-        						is.append("\" []");
-        					else
-        						is.append("\"");
+        					
+        					if(PcalParams.distpcalFlag && pe.iPC.length() > 1) {
+    							
+    							is = new StringBuffer(" -> <<");
+    							String[] stringArray = pe.iPC.toString().split(",");
+    							
+    							for(int i = 0; i < stringArray.length; i++) {
+    								is.append("\"" + stringArray[i].trim() + "\"");
+    								
+    								if(i != stringArray.length-1) {
+    									is.append(",");
+    								}
+    							}
+    						} else { 
+    							// is.append(" -> \"");
+    							is = new StringBuffer(" -> \"");
+        						is.append(pe.iPC);
+        					}
+        					
+        					if (p == st.processes.size() - 1) {
+        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
+        							is.append(">>]");
+        						else
+        							is.append("\"]");
+        					}
+        					else if (!boxUnderCASE) {
+        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
+        							is.append(">> []");
+        						else
+        							is.append("\" []");
+        					}
+        					else {
+        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
+        							is.append(">>");
+        						else
+        							is.append("\"");
+        					}
         				} // end if (useCase)
         				else {
-        					is.append("\"" + pe.iPC + "\"]");
+        					
+        					if ( PcalParams.distpcalFlag ) {
+        						String[] stringArray = pe.iPC.toString().split(",");
+        						
+        						is.append("<<");
+        						for(int i = 0; i < stringArray.length; i++) {
+        							is.append("\"" + stringArray[i].trim() + "\"");
+        							
+        							if(i != stringArray.length-1) {
+        								is.append(",");
+        							}
+        						}
+        						is.append(">>]");
+        					} else {
+        						is.append("\"" + pe.iPC + "\"]");
+        					}
+        					
         				}
         				//                  tlacode.addElement(is.toString());
         				addOneTokenToTLA(is.toString());
@@ -3085,7 +3134,7 @@ public class PcalTLAGen
         			//              tlacode.addElement(is.toString());
         			addOneLineOfTLA(is.toString());
         		}
-        	}
+        	//}
         }
 //        tlacode.addElement("");
         addOneLineOfTLA("");
@@ -3254,7 +3303,7 @@ public class PcalTLAGen
 
 //        nextSSP = new Vector(); // of Vector
 
-        if (mp && st.nodes.size() > 0) {
+        /*if (mp && st.nodes.size() > 0) {
         	for (int i = 0; i < st.nodes.size(); i++) {
         		PcalSymTab.NodeEntry n = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
         		if (n.isEq)
@@ -3276,7 +3325,7 @@ public class PcalTLAGen
         		vec.addElement(sb.toString());
         		nextSSP.addElement(vec);
         	}
-        }
+        }*/
         
         // assemble the line from the pieces
         sb = new StringBuffer("Next == ");
@@ -3656,7 +3705,7 @@ public class PcalTLAGen
            } 
            
            //For Distributed PlusCal
-			for (int i = 0; i < st.nodes.size(); i++) {
+			/*for (int i = 0; i < st.nodes.size(); i++) {
 				PcalSymTab.NodeEntry n = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
 				AST.Node nAst = n.ast;
 				int fairness = nAst.fairness;
@@ -3813,7 +3862,7 @@ public class PcalTLAGen
 					procFairnessFormulas.addElement(new ProcessFairness (xf, prefix, wfSB.toString(),
 							(sfSB == null) ? null : sfSB.toString(), prcdFormulas));
 				} // end if (fairness != AST.UNFAIR_PROC)
-			}
+			}*/
 		
         } // ends construction of procFairnessFormulas
            
@@ -3944,7 +3993,7 @@ public class PcalTLAGen
                 TLAToken tok = (TLAToken) tv.elementAt(j);
                 boolean prime = ((tok.type == TLAToken.IDENT) && c.IsChanged(tok.string));
                 boolean subr = (sub != null && (tok.type == TLAToken.ADDED || (mp && (tok.type == TLAToken.IDENT) && (IsProcedureVar(tok.string) 
-                		|| IsProcessSetVar(tok.string) || IsNodeSetVar(tok.string)))));
+                		|| IsProcessSetVar(tok.string) /*|| IsNodeSetVar(tok.string)*/))));
                 if ((subr || prime) && !InVector(tok.string, stringVec))
                 {
                     stringVec.addElement(tok.string);
@@ -5012,9 +5061,9 @@ public class PcalTLAGen
     /****************************************************/
 	/* True if var is in the list of node variables. */
 	/****************************************************/
-	private boolean IsNodeSetVar(String var) {
+	/*private boolean IsNodeSetVar(String var) {
 		return InVector(var, psV);
-	}
+	}*/
 
 	/**
 	 * 
@@ -5022,19 +5071,19 @@ public class PcalTLAGen
 	 * @param context
 	 * @throws PcalTLAGenException
 	 */
-	private void GenNodes(Node node, String context) throws PcalTLAGenException {
-		currentProcName = node.name;
+	//private void GenNodes(Node node, String context) throws PcalTLAGenException {
+		//currentProcName = node.name;
 
 		/*
 		 * Generate the body's actions. Must set self and selfIsSelf (?) for use by
 		 * GenLabeledStmt.
 		 */
-		boolean isSet = true;
+		//boolean isSet = true;
 		/************************************************************/
 		/* Decide if it is a process set or not. If so, set self to */
 		/* the string "self"; otherwise set self to the process id. */
 		/************************************************************/
-		if (node.isEq) {
+		/*if (node.isEq) {
 			self = node.id;
 			selfIsSelf = false;
 			isSet = false;
@@ -5068,7 +5117,7 @@ public class PcalTLAGen
 		 * have already defined the process name to equal the only label action.
 		 */
 
-		if (!ParseAlgorithm.omitPC) {
+		/*if (!ParseAlgorithm.omitPC) {
 			addLeftParen(node.getOrigin());
 			String argument = (isSet) ? "(self)" : "";
 			StringBuffer buf = new StringBuffer(node.name + argument + " == ");
@@ -5081,7 +5130,7 @@ public class PcalTLAGen
 					AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
 					String disjunct = stmt.label + argument;
 					if (j != 0 && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
-							+ disjunct.length() > wrapColumn) {
+							/*+ disjunct.length() > wrapColumn) {
 						endCurrentLineOfTLA();
 					}
 					addOneTokenToTLA(((tlacodeNextLine.length() == 0) ? indentSpaces : "") + " \\/ ");
@@ -5094,7 +5143,7 @@ public class PcalTLAGen
 			addRightParen(node.getOrigin());
 			addOneLineOfTLA("");
 		}
-	}
+	}*/
 	
 	/**
 	 * 
@@ -5102,7 +5151,7 @@ public class PcalTLAGen
 	 * @param context
 	 * @throws PcalTLAGenException
 	 */
-	private void GenMultiNodes(MultiNodes ast, String context) throws PcalTLAGenException {
+	/*private void GenMultiNodes(MultiNodes ast, String context) throws PcalTLAGenException {
 		mp = true;
 		GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, ast.nodes);
 		GenNodeSet();
@@ -5115,7 +5164,7 @@ public class PcalTLAGen
 		GenNext();
 		GenSpec();
 		GenTermination();
-	}
+	}*/
 	
 	/**
 	 * Generates the "ProcSet == ..." output. It is just a union of all the node
@@ -5123,7 +5172,7 @@ public class PcalTLAGen
 	 * It wouldn't be too hard to break long lines, but that should be done later,
 	 * if desired, after the TLA to PCal translation is finished.
 	 */
-	public void GenNodeSet() {
+	/*public void GenNodeSet() {
 		StringBuffer ps = new StringBuffer();
 		if (st.nodes == null || st.nodes.size() == 0)
 			return;
@@ -5152,7 +5201,7 @@ public class PcalTLAGen
 		
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
-	}
+	}*/
 
 	/**
 	 * Generates the "ProcSet == ..." output. It is just a union of all the node
@@ -5170,7 +5219,7 @@ public class PcalTLAGen
 		
 		//if there is only one node
 		if(st.nodes.size() == 1) {
-			PcalSymTab.NodeEntry node = (PcalSymTab.NodeEntry) st.nodes.elementAt(0);
+			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.nodes.elementAt(0);
 			
 			if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
@@ -5186,7 +5235,7 @@ public class PcalTLAGen
 		}
 			
 		for (int i = 0; i < st.nodes.size(); i++) {
-			PcalSymTab.NodeEntry node = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
+			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.nodes.elementAt(i);
 
 			//if this is the last node
 			if(i == st.nodes.size() - 1) {

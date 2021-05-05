@@ -92,7 +92,7 @@ public class PcalSymTab {
     public static final int PARAMETER = 6;
     
     //for distributed pcal
-    public static final int NODE = 7;
+    //public static final int NODE = 7;
 
     // The following two arrays need to be ordered wrt the constants above.
 
@@ -102,7 +102,7 @@ public class PcalSymTab {
     // For toString method.
     public static String vtypeName[ ] = {
         "Global variable", "Label", "Procedure", "Process", 
-        "Process variable", "Procedure variable", "Parameter", "Node"};
+        "Process variable", "Procedure variable", "Parameter", /*"Node"*/};
 
     /* NESTED CLASS: Symbol table entries */
     public class SymTabEntry {
@@ -173,20 +173,34 @@ public class PcalSymTab {
         public boolean isEq;     // true means "=", false means "\\in"
         public TLAExpr id;       // set of identifiers or identifier
         public Vector decls;     // of ParDecl
-        public String iPC;       // Initial pc of this process
+        public String iPC; // Initial pc of this process.
         public AST.Process ast; // AST of the procedure
         // Added 13 Jan 2011 by LL 
-
+        public Vector<Thread> threads = null;
+        
         public ProcessEntry(AST.Process p) {
             this.name = p.name;
             this.isEq = p.isEq;
             this.id = p.id;
             this.decls = p.decls;
             this.ast = p;
-            if (p.body.size() == 0) this.iPC = null;
+            this.threads = p.threads;
+            if (p.threads.size() == 0) this.iPC = null;
             else {
-                AST.LabeledStmt ls = (AST.LabeledStmt) p.body.elementAt(0);
-                this.iPC = ls.label;
+            	this.iPC = new String();
+            	
+            	for(int i = 0; i < p.threads.size(); i++) {
+					AST.Thread t = p.threads.get(i);
+					
+					AST.LabeledStmt ls = (AST.LabeledStmt) t.body.elementAt(0);
+
+					//assuming the main block cannot be empty of labels ?
+					if(i != 0) {
+						this.iPC = this.iPC + ", " +  ls.label;
+					} else {
+						this.iPC = this.iPC + ls.label;
+					}
+				}
             }
         }
     } /* End of ProcessEntry */
@@ -469,9 +483,9 @@ public class PcalSymTab {
         else if (ast.getClass().equals(AST.MultiprocessObj.getClass()))
             ExtractMultiprocess((AST.Multiprocess) ast, context);
         
-        //For Distributed PlusCal
+        /*For Distributed PlusCal
         else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
-			ExtractMultiNodes((AST.MultiNodes) ast, context);
+			ExtractMultiNodes((AST.MultiNodes) ast, context); */
         else PcalDebug.ReportBug("Unexpected AST type.");
     }
 
@@ -580,10 +594,12 @@ public class PcalSymTab {
         b = InsertSym(PROCESS, ast.name, context, "process", ast.line, ast.col);
         for (int i = 0; i < ast.decls.size(); i++)
             ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
-        for (int i = 0; i < ast.body.size(); i++)
-            ExtractLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i),
-                               ast.name,
-                               "process");
+        for (int i = 0; i < ast.threads.size(); i++) {
+			AST.Thread thread = ast.threads.get(i);
+			for(int j = 0; j > thread.body.size(); j++) {
+				ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
+			}
+		}
     }
         
     private void ExtractVarDecl(AST.VarDecl ast, String context) {
@@ -740,7 +756,7 @@ public class PcalSymTab {
      return ;
     }
 
-   //For Distributed PlusCal
+   /* For Distributed PlusCal
    public class NodeEntry {
 		public String name; // name
 		public boolean isEq; // true means "=", false means "\\in"
@@ -776,26 +792,26 @@ public class PcalSymTab {
 				}
 			}
 		}
-	}
+	} */
    
    /***************************************************
 	 * Insert node table entry. * TRUE if inserted; false if was already in table
 	 * *
 	 ***************************************************/
-	public boolean InsertNode(AST.Node n) {
+	/* public boolean InsertNode(AST.Node n) {
 		int i = FindNodes(n.name);
 		if (i < nodes.size())
 			return false;
 		NodeEntry ne = new NodeEntry(n);
 		nodes.addElement(ne);
 		return true;
-	}
+	} */
 	
 	/*********************************************************
 	 * Returns index of entry in process table. If it isn't * in the table, then
 	 * returns procs.size(). *
 	 *********************************************************/
-	public int FindNodes(String id) {
+	/* public int FindNodes(String id) {
 		int i = 0;
 		while (i < nodes.size()) {
 			NodeEntry ne = (NodeEntry) nodes.elementAt(i);
@@ -804,13 +820,13 @@ public class PcalSymTab {
 			i = i + 1;
 		}
 		return i;
-	}
+	} */
    /**
     * 
     * @param ast
     * @param context
     */
-   private void ExtractMultiNodes(AST.MultiNodes ast, String context) {
+   /* private void ExtractMultiNodes(AST.MultiNodes ast, String context) {
 
 		if (ast.prcds.size() > 0)
 			InsertSym(GLOBAL, "stack", "", "", 0, 0);
@@ -820,14 +836,14 @@ public class PcalSymTab {
 			ExtractProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
 		for (int i = 0; i < ast.nodes.size(); i++)
 			ExtractNode((AST.Node) ast.nodes.elementAt(i), "");
-	}
+	} */
 
    /**
     * 
     * @param ast
     * @param context
     */
-	private void ExtractNode(AST.Node ast, String context) {
+	/* private void ExtractNode(AST.Node ast, String context) {
 		boolean b;
 		if (!InsertNode(ast))
 			errorReport = errorReport + "\nnODE " + ast.name + " redefined at line " + ast.line + ", column " + ast.col;
@@ -840,6 +856,6 @@ public class PcalSymTab {
 				ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "NODE");
 			}
 		}
-	}
+	} */
 
 }

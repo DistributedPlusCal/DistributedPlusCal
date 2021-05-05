@@ -9,7 +9,7 @@ Nodes == 1 .. N
 
 (*
 --algorithm chan_msg_algo
-variable cur = "none";
+
 channel chan[Nodes];
 
 process w \in Nodes
@@ -20,13 +20,6 @@ begin
   	end while;
 end process;
 
-process r \in Nodes
-begin
-	Read:
-  	while ( TRUE ) do
-    	    receive(chan[self], cur);
-  	end while;
-end process;
 
 end algorithm;
 *)

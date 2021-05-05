@@ -330,8 +330,8 @@ public class PcalTranslate {
             return ExplodeUniprocess((AST.Uniprocess) ast);
         else if (ast.getClass().equals(AST.MultiprocessObj.getClass()))
             return ExplodeMultiprocess((AST.Multiprocess) ast);
-        else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
-        	return ExplodeMultiNodes((AST.MultiNodes) ast);
+        //else if (ast.getClass().equals(AST.MultiNodesObj.getClass()))
+        	//return ExplodeMultiNodes((AST.MultiNodes) ast);
         else {
             PcalDebug.ReportBug("Unexpected AST type.");
             return null;
@@ -1514,11 +1514,11 @@ public class PcalTranslate {
      * @return
      * @throws PcalTranslateException
      */
-    private static AST.MultiNodes ExplodeMultiNodes (AST.MultiNodes ast) throws PcalTranslateException {
+    //private static AST.MultiNodes ExplodeMultiNodes (AST.MultiNodes ast) throws PcalTranslateException {
         /*********************************************************************
         * Generate new AST.MultiNodes with exploded labeled statements.    *
         *********************************************************************/
-        int i = 0;
+        /*int i = 0;
         AST.MultiNodes newast = new AST.MultiNodes();
         newast.col = ast.col;
         newast.line = ast.line;
@@ -1541,7 +1541,7 @@ public class PcalTranslate {
             i = i + 1;
         }
         return newast;
-    }
+    }*/
     
     /**
      * 
@@ -1549,11 +1549,11 @@ public class PcalTranslate {
      * @return
      * @throws PcalTranslateException
      */
-    private static AST ExplodeNode(AST.Node ast) throws PcalTranslateException {
+    //private static AST ExplodeNode(AST.Node ast) throws PcalTranslateException {
         /*********************************************************************
         * Generate new AST.Node with exploded labeled statements.         *
         *********************************************************************/
-        int i = 0;
+        /*int i = 0;
         AST.Node newast = new AST.Node();
         newast.setOrigin(ast.getOrigin()) ;
         newast.col = ast.col;
@@ -1570,7 +1570,7 @@ public class PcalTranslate {
         }
         
         return newast;
-    }
+    }*/
 
     //For Distributed pluscal
     /**
