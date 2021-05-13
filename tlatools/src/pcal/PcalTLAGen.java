@@ -300,6 +300,7 @@ public class PcalTLAGen
         GenProcSet();
         if ( PcalParams.distpcalFlag )
     		GenSubProcSet();
+        else 
         	
         GenInit(ast.decls, ast.prcds, ast.procs, null);
         for (int i = 0; i < ast.prcds.size(); i++)
@@ -472,8 +473,8 @@ public class PcalTLAGen
         	// For Distributed Pluscal. 
         	if ( PcalParams.distpcalFlag ) {
         		for(AST.Thread thread : ast.threads) {
-                	for (int i = 0; i < ast.body.size(); i++) {
-                		AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
+                	for (int i = 0; i < thread.body.size(); i++) {
+                		AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(i);
                 		GenLabeledStmt(stmt, "thread");
                 	}
         		}
@@ -3608,8 +3609,8 @@ public class PcalTLAGen
            
            //For Distributed PlusCal
            if ( PcalParams.distpcalFlag ) {
-			for (int i = 0; i < st.procs.size(); i++) {
-				PcalSymTab.ProcessEntry n = (PcalSymTab.ProcessEntry) st.procs.elementAt(i);
+			for (int i = 0; i < st.processes.size(); i++) {
+				PcalSymTab.ProcessEntry n = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
 				AST.Process nAst = n.ast;
 				int fairness = nAst.fairness;
 				if (fairness != AST.UNFAIR_PROC) {
@@ -4961,151 +4962,6 @@ public class PcalTLAGen
     	}
     }
     
-    //For Distributed PlusCal
-    /****************************************************/
-	/* True if var is in the list of node variables. */
-	/****************************************************/
-	/*private boolean IsNodeSetVar(String var) {
-		return InVector(var, psV);
-	}*/
-
-	/**
-	 * 
-	 * @param node
-	 * @param context
-	 * @throws PcalTLAGenException
-	 */
-	//private void GenNodes(Node node, String context) throws PcalTLAGenException {
-		//currentProcName = node.name;
-
-		/*
-		 * Generate the body's actions. Must set self and selfIsSelf (?) for use by
-		 * GenLabeledStmt.
-		 */
-		//boolean isSet = true;
-		/************************************************************/
-		/* Decide if it is a process set or not. If so, set self to */
-		/* the string "self"; otherwise set self to the process id. */
-		/************************************************************/
-		/*if (node.isEq) {
-			self = node.id;
-			selfIsSelf = false;
-			isSet = false;
-		} else {
-			self = selfAsExpr();
-			selfIsSelf = true;
-		}
-
-		if (isSet) {
-			nextStepSelf.addElement(node.name + "(self)");
-		} else
-			nextStep.addElement(node.name);
-
-		for(AST.Thread thread : node.threads) {
-			for (int j = 0; j < thread.body.size(); j++) {
-				AST.LabeledStmt tStmt = (AST.LabeledStmt) thread.body.elementAt(j);
-				GenLabeledStmt(tStmt, "thread");
-			}
-		}
-		
-		/*
-		 * Next add the definition of the process--e.g.,
-		 * 
-		 * NodeName(self) == label_1(self) \/ ... \/ label_k(self)
-		 * 
-		 * We put Left/RightParens for the entire procedure around the entire
-		 * definition, and Left/RightParens around each disjunction for the labeled
-		 * statement.
-		 * 
-		 * However, we don't add this definition if we are omitting the pc, because we
-		 * have already defined the process name to equal the only label action.
-		 */
-
-		/*if (!ParseAlgorithm.omitPC) {
-			addLeftParen(node.getOrigin());
-			String argument = (isSet) ? "(self)" : "";
-			StringBuffer buf = new StringBuffer(node.name + argument + " == ");
-			addOneTokenToTLA(buf.toString());
-			String indentSpaces = NSpaces(buf.length() + 2);
-			for (int j = 0; j < node.threads.size(); j++) {
-				//iterate the threads of each node
-				AST.Thread thread = node.threads.elementAt(j);
-				for (int k = 0; k < thread.body.size(); k++) {
-					AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
-					String disjunct = stmt.label + argument;
-					if (j != 0 && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
-							/*+ disjunct.length() > wrapColumn) {
-						endCurrentLineOfTLA();
-					}
-					addOneTokenToTLA(((tlacodeNextLine.length() == 0) ? indentSpaces : "") + " \\/ ");
-					addLeftParen(stmt.getOrigin());
-					addOneTokenToTLA(disjunct);
-					addRightParen(stmt.getOrigin());
-				}
-			}
-			
-			addRightParen(node.getOrigin());
-			addOneLineOfTLA("");
-		}
-	}*/
-	
-	/**
-	 * 
-	 * @param ast
-	 * @param context
-	 * @throws PcalTLAGenException
-	 */
-	/*private void GenMultiNodes(MultiNodes ast, String context) throws PcalTLAGenException {
-		mp = true;
-		GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, ast.nodes);
-		GenNodeSet();
-		GenSubProcSet();
-		GenInit(ast.decls, ast.prcds, null, ast.nodes);
-		for (int i = 0; i < ast.prcds.size(); i++)
-			GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
-		for (int i = 0; i < ast.nodes.size(); i++)
-			GenNodes((AST.Node) ast.nodes.elementAt(i), "");
-		GenNext();
-		GenSpec();
-		GenTermination();
-	}*/
-	
-	/**
-	 * Generates the "ProcSet == ..." output. It is just a union of all the node
-	 * sets, all on one line (except if a process set is a multi-line expression).
-	 * It wouldn't be too hard to break long lines, but that should be done later,
-	 * if desired, after the TLA to PCal translation is finished.
-	 */
-	/*public void GenNodeSet() {
-		StringBuffer ps = new StringBuffer();
-		if (st.nodes == null || st.nodes.size() == 0)
-			return;
-		addOneTokenToTLA("ProcSet == ");
-		for (int i = 0; i < st.nodes.size(); i++) {
-			PcalSymTab.NodeEntry node = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
-			if (i > 0) {
-				addOneTokenToTLA(" \\cup ");
-			}
-			addLeftParen(node.id.getOrigin());
-			if (node.isEq) {
-				addOneTokenToTLA("{");
-			} else {
-				addOneTokenToTLA("(");
-			}
-			
-			int col = ps.length();
-			addExprToTLA(node.id);
-			if (node.isEq) {
-				addOneTokenToTLA("}");
-			} else {
-				addOneTokenToTLA(")");
-			}
-			addRightParen(node.id.getOrigin());
-		}
-		
-		endCurrentLineOfTLA();
-		addOneLineOfTLA("");
-	}*/
 
 	/**
 	 * Generates the "ProcSet == ..." output. It is just a union of all the node
@@ -5115,15 +4971,16 @@ public class PcalTLAGen
 	 */
 	public void GenSubProcSet() {
 		StringBuffer ps = new StringBuffer();
-		if (st.procs == null || st.procs.size() == 0)
+		if (st.processes == null || st.processes.size() == 0)
 			return;
 		ps.append("SubProcSet == [n \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
 		//if there is only one node
-		if(st.procs.size() == 1) {
-			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.procs.elementAt(0);
+		if(st.processes.size() == 1) {
+			PcalDebug.reportInfo("class type : " + st.processes.elementAt(0).getClass());
+			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(0);
 			
 			if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
@@ -5138,11 +4995,11 @@ public class PcalTLAGen
 			return;
 		}
 			
-		for (int i = 0; i < st.procs.size(); i++) {
-			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.procs.elementAt(i);
+		for (int i = 0; i < st.processes.size(); i++) {
+			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
 
 			//if this is the last node
-			if(i == st.procs.size() - 1) {
+			if(i == st.processes.size() - 1) {
 				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
 				ps.append(" ELSE ");
 				ps.append("(**");
@@ -5151,7 +5008,7 @@ public class PcalTLAGen
 				ps.append(" ELSE ");
 			}
 			
-			if(i != st.procs.size() - 1) {
+			if(i != st.processes.size() - 1) {
 				if (node.isEq) {
 					ps.append("IF n = ");
 				} else {
@@ -5161,12 +5018,12 @@ public class PcalTLAGen
 			positionOfLastIf = ps.length();
 
 			ps.append(node.id.toPlainString());
-			if(i != st.procs.size() - 1) {
+			if(i != st.processes.size() - 1) {
 				ps.append(" THEN ");
 			}
 
 			//if this is the last node
-			if(i == st.procs.size() - 1) {
+			if(i == st.processes.size() - 1) {
 				ps.append("**) ");
 			}
 			
@@ -5176,7 +5033,7 @@ public class PcalTLAGen
 				ps.append("1");
 			}
 			
-			if(i == st.procs.size() - 1) {
+			if(i == st.processes.size() - 1) {
 				ps.append("]");
 			}
 			

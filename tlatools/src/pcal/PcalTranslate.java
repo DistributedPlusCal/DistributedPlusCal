@@ -416,20 +416,13 @@ public class PcalTranslate {
         newast.setOrigin(ast.getOrigin()) ;
         
         // Distributed Pluscal
-        if ( PcalParams.distpcalFlag ) {
-        	while (i < ast.prcds.size()) {
-	            newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-	                                                     ast.prcds.elementAt(i), null));
-	            i = i + 1;
-	        }
-        } else {
-	        while (i < ast.prcds.size()) {
-	            newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-	                                                     ast.prcds.elementAt(i), null));
-	            i = i + 1;
-	        }
+        while (i < ast.prcds.size()) {
+            newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
+                                                     ast.prcds.elementAt(i), null));
+            i = i + 1;
         }
         i = 0;
+        
         newast.procs = new Vector(ast.procs.size(), 10);
         while (i < ast.procs.size()) {
             newast.procs.addElement( ExplodeProcess((AST.Process)
@@ -441,7 +434,7 @@ public class PcalTranslate {
 
     //For Distributed pluscal (add threadIndex)
   private static AST ExplodeProcedure (AST.Procedure ast,
-                                       Integer threadIndex) throws PcalTranslateException {
+                                      Integer threadIndex) throws PcalTranslateException {
         /*********************************************************************
         * Generate new AST.Procedure with exploded labeled statements.       *
         *********************************************************************/

@@ -108,7 +108,6 @@ public class PcalFixIDs {
         for (int i = 0; i < ast.prcds.size(); i++) {
             AST.Procedure prcd = (AST.Procedure) ast.prcds.elementAt(i);
             FixProcedure(prcd, "");
-// System.out.println("Start\n" + prcd.toString());
             procedureNames.addElement(prcd.name);
             proceduresCalled.addElement(prcd.proceduresCalled);
         }
@@ -162,13 +161,11 @@ public class PcalFixIDs {
                     pCalled.addElement(procedureNames.elementAt(j));
                 }
             }
-            prcd.proceduresCalled = pCalled;
-// System.out.println(prcd.toString());            
+            prcd.proceduresCalled = pCalled;            
         }
         
         for (int i = 0; i < ast.procs.size(); i++) {
             AST.Process proc = (AST.Process) ast.procs.elementAt(i);
-            PcalDebug.reportInfo("proc : " + proc);
             FixProcess(proc, "");
             
             // We now fix proc.proceduresCalled by, for each procedure p in

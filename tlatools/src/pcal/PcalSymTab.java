@@ -613,12 +613,10 @@ public class PcalSymTab {
           }
         } 
         else {
-		    for (int i = 0; i < ast.threads.size(); i++) {
-				AST.Thread thread = ast.threads.get(i);
-				for(int j = 0; j > thread.body.size(); j++) {
-					ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
-				}
-			}
+        	for (int i = 0; i < ast.body.size(); i++)
+                ExtractLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i),
+                                   ast.name,
+                                   "process");
         }
     }
         
