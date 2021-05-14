@@ -276,7 +276,7 @@ public class PcalTLAGen
         mp = false;
         currentProcName = "Next";
         GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, null);
-        GenInit(ast.decls, ast.prcds, null, null);
+        GenInit(ast.decls, ast.prcds, null);
         for (int i = 0; i < ast.prcds.size(); i++)
             GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
         for (int i = 0; i < ast.body.size(); i++)
@@ -298,9 +298,8 @@ public class PcalTLAGen
         GenProcSet();
         if ( PcalParams.distpcalFlag )
     		GenSubProcSet();
-        else 
         	
-        GenInit(ast.decls, ast.prcds, ast.procs, null);
+        GenInit(ast.decls, ast.prcds, ast.procs);
         for (int i = 0; i < ast.prcds.size(); i++)
             GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
         for (int i = 0; i < ast.procs.size(); i++)
@@ -2207,7 +2206,7 @@ public class PcalTLAGen
     /* Generate the Init == statement. */
     /**
      **********************************/
-    private void GenInit(Vector globals, Vector procs, Vector processes, Vector nodes) throws PcalTLAGenException
+    private void GenInit(Vector globals, Vector procs, Vector processes) throws PcalTLAGenException
     {
         int col = "Init == ".length();
         StringBuffer is = new StringBuffer();
