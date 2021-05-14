@@ -3,8 +3,6 @@ package pcal;
 import java.util.Vector;
 
 import pcal.AST.Channel;
-//import pcal.AST.MultiNodes;
-//import pcal.AST.Node;
 import pcal.AST.VarDecl;
 import pcal.exception.PcalTLAGenException;
 import pcal.exception.TLAExprException;
@@ -4977,7 +4975,7 @@ public class PcalTLAGen
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
-		//if there is only one node
+		//if there is only one proce
 		if(st.processes.size() == 1) {
 			PcalDebug.reportInfo("class type : " + st.processes.elementAt(0).getClass());
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(0);

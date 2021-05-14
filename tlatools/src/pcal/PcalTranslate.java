@@ -42,7 +42,7 @@ public class PcalTranslate {
      *  
      */
     private static String currentProcedure;  
-
+    public final static Integer DEFAULT_THREAD = -1;
 
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
@@ -329,9 +329,9 @@ public class PcalTranslate {
         AST.If ifForLabelIf = new AST.If();
         ifForLabelIf.test = test;
         ifForLabelIf.Then = unlabThen;
-        ifForLabelIf.Then.addElement(UpdatePC(nextThen, null)); // dostonbek. send null to overcome syntantic error.
+        ifForLabelIf.Then.addElement(UpdatePC(nextThen, DEFAULT_THREAD)); // dostonbek. send null to overcome syntantic error.
         ifForLabelIf.Else = unlabElse;
-        ifForLabelIf.Else.addElement(UpdatePC(nextElse, null)); // dostonbek. send null to overcome syntantic error.
+        ifForLabelIf.Else.addElement(UpdatePC(nextElse, DEFAULT_THREAD)); // dostonbek. send null to overcome syntantic error.
         return ifForLabelIf;
     }
 
@@ -375,7 +375,7 @@ public class PcalTranslate {
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(
                                     ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i), null)); // dostonbek. send null for uni-process specs
+                                                     ast.prcds.elementAt(i), DEFAULT_THREAD)); // dostonbek. send null for uni-process specs
             i = i + 1;
         }
         i = 0;
@@ -392,7 +392,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, null)); // dostonbek. send null for uni-process specs
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, DEFAULT_THREAD)); // dostonbek. send null for uni-process specs
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -418,7 +418,7 @@ public class PcalTranslate {
         // Distributed Pluscal
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i), null));
+                                                     ast.prcds.elementAt(i), DEFAULT_THREAD));
             i = i + 1;
         }
         i = 0;
@@ -502,7 +502,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, null));
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, DEFAULT_THREAD));
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -1293,7 +1293,7 @@ public class PcalTranslate {
         sass.lhs.var = "pc";
 
         //For Distributed pluscal
-        if(threadIndex == null) {
+        if(threadIndex == DEFAULT_THREAD) {
          	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();        
         } else {
@@ -1390,7 +1390,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
 
         //For Distributed pluscal        
-        if(threadIndex == null) {
+        if(threadIndex == DEFAULT_THREAD) {
          	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();
         } else {
@@ -1507,7 +1507,7 @@ public class PcalTranslate {
             sass.lhs.var = "stack";
             
             //For Distributed PlusCal
-            if(threadIndex == null) {
+            if(threadIndex == DEFAULT_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();
