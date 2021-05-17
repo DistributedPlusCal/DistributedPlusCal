@@ -90,7 +90,6 @@ public class PcalSymTab {
     public static final int PROCEDUREVAR = 5;
     public static final int PARAMETER = 6;
     
-
     // The following two arrays need to be ordered wrt the constants above.
 
     // Prepend this type-specific string to name before disambiguation.

@@ -247,7 +247,7 @@ public class PcalTranslate {
         sAss.lhs.var = id ;
         // sAss.lhs.sub = MakeExpr(new Vector()) ;
         //For Distributed pluscal 
-        if(threadIndex == null) {
+        if(threadIndex == DEFAULT_THREAD) {
         	sAss.lhs.sub = MakeExpr(new Vector());
         } else {
         	TLAExpr expr = new TLAExpr();
@@ -296,7 +296,7 @@ public class PcalTranslate {
         toks.addElement(AddedToken("pc"));
         //For Distributed pluscal
         if(PcalParams.distpcalFlag) {
-          toks.addElement(BuiltInToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+          toks.addElement(BuiltInToken(threadIndex == DEFAULT_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
         }
         toks.addElement(BuiltInToken("="));
         toks.addElement(StringToken(label));
@@ -329,9 +329,9 @@ public class PcalTranslate {
         AST.If ifForLabelIf = new AST.If();
         ifForLabelIf.test = test;
         ifForLabelIf.Then = unlabThen;
-        ifForLabelIf.Then.addElement(UpdatePC(nextThen, DEFAULT_THREAD)); // dostonbek. send null to overcome syntantic error.
+        ifForLabelIf.Then.addElement(UpdatePC(nextThen, DEFAULT_THREAD)); 
         ifForLabelIf.Else = unlabElse;
-        ifForLabelIf.Else.addElement(UpdatePC(nextElse, DEFAULT_THREAD)); // dostonbek. send null to overcome syntantic error.
+        ifForLabelIf.Else.addElement(UpdatePC(nextElse, DEFAULT_THREAD)); 
         return ifForLabelIf;
     }
 
@@ -1092,7 +1092,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
         
         //For Distributed pluscal
-        if(threadIndex == null) {
+        if(threadIndex == DEFAULT_THREAD) {
         	sass.lhs.sub = MakeExpr(new Vector());
         } else {
         	TLAExpr expr = new TLAExpr();
@@ -1211,7 +1211,7 @@ public class PcalTranslate {
             //For Distributed pluscal, so that the local procedure
             // variables are also referenced using thread index when
             // the procedure is called
-            if(threadIndex == null) {
+            if(threadIndex == DEFAULT_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();
