@@ -42,27 +42,9 @@ handle: if (msg.type = "request") {
      }  \* end while
    } \* end message handling thread
 }  **)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-58c261f739df0a3487219675206874a4
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-ac811bb720b7525a20201e7ef4cd4714
 CONSTANT defaultInitValue
 VARIABLES network, pc
-
-VARIABLES clock, req, ack, sndr, msg
-
-vars == << network, pc, clock, req, ack, sndr, msg >>
-
-ProcSet == (Nodes)
-
-SubProcSet == [n \in ProcSet |-> 1..2]
-
-Init == (* Global variables *)
-        /\ network = [n0 \in Nodes, n1 \in Nodes |-> <<>>]
-        (* Node n *)
-        /\ clock = [self \in Nodes |-> 0]
-        /\ req = [self \in Nodes |-> [n \in Nodes |-> 0]]
-        /\ ack = [self \in Nodes |-> {}]
-        /\ sndr = [self \in Nodes |-> defaultInitValue]
-        /\ msg = [self \in Nodes |-> defaultInitValue]
-        /\ pc = [self \in ProcSet |-> <<"ncs","rcv">>]
 
 (* define statement *)
 Max(c,d) == IF c > d THEN c ELSE d
@@ -72,6 +54,14 @@ beats(a,b) == \/ req[b] = 0
 Request(c) == [type |-> "request", clock |-> c]
 Release(c) == [type |-> "release", clock |-> c]
 Acknowledge(c) == [type |-> "ack", clock |-> c]
+
+VARIABLES clock, req, ack, sndr, msg
+
+vars == << network, pc, clock, req, ack, sndr, msg >>
+
+ProcSet == (Nodes)
+
+SubProcSet == [n \in ProcSet |-> 1..2]
 
 ncs(self) == /\ pc[self] [1] = "ncs"
              /\ TRUE
@@ -140,5 +130,5 @@ Next == (\E self \in Nodes: n(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-d44b5f7fa8de17dba79eb4bb2762c474
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-9c2e8b7aeedc254dacd7fed61aa95dc5
 =======================

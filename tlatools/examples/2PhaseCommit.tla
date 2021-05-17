@@ -57,7 +57,7 @@ a1: if (aState = "unknown") {
   }
  }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-10ef0782d682811a6209bc7ae9380d8a
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-59de798c8b887c07967c9603f10f77dc
 VARIABLES coord, agt, pc, aState, cState, commits, msg
 
 vars == << coord, agt, pc, aState, cState, commits, msg >>
@@ -66,18 +66,6 @@ ProcSet == (Agent) \cup {Coord}
 
 SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
                              ELSE (**Coord**) 1..2]
-
-Init == (* Global variables *)
-        /\ coord = {}
-        /\ agt = [a0 \in Agent |-> {}]
-        (* Node a *)
-        /\ aState = [self \in Agent |-> "unknown"]
-        (* Node c *)
-        /\ cState = "unknown"
-        /\ commits = {}
-        /\ msg = {}
-        /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
-                                        [] self = Coord -> <<"c1","c2">>]
 
 a1(self) == /\ pc[self] [1] = "a1"
             /\ IF aState[self] = "unknown"
@@ -144,7 +132,9 @@ Next == c
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Agent : \A subprocess \in SubProcSet[self] : WF_vars(a(self))
         /\ WF_vars(c)
+        /\ \A self \in Agent : \A subprocess \in SubProcSet[self] : WF_vars(a(self))
+        /\ WF_vars(c)
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4f64cd31513ae9ab5fb4c4d834f56ead
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0e03a9bdf343432fdcd21241fef77e0e
 
 =============================================================================

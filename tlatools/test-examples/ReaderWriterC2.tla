@@ -10,51 +10,55 @@ CONSTANTS Writer, Reader
 
 channel queue;
 
+procedure send_to(msg) {
+    Sending:
+      send(queue, msg);
+      return;
+}
+
 process ( w = Writer )
 {
 	Write:
-  	while ( TRUE ) 
-  	{
-      	    send(queue, "msg");
-  	}
-}
-
-process ( r = Reader )
-variable current_message = "none";
-{
-	Read:
-  	while ( TRUE ) {
-    	    receive(queue, current_message);
-  	}
+      call send_to("msg");
 }
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-294123121c6375e29fb3682c6b7a9e41
-VARIABLES queue, current_message
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9feca28b47ce1a24e252b6a9395fbda7
+CONSTANT defaultInitValue
+VARIABLES queue, pc, stack, msg
 
-vars == << queue, current_message >>
+vars == << queue, pc, stack, msg >>
 
-ProcSet == {Writer} \cup {Reader}
+ProcSet == {Writer}
 
-SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
-                           ELSE (**Reader**) 1]
+SubProcSet == [n \in ProcSet |-> 1]
 
-Init == (* Global variables *)
-        /\ queue = {}
-        (* Node r *)
-        /\ current_message = "none"
+Sending(self, subprocess) == /\ pc[self][subprocess] [1] = "Sending"
+                             /\ queue' = (queue \cup {msg[self][subprocess]})
+                             /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
+                             /\ msg' = [msg EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).msg]
+                             /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
 
-w == /\ queue' = (queue \cup {"msg"})
-     /\ UNCHANGED current_message
+send_to(self, subprocess) == Sending(self, subprocess)
 
-r == \E q119 \in queue:
-       /\ current_message' = q119
-       /\ queue' = queue \ {q119}
+Write == /\ pc[Writer] [1] = "Write"
+         /\ /\ msg' = [msg EXCEPT ![Writer] = "msg"]
+            /\ stack' = [stack EXCEPT ![Writer][1] = << [ procedure |->  "send_to",
+                                                          pc        |->  "Done",
+                                                          msg       |->  msg[self][1] ] >>
+                                                      \o stack[self][1]]
+         /\ pc' = [pc EXCEPT ![Writer][1] = "Sending"]
+         /\ queue' = queue
 
-Next == w \/ r
+w ==  \/ Write
+
+Next == w
+           \/ (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  send_to(self, subprocess))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7ce57835db968d1b827bd3177ba951dd
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-fdfaf86ce901fe1b5d177d0fb3dded58
+
+
 =============================================================================

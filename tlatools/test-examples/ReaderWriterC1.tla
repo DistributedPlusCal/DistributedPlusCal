@@ -30,7 +30,7 @@ variable current_message = "none";
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-d6c72faf09ad595b9552b92149683b07
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-92e9a53b18804e31e1bdd47c240d2abf
 VARIABLES queue, current_message
 
 vars == << queue, current_message >>
@@ -42,7 +42,7 @@ SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
 
 Init == (* Global variables *)
         /\ queue = <<>>
-        (* Node r *)
+        (* Process r *)
         /\ current_message = "none"
 
 w == /\ queue' =  Append(@, "msg")
@@ -56,5 +56,5 @@ Next == w \/ r
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f1920de3c08e5a34dc8c11fe13c4baf3
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-15b0fdd62ee4af23558ace42ec6a77eb
 =============================================================================
