@@ -11,15 +11,20 @@ Nodes == 1 .. N
 --algorithm message_queue {
 
 variable cur = "none";
-channel chan[Nodes];
+fifo chan[Nodes];
+
+procedure f() {
+	Label12:
+		clear(chan);
+		return;
+}
 
 process ( w \in Nodes )
 {
 	Write:
-  	while ( TRUE ) 
-  	{
-            send(chan[self], "msg");
-  	}
+         send(chan[self], "msg");
+   	Clear:
+  		call f();
 } {
 	Read:
   	while ( TRUE ) {
@@ -29,10 +34,10 @@ process ( w \in Nodes )
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-dcaeb3042df49dd73005b89124f0a5d8
-VARIABLES cur, chan
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-af85bd9ef7bdf02d61382e8261188a4a
+VARIABLES cur, chan, pc, stack
 
-vars == << cur, chan >>
+vars == << cur, chan, pc, stack >>
 
 ProcSet == (Nodes)
 
@@ -40,19 +45,45 @@ SubProcSet == [n \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
         /\ cur = "none"
-        /\ chan = [n0 \in Nodes |-> {}]
+        /\ chan = [n0 \in Nodes |-> <<>>]
+        /\ stack = [self \in ProcSet |-> << <<>> , <<>> >>]
+                                      
+        /\ pc = [self \in ProcSet |-> <<"Write","Read">>]
 
-w(self) == /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {"msg"}]
-           /\ cur' = cur
+Label12(self, subprocess) == /\ pc[self][subprocess] [1] = "Label12"
+                             /\ chan' = [n0 \in Nodes |-> <<>>]
+                             /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
+                             /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
+                             /\ cur' = cur
 
-w(self) == \E c149 \in chan[self]:
-             /\ chan' = [chan EXCEPT ![self] = chan[self] \ {c149}]
-             /\ cur' = c149
+f(self, subprocess) == Label12(self, subprocess)
 
-Next == (\E self \in Nodes: w(self))
+Write(self) == /\ pc[self] [1] = "Write"
+               /\ chan' = [chan EXCEPT ![self] =  Append(@, "msg")]
+               /\ pc' = [pc EXCEPT ![self][1] = "Clear"]
+               /\ UNCHANGED << cur, stack >>
+
+Clear(self) == /\ pc[self] [1] = "Clear"
+               /\ stack' = [stack EXCEPT ![self][1] = << [ procedure |->  "f",
+                                                           pc        |->  "Done" ] >>
+                                                       \o stack[self][1]]
+               /\ pc' = [pc EXCEPT ![self][1] = "Label12"]
+               /\ UNCHANGED << cur, chan >>
+
+Read(self) == /\ pc[self] [2] = "Read"
+              /\ Len(chan[self]) > 0 
+              /\ cur' = Head(chan[self])
+              /\ chan' = [chan EXCEPT ![self] =  Tail(@) ]
+              /\ pc' = [pc EXCEPT ![self][2] = "Read"]
+              /\ stack' = stack
+
+w(self) ==  \/ Write(self) \/ Clear(self) \/ Read(self)
+
+Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
+           \/ (\E self \in Nodes: w(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6b64f80b651a41bbdcad0f19d35d629b
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-b52e03e3bd31f63e3254a52d7d4d36d0
 
 ==========================================================

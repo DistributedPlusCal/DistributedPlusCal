@@ -378,7 +378,7 @@ public class ParseAlgorithm
 			// called, so we must not omit the pc variable.
 			omitPC = false;
 		}
-
+			
 			if ((PeekAtAlgToken(1).equals("fair") 
 					&& ((PeekAtAlgToken(2).equals("process") || (PeekAtAlgToken(2).equals("+")
 							&& PeekAtAlgToken(3).equals("process")
@@ -556,6 +556,11 @@ public class ParseAlgorithm
 			uniproc.body = GetStmtSeq() ;
 			CheckForDuplicateMacros(uniproc.macros) ;
 			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
+			
+			// dostonbek. Expand channel calls in sequential specs.
+			if (PcalParams.distpcalFlag)
+				ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
+			
 			// LL comment added 11 Mar 2006.
 			// I moved the following to after processing the procedures
 			// so added labels are printed in correct order-- e.g., with 
@@ -656,7 +661,14 @@ public class ParseAlgorithm
        // The body should not be empty, so the following
        // test should be redundant.  But just in case the
        // error is being found elsewhere...
-       if (body == null || (body.size() == 0)) {
+       
+	   if (body == null || (body.size() == 0)) {
+           return;
+       }
+	   // For Distributed Pluscal
+       if (PcalParams.distpcalFlag) {
+           omitPC = false;
+           omitStutteringWhenDone = false;
            return;
        }
        if ((body.size() > 1) || 
@@ -665,6 +677,7 @@ public class ParseAlgorithm
            omitStutteringWhenDone = false;
            return;
        } ;
+       
        AST.LabeledStmt lblStmt = (AST.LabeledStmt) body.elementAt(0);
        if ( (lblStmt.stmts == null) || (lblStmt.stmts.size() == 0)) {
            // Again, this shouldn't happen.
@@ -679,11 +692,13 @@ public class ParseAlgorithm
        
        AST.While whileStmt = (AST.While) lblStmt.stmts.elementAt(0);
        Vector tokens = whileStmt.test.tokens;
+       
        if (tokens.size() != 1) {
            omitPC = false;
            omitStutteringWhenDone = false;
            return;
        }
+       
        Vector line = (Vector) tokens.elementAt(0);
        if (line.size() != 1) {
            omitPC = false;

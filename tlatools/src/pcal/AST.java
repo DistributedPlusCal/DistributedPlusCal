@@ -1575,32 +1575,38 @@ public class AST
 
 			TLAExpr expr = new TLAExpr();
 			expr.addLine();
-
-			for(int i = 0; i < channel.dimensions.size(); i++) {
-				String dimension = (String) channel.dimensions.get(i);
-
-				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
-
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
+			
+			// dostonbek. Check channel dimension for proper clear call.
+			if ( !(channel.dimensions == null) ) {
+				for(int i = 0; i < channel.dimensions.size(); i++) {
+					String dimension = (String) channel.dimensions.get(i);
+	
+					String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+	
+					if(i == 0) {
+						expr.addToken(PcalTranslate.BuiltInToken("["));
+					}
+					expr.addToken(PcalTranslate.IdentToken(tempVarName));
+					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+					expr.addToken(PcalTranslate.IdentToken(dimension));
+	
+	
+					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+						expr.addToken(PcalTranslate.BuiltInToken(", "));
+					}
 				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-				expr.addToken(PcalTranslate.IdentToken(dimension));
-
-
-				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
+	
+				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+	
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
+	
+				expr.addToken(PcalTranslate.BuiltInToken("]"));
+			} else {
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
 			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
+			
 			expr.setOrigin(this.getOrigin());
 			expr.normalize();
 
@@ -1643,7 +1649,12 @@ public class AST
 			}
 			
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+			// dostonbek. Append channel name fix.
+			if (! (channel.dimensions == null)) {
+				expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+			}	else {
+				expr.addToken(PcalTranslate.BuiltInToken(" Append(" + channelName + ", "));
+			}
 
 			for(int i = 0; i < msg.tokens.size(); i++) {
 				
@@ -1778,8 +1789,13 @@ public class AST
 			
 			expr = new TLAExpr();
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
-
+			// dostonbek. Receive channel name fix.
+			if ( callExp.tokens.size() == 0) {
+				expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + channelName + ")"));
+			} else {
+				expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
+			}
+			
 			sass.rhs = expr;
 
 			sass.setOrigin(this.getOrigin());
@@ -2091,32 +2107,38 @@ public class AST
 
 			TLAExpr expr = new TLAExpr();
 			expr.addLine();
-
-			for(int i = 0; i < channel.dimensions.size(); i++) {
-				String dimension = (String) channel.dimensions.get(i);
-
-				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
-
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
+			
+			// dostonbek. Check channel dimension for clear call construction
+			if (! (channel.dimensions == null)) {
+				for(int i = 0; i < channel.dimensions.size(); i++) {
+					String dimension = (String) channel.dimensions.get(i);
+	
+					String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+	
+					if(i == 0) {
+						expr.addToken(PcalTranslate.BuiltInToken("["));
+					}
+					expr.addToken(PcalTranslate.IdentToken(tempVarName));
+					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+					expr.addToken(PcalTranslate.IdentToken(dimension));
+	
+	
+					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+						expr.addToken(PcalTranslate.BuiltInToken(", "));
+					}
 				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-				expr.addToken(PcalTranslate.IdentToken(dimension));
-
-
-				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
+	
+				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+	
+				expr.addToken(PcalTranslate.BuiltInToken("<<"));
+				expr.addToken(PcalTranslate.BuiltInToken(">>"));
+	
+				expr.addToken(PcalTranslate.BuiltInToken("]"));
+			} else {
+				expr.addToken(PcalTranslate.BuiltInToken("<<"));
+				expr.addToken(PcalTranslate.BuiltInToken(">>"));
 			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.BuiltInToken("<<"));
-			expr.addToken(PcalTranslate.BuiltInToken(">>"));
-
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
+			
 			expr.setOrigin(this.getOrigin());
 			expr.normalize();
 

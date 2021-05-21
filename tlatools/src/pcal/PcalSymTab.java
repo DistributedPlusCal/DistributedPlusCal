@@ -365,6 +365,7 @@ public class PcalSymTab {
     /* Return the disambiguated name for a type X id X context */
     public String UseThis (int type, String id, String context) {
         int i = FindSym(type, id, context);
+        PcalDebug.reportInfo("useTHis if/else : " + (i==symtab.size()));
         if (i == symtab.size()) return id;
         else return ((SymTabEntry) symtab.elementAt(i)).useThis;
     }

@@ -7,29 +7,29 @@ EXTENDS Naturals, TLC
 (* --algorithm transfer {
 
 variables x = 2;
-channel c;
+channel c[2];
 
 {
     A: 
-    	x := x + 1;
+    	send(c[1], 2);
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-fb19528c0c9994e982adc3b9d849190e
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c00ee728f1ae4c5ff9a925ffcc16078b
 VARIABLES x, c, pc
 
 vars == << x, c, pc >>
 
 Init == (* Global variables *)
         /\ x = 2
-        /\ c = {}
+        /\ c = [20 \in 2 |-> {}]
         /\ pc = "A"
 
 A == /\ pc [1] = "A"
-     /\ x' = x + 1
+     /\ c' = [c EXCEPT ![1] = c[1] \cup {2}]
      /\ pc' = "Done"
-     /\ c' = c
+     /\ x' = x
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == pc = "Done" /\ UNCHANGED vars
@@ -41,6 +41,6 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-db75a0a452a201eb6f550334da908860
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-5733a3962e9b5764ac040cee61d63144
 
 ==========================================================

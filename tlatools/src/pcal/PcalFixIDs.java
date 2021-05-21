@@ -299,7 +299,9 @@ public class PcalFixIDs {
          String newLbl = st.UseThis(PcalSymTab.LABEL, lbl, ast.name);
          ast.minusLabels.setElementAt(newLbl, i) ;
          }
+       
         p.iPC = st.UseThis(PcalSymTab.LABEL, p.iPC, ast.name);
+       
         ast.name = st.UseThis(PcalSymTab.PROCESS, ast.name, "");
         p.name = ast.name;
    }

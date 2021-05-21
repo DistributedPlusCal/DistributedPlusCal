@@ -642,6 +642,7 @@ public class PcalTLAGen
         sb.append(" == ");
         int col = sb.length();
         kludgeToFixPCHandlingBug = col;
+        
         // There's a problem here.  If ast.stmts.size() = 1, then we don't preface
         // the statement's translation with "/\".  However, that means that if we 
         // then add an UNCHANGED conjunct, we wind up with  
@@ -2692,138 +2693,23 @@ public class PcalTLAGen
         /* stack initial value */
         if (procs != null && procs.size() > 0)
         {
-        	if (mp) {
-        		//For Distributed PlusCal
-        		if(PcalParams.distpcalFlag) {
-
-        			if (mp) {
-        				boolean useCase = st.procs.size() != 1;
-        				
-        				if (useCase) {
-
-        					is.append("/\\ stack = [self \\in ProcSet |-> CASE ");
-        				} else {
-        					is.append("/\\ stack = [self \\in ProcSet |-> ");
-        				}
-        				
-        				int colPC = is.length();
-        				if (boxUnderCASE)
-        					colPC = colPC - 3;
-        				for (int n = 0; n < st.procs.size(); n++) {
-        					PcalSymTab.ProcessEntry ne = (PcalSymTab.ProcessEntry) st.procs.elementAt(n);
-        					if (useCase) {
-        						is.append("self ");
-        						if (ne.isEq) {
-        							is.append("= ");
-        							addOneTokenToTLA(is.toString());
-        							addLeftParen(ne.id.getOrigin());
-        							addExprToTLA(ne.id);
-        							addRightParen(ne.id.getOrigin());
-
-        						} else {
-        							is.append("\\in ");
-        							addOneTokenToTLA(is.toString());
-        							addLeftParen(ne.id.getOrigin());
-        							addExprToTLA(ne.id);
-        							addRightParen(ne.id.getOrigin());
-        						}
-        						
-        						if(ne.iPC.length() > 1) {
-        							
-        							is = new StringBuffer(" -> <<");
-        							String[] stringArray = ne.iPC.toString().split(",");
-        							
-        							for(int i = 0; i < stringArray.length; i++) {
-        								is.append(" <<>> ");
-        								
-        								if(i != stringArray.length-1) {
-        									is.append(",");
-        								}
-        							}
-        						} else {
-        							is = new StringBuffer(" -> \"");
-        							is.append(ne.iPC);
-        						}
-        						
-        						if (n == st.procs.size() - 1) {
-
-        							if(ne.iPC.length() > 1) {
-        								is.append(">>]");
-        							} else {
-        								is.append("\"]");
-        							}
-        						}
-        						else if (!boxUnderCASE) {
-
-        							if(ne.iPC.length() > 1) {
-        								is.append(">> []");
-        							} else {
-        								is.append("\" []");
-        							}
-        						}
-        						else {
-        							
-        							if(ne.iPC.length() > 1) {
-        								is.append(">>");
-        							} else {
-        								is.append("\"");
-        							}
-        						}
-        							
-        					} // end if (useCase)
-        					else {
-        						String[] stringArray = ne.iPC.toString().split(",");
-        						
-        						is.append("<<");
-        						for(int i = 0; i < stringArray.length; i++) {
-        							is.append(" <<>> ");
-        							
-        							if(i != stringArray.length-1) {
-        								is.append(",");
-        							}
-        						}
-        						is.append(">>]");
-        					}
-        					addOneTokenToTLA(is.toString());
-        					endCurrentLineOfTLA();
-        					is = new StringBuffer(NSpaces(colPC));
-        					if (boxUnderCASE && n < st.procs.size() - 1)
-        						is.append("[] ");
-        				}
-        			} else {
-        				is.append("/\\ pc = \"" + st.iPC + "\"");
-        				addOneLineOfTLA(is.toString());
-        			}
-        		
-        		} else {
-        			is.append("/\\ stack = [self \\in ProcSet |-> << >>]");
-        		}
-        		
-        	}else
-                is.append("/\\ stack = << >>");
-//            tlacode.addElement(is.toString());
-            addOneLineOfTLA(is.toString());
-            is = new StringBuffer(NSpaces(col));
-        }
-        /* pc initial value */
-        if (! ParseAlgorithm.omitPC) {
-        	
-        	//For Distributed PlusCal
-        	if(PcalParams.distpcalFlag) {
-    			if (mp) {
-    				boolean useCase = st.procs.size() != 1;
+        	// For Distributed Pluscal
+        	if (PcalParams.distpcalFlag) {
+        		if (mp) {
+    				boolean useCase = st.processes.size() != 1;
     				
     				if (useCase) {
-    					is.append("/\\ pc = [self \\in ProcSet |-> CASE ");
+
+    					is.append("/\\ stack = [self \\in ProcSet |-> CASE ");
     				} else {
-    					is.append("/\\ pc = [self \\in ProcSet |-> ");
+    					is.append("/\\ stack = [self \\in ProcSet |-> ");
     				}
+    				
     				int colPC = is.length();
     				if (boxUnderCASE)
     					colPC = colPC - 3;
-    				for (int n = 0; n < st.procs.size(); n++) {
-    					//PcalSymTab.NodeEntry ne = (PcalSymTab.NodeEntry) st.nodes.elementAt(n);
-    					PcalSymTab.ProcessEntry ne = (PcalSymTab.ProcessEntry) st.procs.elementAt(n);
+    				for (int n = 0; n < st.processes.size(); n++) {
+    					PcalSymTab.ProcessEntry ne = (PcalSymTab.ProcessEntry) st.processes.elementAt(n);
     					if (useCase) {
     						is.append("self ");
     						if (ne.isEq) {
@@ -2847,7 +2733,7 @@ public class PcalTLAGen
     							String[] stringArray = ne.iPC.toString().split(",");
     							
     							for(int i = 0; i < stringArray.length; i++) {
-    								is.append("\"" + stringArray[i].trim() + "\"");
+    								is.append(" <<>> ");
     								
     								if(i != stringArray.length-1) {
     									is.append(",");
@@ -2858,7 +2744,7 @@ public class PcalTLAGen
     							is.append(ne.iPC);
     						}
     						
-    						if (n == st.procs.size() - 1) {
+    						if (n == st.processes.size() - 1) {
 
     							if(ne.iPC.length() > 1) {
     								is.append(">>]");
@@ -2889,7 +2775,7 @@ public class PcalTLAGen
     						
     						is.append("<<");
     						for(int i = 0; i < stringArray.length; i++) {
-    							is.append("\"" + stringArray[i].trim() + "\"");
+    							is.append(" <<>> ");
     							
     							if(i != stringArray.length-1) {
     								is.append(",");
@@ -2900,140 +2786,140 @@ public class PcalTLAGen
     					addOneTokenToTLA(is.toString());
     					endCurrentLineOfTLA();
     					is = new StringBuffer(NSpaces(colPC));
-    					if (boxUnderCASE && n < st.procs.size() - 1)
+    					if (boxUnderCASE && n < st.processes.size() - 1)
     						is.append("[] ");
     				}
     			} else {
     				is.append("/\\ pc = \"" + st.iPC + "\"");
     				addOneLineOfTLA(is.toString());
     			}
-    		
-        	} else { 
-        		if (mp)
-        		{
-        			// On 4 May 2012, LL added useCase flag to inhibit adding of CASE for
-        			// a single process or process set.
-
-        			boolean useCase = st.processes.size() != 1;
-        			if (useCase) {
-        				is.append("/\\ pc = [self \\in ProcSet |-> CASE ");
-        			} else {
-        				is.append("/\\ pc = [self \\in ProcSet |-> ");
-        			}
-        			
-        			int colPC = is.length();
-        			if (boxUnderCASE)
-        				colPC = colPC - 3;
-        			for (int p = 0; p < st.processes.size(); p++)
-        			{	  
-        				//heba 
-        				PcalSymTab.ProcessEntry pe = (PcalSymTab.ProcessEntry) st.processes.elementAt(p);
-        				if (useCase) {
-        					is.append("self ");
-        					if (pe.isEq) {
-        						is.append("= ");
-        						// int colExpr = is.length();
-        						addOneTokenToTLA(is.toString());
-        						addLeftParen(pe.id.getOrigin());
-        						addExprToTLA(pe.id);
-        						addRightParen(pe.id.getOrigin());
-
-        						// Vector sv = pe.id.toStringVector();
-        						// is.append((String) sv.elementAt(0));
-        						// for (int v = 1; v < sv.size(); v++)
-        						// {
-        						// addOneLineOfTLA(is.toString());
-        						// // tlacode.addElement(is.toString());
-        						// is = new StringBuffer(NSpaces(colExpr));
-        						// is.append((String) sv.elementAt(v));
-        						// }
-        					} else {
-        						is.append("\\in ");
-        						// int colExpr = is.length();
-        						// Vector sv = pe.id.toStringVector();
-        						// is.append((String) sv.elementAt(0));
-        						// for (int v = 1; v < sv.size(); v++)
-        						// {
-        						// tlacode.addElement(is.toString());
-        						// is = new StringBuffer(NSpaces(colExpr));
-        						// is.append((String) sv.elementAt(v));
-        						// }
-        						addOneTokenToTLA(is.toString());
-        						addLeftParen(pe.id.getOrigin());
-        						addExprToTLA(pe.id);
-        						addRightParen(pe.id.getOrigin());
-
-        					}
-        					
-        					if(PcalParams.distpcalFlag && pe.iPC.length() > 1) {
-    							
-    							is = new StringBuffer(" -> <<");
-    							String[] stringArray = pe.iPC.toString().split(",");
-    							
-    							for(int i = 0; i < stringArray.length; i++) {
-    								is.append("\"" + stringArray[i].trim() + "\"");
-    								
-    								if(i != stringArray.length-1) {
-    									is.append(",");
-    								}
-    							}
-    						} else { 
-    							// is.append(" -> \"");
-    							is = new StringBuffer(" -> \"");
-        						is.append(pe.iPC);
-        					}
-        					
-        					if (p == st.processes.size() - 1) {
-        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
-        							is.append(">>]");
-        						else
-        							is.append("\"]");
-        					}
-        					else if (!boxUnderCASE) {
-        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
-        							is.append(">> []");
-        						else
-        							is.append("\" []");
-        					}
-        					else {
-        						if ( PcalParams.distpcalFlag && pe.iPC.length() > 1 )
-        							is.append(">>");
-        						else
-        							is.append("\"");
-        					}
-        				} // end if (useCase)
-        				else {
-        					
-        					if ( PcalParams.distpcalFlag ) {
-        						String[] stringArray = pe.iPC.toString().split(",");
-        						
-        						is.append("<<");
-        						for(int i = 0; i < stringArray.length; i++) {
-        							is.append("\"" + stringArray[i].trim() + "\"");
-        							
-        							if(i != stringArray.length-1) {
-        								is.append(",");
-        							}
-        						}
-        						is.append(">>]");
-        					} else {
-        						is.append("\"" + pe.iPC + "\"]");
-        					}
-        					
-        				}
-        				//                  tlacode.addElement(is.toString());
-        				addOneTokenToTLA(is.toString());
-        				endCurrentLineOfTLA();
-        				is = new StringBuffer(NSpaces(colPC));
-        				if (boxUnderCASE && p < st.processes.size() - 1)
-        					is.append("[] ");
-        			}
-        		} else
-        		{
-        			is.append("/\\ pc = \"" + st.iPC + "\"");
-        			//              tlacode.addElement(is.toString());
-        			addOneLineOfTLA(is.toString());
+        	} 
+        	else {
+        		if (mp) {
+        			is.append("/\\ stack = [self \\in ProcSet |-> << >>]");
+        		} else {
+        			is.append("/\\ stack = << >>");
         		}
+        	}
+        	
+//            tlacode.addElement(is.toString());
+            addOneLineOfTLA(is.toString());
+            is = new StringBuffer(NSpaces(col));
+        }
+        /* pc initial value */
+        if (! ParseAlgorithm.omitPC) {
+        	
+        	//For Distributed PlusCal
+        	if (mp) {
+        		 boolean useCase = st.processes.size() != 1;
+        		 if (useCase) {
+ 					is.append("/\\ pc = [self \\in ProcSet |-> CASE ");
+ 				} else {
+ 					is.append("/\\ pc = [self \\in ProcSet |-> ");
+ 				}
+ 				int colPC = is.length();
+ 				if (boxUnderCASE)
+					colPC = colPC - 3;
+ 				for (int p = 0; p < st.processes.size(); p++) {
+ 					PcalSymTab.ProcessEntry pe = (PcalSymTab.ProcessEntry) st.processes.elementAt(p);
+ 					if (useCase) {
+ 						is.append("self ");
+						if (pe.isEq) {
+							is.append("= ");
+							addOneTokenToTLA(is.toString());
+							addLeftParen(pe.id.getOrigin());
+							addExprToTLA(pe.id);
+							addRightParen(pe.id.getOrigin());
+
+						} else {
+							is.append("\\in ");
+							addOneTokenToTLA(is.toString());
+							addLeftParen(pe.id.getOrigin());
+							addExprToTLA(pe.id);
+							addRightParen(pe.id.getOrigin());
+						}
+						// distributed pluscal checks
+						if (PcalParams.distpcalFlag) {
+								if(pe.iPC.length() > 1) {
+	    							is = new StringBuffer(" -> <<");
+	    							String[] stringArray = pe.iPC.toString().split(",");
+	    							
+	    							for(int i = 0; i < stringArray.length; i++) {
+	    								is.append("\"" + stringArray[i].trim() + "\"");
+	    								
+	    								if(i != stringArray.length-1) {
+	    									is.append(",");
+	    								}
+    							}
+	    						} else {
+	    							is = new StringBuffer(" -> \"");
+	    							is.append(pe.iPC);
+	    						}
+								
+								if (p == st.processes.size() - 1) {
+
+	    							if(pe.iPC.length() > 1) {
+	    								is.append(">>]");
+	    							} else {
+	    								is.append("\"]");
+	    							}
+	    						}
+	    						else if (!boxUnderCASE) {
+
+	    							if(pe.iPC.length() > 1) {
+	    								is.append(">> []");
+	    							} else {
+	    								is.append("\" []");
+	    							}
+	    						}
+	    						else {
+	    							
+	    							if(pe.iPC.length() > 1) {
+	    								is.append(">>");
+	    							} else {
+	    								is.append("\"");
+	    							}
+	    						}
+						} 
+						else {
+							is = new StringBuffer(" -> \"");
+	                        is.append(pe.iPC);
+	                        if (p == st.processes.size() - 1)
+	                            is.append("\"]");
+	                        else if (!boxUnderCASE)
+	                            is.append("\" []");
+	                        else
+	                            is.append("\"");
+						}
+ 					} // end if (useCase)
+ 					else {
+ 						if (PcalParams.distpcalFlag) {
+ 							String[] stringArray = pe.iPC.toString().split(",");
+    						is.append("<<");
+    						for(int i = 0; i < stringArray.length; i++) {
+    							is.append("\"" + stringArray[i].trim() + "\"");
+    							
+    							if(i != stringArray.length-1) {
+    								is.append(",");
+    							}
+    						}
+    						is.append(">>]");
+ 						} else {
+ 							is.append("\"" + pe.iPC + "\"]");
+ 						}
+ 					}
+ 					addOneTokenToTLA(is.toString());
+					endCurrentLineOfTLA();
+					is = new StringBuffer(NSpaces(colPC));
+					if (boxUnderCASE && p < st.processes.size() - 1)
+						is.append("[] ");
+ 				}
+        	} // end for if(mp)
+        	else {
+        		// else clause is the same for both pluscal and distributed pluscal.
+    			is.append("/\\ pc = \"" + st.iPC + "\"");
+//              tlacode.addElement(is.toString());
+    			addOneLineOfTLA(is.toString());
         	}
         }
 //        tlacode.addElement("");
@@ -3603,168 +3489,6 @@ public class PcalTLAGen
         	              ) ;
                } // end if (fairness != AST.UNFAIR_PROC)
            } 
-           
-           //For Distributed PlusCal
-           if ( PcalParams.distpcalFlag ) {
-			for (int i = 0; i < st.processes.size(); i++) {
-				PcalSymTab.ProcessEntry n = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
-				AST.Process nAst = n.ast;
-				int fairness = nAst.fairness;
-				if (fairness != AST.UNFAIR_PROC) {
-					String xf = (fairness == AST.WF_PROC) ? "WF" : "SF";
-
-					Vector nSelf = n.id.toStringVector();
-
-					// makeLetIn is true iff prefix will be LET self == ... IN
-					boolean makeLetIn = false;
-
-					String qSelf = "self";
-					if (n.isEq) {
-						if (nSelf.size() > 1) {
-							makeLetIn = true;
-						} else {
-							qSelf = (String) nSelf.elementAt(0);
-						}
-					}
-
-					Vector prefix = new Vector();
-					if (makeLetIn || !n.isEq) {
-						int prefixSize = nSelf.size();
-						String prefixBegin;
-						String prefixEnd;
-						if (n.isEq) {
-							prefixBegin = "LET self == ";
-							prefixEnd = "";
-						} else {
-							prefixBegin = "\\A self \\in ";
-							prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
-						}
-						String padding = NSpaces(prefixBegin.length());
-						for (int j = 0; j < prefixSize; j++) {
-							String line = (String) nSelf.elementAt(j);
-							if (j == 0) {
-								line = prefixBegin + line;
-							} else {
-								line = padding + line;
-							}
-							if (j == prefixSize - 1) {
-								line = line + prefixEnd;
-							}
-							prefix.addElement(line);
-						}
-						if (makeLetIn) {
-							prefix.addElement("IN ");
-						}
-					} // end if (makeLetIn || !p.isEq)
-
-					StringBuffer wfSB = new StringBuffer(xf + "_vars(");
-					if (nAst.minusLabels != null && nAst.minusLabels.size() > 0) {
-						wfSB.append("(pc[");
-						wfSB.append(qSelf);
-						if (nAst.minusLabels.size() == 1) {
-							wfSB.append("] # \"");
-							wfSB.append(nAst.minusLabels.elementAt(0));
-							wfSB.append("\"");
-						} else {
-							wfSB.append("] \\notin {\"");
-							for (int j = 0; j < nAst.minusLabels.size(); j++) {
-								wfSB.append(nAst.minusLabels.elementAt(j));
-								if (j == nAst.minusLabels.size() - 1) {
-									wfSB.append("\"}");
-								} else {
-									wfSB.append("\", \"");
-								}
-							}
-						}
-						wfSB.append(") /\\ ");
-					}
-
-					String nName = n.name;
-					if (!n.isEq) {
-						nName = n.name + "(self)";
-					}
-					wfSB.append(nName);
-					wfSB.append(")");
-
-					StringBuffer sfSB = null;
-					if (xf.equals("WF") && (nAst.plusLabels != null) && (nAst.plusLabels.size() != 0)) {
-						sfSB = new StringBuffer();
-						for (int j = 0; j < nAst.plusLabels.size(); j++) {
-							if (j != 0) {
-								sfSB.append(" /\\ ");
-							}
-							sfSB.append("SF_vars(");
-							sfSB.append(nAst.plusLabels.elementAt(j));
-							if (!n.isEq) {
-								sfSB.append("(self)");
-							}
-							sfSB.append(")");
-						}
-					}
-
-					Vector prcdFormulas = new Vector();
-					Vector procedures = nAst.proceduresCalled;
-					for (int k = 0; k < procedures.size(); k++) {
-						String originalName = (String) procedures.elementAt(k);
-						String name = st.UseThis(PcalSymTab.PROCEDURE, originalName, "");
-						int procedureIndex = st.FindProc(name);
-						PcalSymTab.ProcedureEntry pe = (PcalSymTab.ProcedureEntry) st.procs
-								.elementAt(procedureIndex);
-						AST.Procedure prcAst = pe.ast;
-
-						StringBuffer wfPrcSB = new StringBuffer(xf + "_vars(");
-						if (prcAst.minusLabels != null && prcAst.minusLabels.size() > 0) {
-							wfPrcSB.append("(pc[");
-							wfPrcSB.append(qSelf);
-							if (prcAst.minusLabels.size() == 1) {
-								wfPrcSB.append("] # \"");
-								wfPrcSB.append(prcAst.minusLabels.elementAt(0));
-								wfPrcSB.append("\"");
-							} else {
-								wfPrcSB.append("] \\notin {\"");
-								for (int j = 0; j < prcAst.minusLabels.size(); j++) {
-									wfPrcSB.append(prcAst.minusLabels.elementAt(j));
-									if (j == prcAst.minusLabels.size() - 1) {
-										wfPrcSB.append("\"}");
-									} else {
-										wfPrcSB.append("\", \"");
-									}
-								}
-							}
-							wfPrcSB.append(") /\\ ");
-						}
-
-						String prcName = pe.name + "(" + qSelf + ")";
-						
-						if(PcalParams.distpcalFlag) {
-	                    	   prcName = pe.name + "(" + qSelf + ", subprocess)";
-	                       }
-						
-						wfPrcSB.append(prcName);
-						wfPrcSB.append(")");
-
-						StringBuffer sfPrcSB = null;
-						if (xf.equals("WF") && (prcAst.plusLabels != null) && (prcAst.plusLabels.size() != 0)) {
-							sfPrcSB = new StringBuffer();
-							for (int j = 0; j < prcAst.plusLabels.size(); j++) {
-								if (j != 0) {
-									sfPrcSB.append(" /\\ ");
-								}
-								sfPrcSB.append("SF_vars(");
-								sfPrcSB.append(prcAst.plusLabels.elementAt(j));
-								sfPrcSB.append("(" + qSelf + ")");
-								sfPrcSB.append(")");
-							}
-						}
-						prcdFormulas.addElement(
-								new FormulaPair(wfPrcSB.toString(), (sfPrcSB == null) ? null : sfPrcSB.toString()));
-					} // end construction of prcdFormulas
-
-					procFairnessFormulas.addElement(new ProcessFairness (xf, prefix, wfSB.toString(),
-							(sfSB == null) ? null : sfSB.toString(), prcdFormulas));
-				} // end if (fairness != AST.UNFAIR_PROC)
-			}
-           }
 		
         } // ends construction of procFairnessFormulas
            

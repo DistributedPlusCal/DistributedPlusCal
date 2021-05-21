@@ -1294,7 +1294,6 @@ public class PcalTranslate {
 
         //For Distributed pluscal
         if(threadIndex == DEFAULT_THREAD) {
-         	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();        
         } else {
           TLAExpr exp = new TLAExpr();
