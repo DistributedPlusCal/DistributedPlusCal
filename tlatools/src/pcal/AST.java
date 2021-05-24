@@ -1165,8 +1165,8 @@ public class AST
 
 			Vector result = new Vector();
 			PcalDebug.reportInfo("varDecl is of type Unordered Channel : " + channel.var);
-
-			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -1580,8 +1580,8 @@ public class AST
 			if ( !(channel.dimensions == null) ) {
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
-	
-					String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+					// For Distributed PlusCal. append _ to overcome variable name clash
+					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
 	
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -1688,7 +1688,8 @@ public class AST
 		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -2112,8 +2113,8 @@ public class AST
 			if (! (channel.dimensions == null)) {
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
-	
-					String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+					// For Distributed PlusCal. append _ to overcome variable name clash
+					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
 	
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));

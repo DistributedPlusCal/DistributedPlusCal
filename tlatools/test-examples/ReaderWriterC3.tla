@@ -34,7 +34,7 @@ process ( w \in Nodes )
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-af85bd9ef7bdf02d61382e8261188a4a
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7c58fa9170027c3aa768996231d093fd
 VARIABLES cur, chan, pc, stack
 
 vars == << cur, chan, pc, stack >>
@@ -45,13 +45,13 @@ SubProcSet == [n \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
         /\ cur = "none"
-        /\ chan = [n0 \in Nodes |-> <<>>]
+        /\ chan = [_n0 \in Nodes |-> <<>>]
         /\ stack = [self \in ProcSet |-> << <<>> , <<>> >>]
                                       
         /\ pc = [self \in ProcSet |-> <<"Write","Read">>]
 
 Label12(self, subprocess) == /\ pc[self][subprocess] [1] = "Label12"
-                             /\ chan' = [n0 \in Nodes |-> <<>>]
+                             /\ chan' = [_n0 \in Nodes |-> <<>>]
                              /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
                              /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
                              /\ cur' = cur
@@ -84,6 +84,6 @@ Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subp
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-b52e03e3bd31f63e3254a52d7d4d36d0
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3f025b5b08188eb56d70a3ad3b789f4d
 
 ==========================================================

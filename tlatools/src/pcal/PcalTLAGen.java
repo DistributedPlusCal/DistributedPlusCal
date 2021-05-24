@@ -4694,7 +4694,8 @@ public class PcalTLAGen
 		StringBuffer ps = new StringBuffer();
 		if (st.processes == null || st.processes.size() == 0)
 			return;
-		ps.append("SubProcSet == [n \\in ProcSet |-> ");
+		// For Distributed Pluscal. _n instead of n to overcome variable name clash
+		ps.append("SubProcSet == [_n \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
@@ -4771,14 +4772,13 @@ public class PcalTLAGen
 	 * @param decl
 	 */
 	private void RewriteVarDeclDimensions(Channel decl) {
-
 		TLAExpr expr = new TLAExpr();
 		expr.addLine();
 		
 		for(int i = 0; i < decl.dimensions.size(); i++) {
 			String dimension = (String) decl.dimensions.get(i);
-
-			String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
 
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));

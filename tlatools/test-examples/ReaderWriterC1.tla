@@ -8,7 +8,7 @@ CONSTANTS Writer, Reader
 (***
 --algorithm message_queue {
 
-fifo queue;
+channel queue;
 
 process ( w = Writer )
 {
@@ -30,10 +30,10 @@ variable current_message = "none";
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-92e9a53b18804e31e1bdd47c240d2abf
-VARIABLES queue, current_message
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3f6727800ac3f17fc110ceb9462bb6e7
+VARIABLES queue, pc, current_message
 
-vars == << queue, current_message >>
+vars == << queue, pc, current_message >>
 
 ProcSet == {Writer} \cup {Reader}
 
@@ -41,20 +41,30 @@ SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
                            ELSE (**Reader**) 1]
 
 Init == (* Global variables *)
-        /\ queue = <<>>
+        /\ queue = {}
         (* Process r *)
         /\ current_message = "none"
+        /\ pc = [self \in ProcSet |-> CASE self = Writer -> <<"Write">>
+                                        [] self = Reader -> <<"Read">>]
 
-w == /\ queue' =  Append(@, "msg")
-     /\ UNCHANGED current_message
+Write == /\ pc[Writer] [1] = "Write"
+         /\ queue' = (queue \cup {"msg"})
+         /\ pc' = [pc EXCEPT ![Writer][1] = "Write"]
+         /\ UNCHANGED current_message
 
-r == /\ Len(queue) > 0 
-     /\ current_message' = Head(queue)
-     /\ queue' =  Tail(@) 
+w ==  \/ Write
+
+Read == /\ pc[Reader] [1] = "Read"
+        /\ \E _q119 \in queue:
+             /\ current_message' = _q119
+             /\ queue' = queue \ {_q119}
+        /\ pc' = [pc EXCEPT ![Reader][1] = "Read"]
+
+r ==  \/ Read
 
 Next == w \/ r
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-15b0fdd62ee4af23558ace42ec6a77eb
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1650c879608dbef1576121324a04c332
 =============================================================================
