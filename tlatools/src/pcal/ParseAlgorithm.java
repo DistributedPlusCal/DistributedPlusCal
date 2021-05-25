@@ -843,20 +843,33 @@ public class ParseAlgorithm
          } ;
          
        if ( PcalParams.distpcalFlag ) {
-    	   Vector<AST.Thread> threads = new Vector<>();
+    	   
+    	   	// For Distributed pluscal. p-syntax fix for subprocess handling.
+    	   	Vector<AST.Thread> threads = new Vector<>();	
+    	   	int i = 0;
+	   		AST.Thread thread = new AST.Thread();
+	   		thread.index = i++;
+	   		thread.id = result.id;
+	   		//read the sub-process delimiter
+	   		GobbleBeginOrLeftBrace() ;
+	   		thread.body = GetStmtSeq();
+	   		GobbleEndOrRightBrace("process");
+	   		
+	   		if(pSyntax) {
+	   			GobbleThis(";");
+	   		}
+	   		threads.add(thread);	
 
-   		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
+   		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
+   			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
 
-   			int i = 0;
-   			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
-
-   				AST.Thread thread = new AST.Thread();
+   				thread = new AST.Thread();
    				thread.index = i++;
    				thread.id = result.id;
    				
    				//read the sub-process delimiter
    				if(pSyntax){
-   		    		 GobbleThis("subprocess");
+   		    		 GobbleThis("begin");
    		    	 } else {
    		    		 GobbleThis("{");
    		    	 }
