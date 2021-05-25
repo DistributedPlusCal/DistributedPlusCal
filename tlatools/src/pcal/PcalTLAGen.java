@@ -4811,4 +4811,22 @@ public class PcalTLAGen
 		decl.val = expr;
 	}
 	
+	// For Distributed PLuscal.
+	public static ArrayList<String> getCallExprValues(TLAExpr callExp) {
+		String dim = callExp.toPlainString();
+		ArrayList<String> dm = new ArrayList<>();
+        StringBuilder temp = new StringBuilder();
+        for ( int i = 1; i < dim.length()-1; i++) {
+            if ( dim.charAt(i) == ',' ) {
+                dm.add(temp.toString());
+                temp = new StringBuilder();
+            }
+            else 
+            	temp.append(dim.charAt(i));
+        }
+        if ( temp.length() > 0)
+        	dm.add(temp.toString());
+        return dm;
+	}
+	
 }
