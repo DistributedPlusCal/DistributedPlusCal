@@ -10,14 +10,12 @@ Nodes == 1 .. N
 (*
 --algorithm chan_msg_algo
 
-channel chan[Nodes];
+fifo chan[Nodes];
 
 process w \in Nodes
 begin
-	Write:
-  	while ( TRUE ) do
-      	    send(chan[self], "msg");
-  	end while;
+	Clear2:
+      	    clear(chan[self]);
 end process;
 begin
         Clear:
@@ -27,7 +25,7 @@ end subprocess;
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-dc93a63c91faacfd8d5ebb2e6e55068a
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-72da768f038cb6a8dbbfde560fbddaa9
 VARIABLES chan, pc
 
 vars == << chan, pc >>
@@ -37,23 +35,23 @@ ProcSet == (Nodes)
 SubProcSet == [_n \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
-        /\ chan = [_n0 \in Nodes |-> {}]
-        /\ pc = [self \in ProcSet |-> <<"Write","Clear">>]
+        /\ chan = [_n0 \in Nodes |-> <<>>]
+        /\ pc = [self \in ProcSet |-> <<"Clear2","Clear">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
-               /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {"msg"}]
-               /\ pc' = [pc EXCEPT ![self][1] = "Write"]
+Clear2(self) == /\ pc[self] [1] = "Clear2"
+                /\ chan' = [chan EXCEPT ![self] = <<>>]
+                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
 Clear(self) == /\ pc[self] [2] = "Clear"
-               /\ chan' = [_n0 \in Nodes |-> {}]
+               /\ chan' = [_n0 \in Nodes |-> <<>>]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
 
-w(self) ==  \/ Write(self) \/ Clear(self)
+w(self) ==  \/ Clear2(self) \/ Clear(self)
 
 Next == (\E self \in Nodes: w(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-99aded01b947352f682c9ca6d6c0961f
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-16f2a3ab8d9f401fddb0dc141f4c80e0
 
 ==========================================================

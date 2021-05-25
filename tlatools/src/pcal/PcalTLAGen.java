@@ -1,5 +1,6 @@
 package pcal;
 
+import java.util.ArrayList;
 import java.util.Vector;
 
 import pcal.AST.Channel;
@@ -4809,4 +4810,5 @@ public class PcalTLAGen
 		expr.normalize();
 		decl.val = expr;
 	}
+	
 }

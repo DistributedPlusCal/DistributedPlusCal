@@ -1087,7 +1087,8 @@ public class AST
    	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
    	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
-   	public abstract Vector clear(Channel channel) throws ParseAlgorithmException;
+   	// For Distributed Pluscal. Add String channelName and TLAExpr callExp arguments to allow new clear functionality
+   	public abstract Vector clear(Channel channel, String channelName, TLAExpr callExp) throws ParseAlgorithmException;
 
    }
    
@@ -1562,27 +1563,63 @@ public class AST
 		}
 
 		@Override
-		public Vector clear(Channel channel) throws ParseAlgorithmException {
+		public Vector clear(Channel channel, String channelName, TLAExpr callExp) throws ParseAlgorithmException {
 			Vector result = new Vector();
-
+			
+			// For Distributed PLuscal. 
+			long chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
+			long callExp_dim =  callExp.toPlainString().chars().filter(ch -> ch == '[').count();
+			
+			// compare channel dimension with call expr. incase of mismatch throw exception
+			if ( chan_dim < callExp_dim ) {
+				PcalDebug.reportInfo("Error case..");
+				throw new ParseAlgorithmException("channel dimension is less than call Expression dimension. ");
+			}
+			
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector());
 			
-			sass.setOrigin(this.getOrigin());
+			if ( chan_dim == 0 && callExp_dim == 0 ) { // chan without dimension and we say clear(chan)
+				sass.lhs.sub = new TLAExpr(new Vector());
+				
+				sass.setOrigin(this.getOrigin());
 
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-			
-			// dostonbek. Check channel dimension for proper clear call.
-			if ( !(channel.dimensions == null) ) {
+				TLAExpr expr = new TLAExpr();
+				expr.addLine();
+				
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
+				
+				expr.setOrigin(this.getOrigin());
+				expr.normalize();
+
+				sass.rhs = expr;
+
+				AST.Assign assign = new AST.Assign();
+				assign.ass = new Vector();
+				assign.line = line ;
+				assign.col  = col ;
+				assign.setOrigin(this.getOrigin());
+
+				assign.ass.addElement(sass);
+
+				result.addElement(assign);
+			}
+			else if ( chan_dim != 0 && callExp_dim == 0 ) { // chan[N] or chan[N,N] and we say clear(chan);
+				sass.lhs.sub = new TLAExpr(new Vector());
+				
+				sass.setOrigin(this.getOrigin());
+
+				TLAExpr expr = new TLAExpr();
+				expr.addLine();
+				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
 					// For Distributed PlusCal. append _ to overcome variable name clash
-					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
-	
+					String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
+					
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
@@ -1595,33 +1632,59 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
-	
+				
 				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-	
+
 				expr.addToken(PcalTranslate.BuiltInToken("{"));
 				expr.addToken(PcalTranslate.BuiltInToken("}"));
-	
+
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-			} else {
-				expr.addToken(PcalTranslate.BuiltInToken("{"));
-				expr.addToken(PcalTranslate.BuiltInToken("}"));
+				
+				expr.setOrigin(this.getOrigin());
+				expr.normalize();
+
+				sass.rhs = expr;
+
+				AST.Assign assign = new AST.Assign();
+				assign.ass = new Vector();
+				assign.line = line ;
+				assign.col  = col ;
+				assign.setOrigin(this.getOrigin());
+
+				assign.ass.addElement(sass);
+
+				result.addElement(assign);
 			}
 			
-			expr.setOrigin(this.getOrigin());
-			expr.normalize();
+			else  { // chan[N] or chan[N, N] and we say either clear(chan[N]) or clear(chan[N, N])
+				TLAExpr expr = new TLAExpr();
 
-			sass.rhs = expr;
+		   		if(callExp.tokens != null) {
+		   			sass.lhs.sub = callExp;
+		   		}else {
+		   			sass.lhs.sub = new TLAExpr(new Vector());
+		   		}
 
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
+		   		expr = new TLAExpr();
+		   		expr.addLine();
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
+				
+				sass.rhs = expr;
 
-			assign.ass.addElement(sass);
+		   		sass.setOrigin(this.getOrigin());
 
-			result.addElement(assign);
+		   		AST.Assign assign = new AST.Assign();
+		   		assign.ass = new Vector();
+		   		assign.line = line ;
+		   		assign.col  = col ;
+		   		assign.setOrigin(this.getOrigin());
+		   		
+		   		assign.ass.addElement(sass);
 
+		   		result.addElement(assign);
+			}
+			
 			return result;
 		}
    	
@@ -2095,27 +2158,64 @@ public class AST
 		}
 
 		@Override
-		public Vector clear(Channel channel) throws ParseAlgorithmException {
+		public Vector clear(Channel channel, String channelName, TLAExpr callExp) throws ParseAlgorithmException {
 			Vector result = new Vector();
-
+			
+			// For Distributed Pluscal. to build different clear calls depending on the callExp
+			long chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
+			long callExp_dim =  callExp.toPlainString().chars().filter(ch -> ch == '[').count();
+			
+			// compare channel dimension with call expr. incase of mismatch throw exception
+			if ( chan_dim < callExp_dim ) {
+				PcalDebug.reportInfo("Error case..");
+				throw new ParseAlgorithmException("channel dimension is less than call Expression dimension. ");
+			}
+			
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector());
-					
-			sass.setOrigin(this.getOrigin());
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
 			
-			// dostonbek. Check channel dimension for clear call construction
-			if (! (channel.dimensions == null)) {
+			if ( chan_dim == 0 && callExp_dim == 0 ) {
+				sass.lhs.sub = new TLAExpr(new Vector());
+				
+				sass.setOrigin(this.getOrigin());
+
+				TLAExpr expr = new TLAExpr();
+				expr.addLine();
+				
+				expr.addToken(PcalTranslate.BuiltInToken("<<"));
+				expr.addToken(PcalTranslate.BuiltInToken(">>"));
+				
+				expr.setOrigin(this.getOrigin());
+				expr.normalize();
+
+				sass.rhs = expr;
+
+				AST.Assign assign = new AST.Assign();
+				assign.ass = new Vector();
+				assign.line = line ;
+				assign.col  = col ;
+				assign.setOrigin(this.getOrigin());
+
+				assign.ass.addElement(sass);
+
+				result.addElement(assign);
+			}
+			else if ( chan_dim != 0 && callExp_dim == 0 ) {
+				sass.lhs.sub = new TLAExpr(new Vector());
+				
+				sass.setOrigin(this.getOrigin());
+
+				TLAExpr expr = new TLAExpr();
+				expr.addLine();
+				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
+					
 					// For Distributed PlusCal. append _ to overcome variable name clash
 					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
-	
+					
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
@@ -2128,33 +2228,59 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
-	
+				
 				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-	
+
 				expr.addToken(PcalTranslate.BuiltInToken("<<"));
 				expr.addToken(PcalTranslate.BuiltInToken(">>"));
-	
+
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-			} else {
-				expr.addToken(PcalTranslate.BuiltInToken("<<"));
-				expr.addToken(PcalTranslate.BuiltInToken(">>"));
+				
+				expr.setOrigin(this.getOrigin());
+				expr.normalize();
+
+				sass.rhs = expr;
+
+				AST.Assign assign = new AST.Assign();
+				assign.ass = new Vector();
+				assign.line = line ;
+				assign.col  = col ;
+				assign.setOrigin(this.getOrigin());
+
+				assign.ass.addElement(sass);
+
+				result.addElement(assign);
 			}
 			
-			expr.setOrigin(this.getOrigin());
-			expr.normalize();
+			else  {
+				TLAExpr expr = new TLAExpr();
 
-			sass.rhs = expr;
+		   		if(callExp.tokens != null) {
+		   			sass.lhs.sub = callExp;
+		   		}else {
+		   			sass.lhs.sub = new TLAExpr(new Vector());
+		   		}
 
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
+		   		expr = new TLAExpr();
+		   		expr.addLine();
+				expr.addToken(PcalTranslate.BuiltInToken("<<"));
+				expr.addToken(PcalTranslate.BuiltInToken(">>"));
+				
+				sass.rhs = expr;
 
-			assign.ass.addElement(sass);
+		   		sass.setOrigin(this.getOrigin());
 
-			result.addElement(assign);
+		   		AST.Assign assign = new AST.Assign();
+		   		assign.ass = new Vector();
+		   		assign.line = line ;
+		   		assign.col  = col ;
+		   		assign.setOrigin(this.getOrigin());
+		   		
+		   		assign.ass.addElement(sass);
 
+		   		result.addElement(assign);
+			}
+			
 			return result;
 		}
    }
@@ -2245,6 +2371,9 @@ public class AST
 	   public Channel channel = null;
 	   public String channelName = null;
 	   public ChannelClearCall() {};
+	   // For Distributed PLuscal. to support clear(chan[N])...
+	   public TLAExpr callExp = new TLAExpr(new Vector());
+	   
 	   public String toString()
 	   { return 
 			   Indent(lineCol()) + 
@@ -2255,7 +2384,7 @@ public class AST
 	   }
 
 	   public Vector generateBodyTemplate(Channel channel) throws ParseAlgorithmException {
-		   return channel.clear(channel);
+		   return channel.clear(channel, channelName, callExp); // For Distributed Pluscal. add channelName and callExp arguments
 	   }
    }
 
