@@ -4755,6 +4755,9 @@ public class ParseAlgorithm
 		PCalLocation beginLoc = null;
 		PCalLocation endLoc = null;
 		result.channelName = GetAlgToken();
+		
+		// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
+		result.callExp = GetExpr();
 
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();

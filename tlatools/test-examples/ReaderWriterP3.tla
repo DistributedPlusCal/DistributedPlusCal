@@ -10,56 +10,48 @@ Nodes == 1 .. N
 (*
 --algorithm chan_msg_algo
 
-fifo chan[Nodes, Nodes];
+fifo chan[Nodes];
 
 process w \in Nodes
 begin
 	Clear2:
-      	    clear(chan[self]);
+      	    broadcast(chan[self], "msg");
 end process;
 begin
         Clear:
-                clear(chan);
-end subprocess;
-begin
-        Clear3:
-                clear(chan[self, self]);
+                broadcast(chan, "msg");
 end subprocess;
 
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-db305e264531d3c095e0e7b0bea20fd0
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-2d7bb34bcbf153c6bf661ddebccf3314
 VARIABLES chan, pc
 
 vars == << chan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..3]
+SubProcSet == [_n \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
-        /\ chan = [_n0 \in Nodes, _n1 \in Nodes |-> <<>>]
-        /\ pc = [self \in ProcSet |-> <<"Clear2","Clear","Clear3">>]
+        /\ chan = [_n0 \in Nodes |-> <<>>]
+        /\ pc = [self \in ProcSet |-> <<"Clear2","Clear">>]
 
 Clear2(self) == /\ pc[self] [1] = "Clear2"
-                /\ chan' = [_n0 \in Nodes, _n1 \in Nodes |->  IF _n0 = self THEN <<>>  ELSE chan[_n0, _n1]]
+                /\ chan' = [chan EXCEPT ![self] =  Append(@, "msg")]
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
 Clear(self) == /\ pc[self] [2] = "Clear"
-               /\ chan' = [_n0 \in Nodes, _n1 \in Nodes |-> <<>>]
+               /\ chan' = [_n0 \in Nodes |->  Append(chan[_n0] , "msg")]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
 
-Clear3(self) == /\ pc[self] [3] = "Clear3"
-                /\ chan' = [chan EXCEPT ![self, self] = <<>>]
-                /\ pc' = [pc EXCEPT ![self][3] = "Done"]
-
-w(self) ==  \/ Clear2(self) \/ Clear(self) \/ Clear3(self)
+w(self) ==  \/ Clear2(self) \/ Clear(self)
 
 Next == (\E self \in Nodes: w(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-2be95a70f5312858bed621926ac34fe9
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0274bd47d545455d41619df4ac38f3c1
 
 ==========================================================
