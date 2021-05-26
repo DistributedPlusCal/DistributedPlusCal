@@ -1580,38 +1580,27 @@ public class AST
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channel.var;
+			TLAExpr expr;
 			
-			if ( chan_dim == 0 && callExp_dim == 0 ) { // chan without dimension and we say clear(chan)
-				sass.lhs.sub = new TLAExpr(new Vector());
+			if (chan_dim == callExp_dim) { // when chan and clear(chan)| chan[N] and clear(chan[self]| chan[N, N] and clear(chan[self, self])
+				if(callExp.tokens != null)
+		   			sass.lhs.sub = callExp;
+		   		else
+		   			sass.lhs.sub = new TLAExpr(new Vector());
+		   		
 				sass.setOrigin(this.getOrigin());
 
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				expr.addToken(PcalTranslate.BuiltInToken("{"));
 				expr.addToken(PcalTranslate.BuiltInToken("}"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
 			}
-			else if ( chan_dim != 0 && callExp_dim == 0 ) { // chan[N] or chan[N,N] and we say clear(chan);
+			else if ( chan_dim != 0 && callExp_dim == 0 ) { // when chan[N] or chan[N,N] and we say clear(chan);
 				sass.lhs.sub = new TLAExpr(new Vector());
-				
 				sass.setOrigin(this.getOrigin());
 
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
@@ -1623,43 +1612,26 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
 					expr.addToken(PcalTranslate.IdentToken(tempVarName));
-					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-					expr.addToken(PcalTranslate.IdentToken(dimension));
-	
 	
 					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
-				
+	
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(channel.dimensions.get(0).toString()));
 				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 
 				expr.addToken(PcalTranslate.BuiltInToken("{"));
 				expr.addToken(PcalTranslate.BuiltInToken("}"));
 
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
 			}
-			else if (chan_dim == 2 && callExp_dim == 1) {
+			else { // when chan[N, N] and clear(chan[self])
 				sass.lhs.sub = new TLAExpr(new Vector());
-				
 				sass.setOrigin(this.getOrigin());
 
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
@@ -1671,69 +1643,37 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
 					expr.addToken(PcalTranslate.IdentToken(tempVarName));
-					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-					expr.addToken(PcalTranslate.IdentToken(dimension));
-	
 	
 					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
 				
-				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(channel.dimensions.get(0).toString()));
+				expr.addToken(PcalTranslate.BuiltInToken(" |->"));
 				expr.addToken(PcalTranslate.BuiltInToken(" IF "));
 				expr.addToken(PcalTranslate.BuiltInToken("_n0 = " + callExp.toPlainString().substring(1, callExp.toPlainString().length()-1)));
-				expr.addToken(PcalTranslate.BuiltInToken(" THEN {} "));
+				expr.addToken(PcalTranslate.BuiltInToken(" THEN {}"));
 				expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
 				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1]"));
-
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
-				
-			}
-			else  { // chan[N] == clear(chan[self] or chan[N, N] == clear(chan[N, N])
-				TLAExpr expr = new TLAExpr();
-
-		   		if(callExp.tokens != null) {
-		   			sass.lhs.sub = callExp;
-		   		}else {
-		   			sass.lhs.sub = new TLAExpr(new Vector());
-		   		}
-
-		   		expr = new TLAExpr();
-		   		expr.addLine();
-				expr.addToken(PcalTranslate.BuiltInToken("{"));
-				expr.addToken(PcalTranslate.BuiltInToken("}"));
-				
-				sass.rhs = expr;
-
-		   		sass.setOrigin(this.getOrigin());
-
-		   		AST.Assign assign = new AST.Assign();
-		   		assign.ass = new Vector();
-		   		assign.line = line ;
-		   		assign.col  = col ;
-		   		assign.setOrigin(this.getOrigin());
-		   		
-		   		assign.ass.addElement(sass);
-
-		   		result.addElement(assign);
 			}
 			
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
 			return result;
 		}
    	
@@ -2207,8 +2147,8 @@ public class AST
 			Vector result = new Vector();
 			
 			// For Distributed Pluscal. to build different clear calls depending on the callExp
-			long chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
-			long callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
+			int chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
+			int callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
 			
 			// compare channel dimension with call expr. incase of mismatch throw exception
 			if ( chan_dim < callExp_dim ) {
@@ -2219,37 +2159,27 @@ public class AST
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channel.var;
+			TLAExpr expr;
 			
-			if ( chan_dim == 0 && callExp_dim == 0 ) {
-				sass.lhs.sub = new TLAExpr(new Vector());
+			if ( chan_dim == callExp_dim ) { // when chan and clear(chan)| chan[N] and clear(chan[self]| chan[N, N] and clear(
+				if(callExp.tokens != null)
+		   			sass.lhs.sub = callExp;
+		   		else
+		   			sass.lhs.sub = new TLAExpr(new Vector());
+				
 				sass.setOrigin(this.getOrigin());
 
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				expr.addToken(PcalTranslate.BuiltInToken("<<"));
 				expr.addToken(PcalTranslate.BuiltInToken(">>"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
 			}
-			else if ( chan_dim != 0 && callExp_dim == 0 ) {
+			else if ( chan_dim != 0 && callExp_dim == 0 ) { // when chan[N] or chan[N,N] and we say clear(chan);
 				sass.lhs.sub = new TLAExpr(new Vector());
 				sass.setOrigin(this.getOrigin());
 
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
@@ -2262,41 +2192,24 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
 					expr.addToken(PcalTranslate.IdentToken(tempVarName));
-					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-					expr.addToken(PcalTranslate.IdentToken(dimension));
-	
 	
 					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
-				
-				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(channel.dimensions.get(0).toString()));
+				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 				expr.addToken(PcalTranslate.BuiltInToken("<<"));
 				expr.addToken(PcalTranslate.BuiltInToken(">>"));
 
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
 			}
-			else if (chan_dim == 2 && callExp_dim == 1) {
+			else { // when chan[N, N] and clear(chan[self])
 				sass.lhs.sub = new TLAExpr(new Vector());
 				sass.setOrigin(this.getOrigin());
-				TLAExpr expr = new TLAExpr();
+				expr = new TLAExpr();
 				expr.addLine();
 				
 				for(int i = 0; i < channel.dimensions.size(); i++) {
@@ -2308,15 +2221,14 @@ public class AST
 						expr.addToken(PcalTranslate.BuiltInToken("["));
 					}
 					expr.addToken(PcalTranslate.IdentToken(tempVarName));
-					expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-					expr.addToken(PcalTranslate.IdentToken(dimension));
-	
-	
+
 					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
 						expr.addToken(PcalTranslate.BuiltInToken(", "));
 					}
 				}
 				
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(channel.dimensions.get(0).toString()));				
 				expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 				expr.addToken(PcalTranslate.BuiltInToken(" IF "));
 				expr.addToken(PcalTranslate.BuiltInToken("_n0 = " + callExp.toPlainString().substring(1, callExp.toPlainString().length()-1)));
@@ -2325,51 +2237,22 @@ public class AST
 				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1]"));
 
 				expr.addToken(PcalTranslate.BuiltInToken("]"));
-				
-				expr.setOrigin(this.getOrigin());
-				expr.normalize();
-
-				sass.rhs = expr;
-
-				AST.Assign assign = new AST.Assign();
-				assign.ass = new Vector();
-				assign.line = line ;
-				assign.col  = col ;
-				assign.setOrigin(this.getOrigin());
-
-				assign.ass.addElement(sass);
-
-				result.addElement(assign);
-			}
-			else  {
-				TLAExpr expr = new TLAExpr();
-
-		   		if(callExp.tokens != null) {
-		   			sass.lhs.sub = callExp;
-		   		}else {
-		   			sass.lhs.sub = new TLAExpr(new Vector());
-		   		}
-
-		   		expr = new TLAExpr();
-		   		expr.addLine();
-				expr.addToken(PcalTranslate.BuiltInToken("<<"));
-				expr.addToken(PcalTranslate.BuiltInToken(">>"));
-				
-				sass.rhs = expr;
-
-		   		sass.setOrigin(this.getOrigin());
-
-		   		AST.Assign assign = new AST.Assign();
-		   		assign.ass = new Vector();
-		   		assign.line = line ;
-		   		assign.col  = col ;
-		   		assign.setOrigin(this.getOrigin());
-		   		
-		   		assign.ass.addElement(sass);
-
-		   		result.addElement(assign);
 			}
 			
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
 			return result;
 		}
    }
