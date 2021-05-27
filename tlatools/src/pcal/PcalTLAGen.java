@@ -2791,8 +2791,9 @@ public class PcalTLAGen
     						is.append("[] ");
     				}
     			} else {
-    				is.append("/\\ pc = \"" + st.iPC + "\"");
-    				addOneLineOfTLA(is.toString());
+    				// Distributed PLuscal. Looking weird part
+    				//is.append("/\\ pc = \"" + st.iPC + "\"");
+    				is.append("/\\ stack = << >>");
     			}
         	} 
         	else {
@@ -3087,33 +3088,7 @@ public class PcalTLAGen
                 vec.addElement(sb.toString());
                 nextSSP.addElement(vec);
             }
-
-//        nextSSP = new Vector(); // of Vector
-
-        /*if (mp && st.nodes.size() > 0) {
-        	for (int i = 0; i < st.nodes.size(); i++) {
-        		PcalSymTab.NodeEntry n = (PcalSymTab.NodeEntry) st.nodes.elementAt(i);
-        		if (n.isEq)
-        			continue;
-        		Vector vec = new Vector();
-        		sb = new StringBuffer();
-        		sb.append("(\\E self \\in ");
-        		Vector sv = n.id.toStringVector();
-        		col = sb.length();
-        		sb.append((String) sv.elementAt(0));
-        		for (int j = 1; j < sv.size(); j++) {
-        			vec.addElement(sb.toString());
-        			sb = new StringBuffer(NSpaces(col));
-        			sb.append((String) sv.elementAt(j));
-        		}
-        		sb.append(": ");
-        		sb.append(n.name);
-        		sb.append("(self))");
-        		vec.addElement(sb.toString());
-        		nextSSP.addElement(vec);
-        	}
-        }*/
-        
+ 
         // assemble the line from the pieces
         sb = new StringBuffer("Next == ");
         col = sb.length() + 2;
