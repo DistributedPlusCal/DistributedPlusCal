@@ -922,7 +922,8 @@ public class ParseAlgorithm
      /**********************************************************************
      * Parses a <PVarDecls> as a Vector of AST.PVarDecl objects.           *
      **********************************************************************/
-     { String tok = PeekAtAlgToken(1) ;
+     { 
+	   String tok = PeekAtAlgToken(1) ;
        if ( tok.equals("variables"))
          { MustGobbleThis("variables") ; } 
        else 
@@ -972,18 +973,11 @@ public class ParseAlgorithm
      **********************************************************************/
      { 
 	   String tok = PeekAtAlgToken(1) ;
-	   // For Distributed Pluscal
-	   PcalDebug.reportInfo("GetVarDecls tok : " + tok);
-	   if (PcalParams.distpcalFlag && tok.contains("channel") || tok.contains("fifo")) 
-    	   MustGobbleThis(tok);
-	   else if (PcalParams.distpcalFlag && tok.contains("channels") || tok.contains("fifos"))
-		   GobbleThis(tok);
-	   // TODO. same for clocks.
 	   
        if ( tok.equals("variables"))
          { MustGobbleThis("variables") ; } 
-       else
-         { GobbleThis("variable") ; } ;     
+       else if (tok.equals("variable"))
+         { GobbleThis("variable") ; }    
        Vector result = new Vector() ;
        
        /********************************************************************
@@ -1006,25 +1000,30 @@ public class ParseAlgorithm
  				 || PeekAtAlgToken(1).equals("variable") 
  				 || PeekAtAlgToken(1).equals("variables") 
  				 || PeekAtAlgToken(1).equals("subprocess")))
-         { result.addElement(GetVarDecl());
+         { 
+    	   PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
+    	   result.addElement(GetVarDecl());
           }
         return result ;
      }
 
    public static AST.VarDecl GetVarDecl() throws ParseAlgorithmException 
      { 
-	   
+	   PcalDebug.reportInfo("At GetVarDecl : " + PeekAtAlgToken(1));
 	   if ( PcalParams.distpcalFlag && (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) ) {
 		   AST.Channel pv;
 		   PCalLocation beginLoc, endLoc;
+		   PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
 		   //TODO is this default definition given here overridden at some point?
 		   if (PeekAtAlgToken(1).contains("channel")) {
 				pv = new AST.UnorderedChannel();
 				pv.val = PcalParams.DefaultChannelInit();
+				PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
 				MustGobbleThis(PeekAtAlgToken(1));
 			} else if (PeekAtAlgToken(1).contains("fifo")) {
 				pv = new AST.FIFOChannel();
 				pv.val = PcalParams.DefaultFifoInit();
+				PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
 				MustGobbleThis(PeekAtAlgToken(1));
 			} else {
 				// specify a default type
@@ -1041,8 +1040,9 @@ public class ParseAlgorithm
 			pv.col = lastTokCol;
 			pv.line = lastTokLine;
 			
+			PcalDebug.reportInfo("pv.var : " + pv.var);
+			
 			if (PeekAtAlgToken(1).equals("[")) {
-
 				GobbleThis("[");
 				pv.dimensions = new ArrayList<>();
 				pv.dimensions.add(GetAlgToken());
@@ -1066,7 +1066,7 @@ public class ParseAlgorithm
 					GobbleThis("]");
 				}
 			}
-			
+			PcalDebug.reportInfo("Before gobble comma ");
 			GobbleCommaOrSemicolon();
 	         /******************************************************************
 	         * Changed on 24 Mar 2006 from GobbleThis(";") to allow            *
@@ -1077,6 +1077,7 @@ public class ParseAlgorithm
 	   } 
 	   
 	   else {
+		   PcalDebug.reportInfo("ELSE BRANCH ");
 		   AST.VarDecl pv;
 		   PCalLocation beginLoc, endLoc;
 		   pv = new AST.VarDecl() ;
@@ -1378,7 +1379,7 @@ public class ParseAlgorithm
 		
 		if (PeekPastAlgToken(1).charAt(0) == '(') {
 
-			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
+			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) { // For channels
 				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getSendToChannelCall(nextTok);
 			} else if(nextTok.equals("receive")) {
@@ -1387,7 +1388,17 @@ public class ParseAlgorithm
 			} else if(nextTok.equals("clear")) {
 				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getClearChannelCall(nextTok);
-			} else {
+			} else if (nextTok.equals("increase")) { // For logical clocks
+				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+				return getIncreaseClockCall(nextTok);
+			} else if (nextTok.equals("update") ) {
+				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+				return getUpdateClockCall(nextTok);
+			} else if (nextTok.equals("reset")) {
+				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+				return getResetClockCall(nextTok);
+			}
+			else {
 				return GetMacroCall();
 			}
 		}
@@ -3671,7 +3682,7 @@ public class ParseAlgorithm
         	  return result;
           }
           
-          if ( stmt.getClass().equals( AST.ChannelClearCall.getClass()) )
+          if ( stmt.getClass().equals( AST.ChannelClearObj.getClass()) )
           {
         	  AST.ChannelClearCall chanstmt = (AST.ChannelClearCall) stmt;
         	  AST.ChannelClearCall result = new AST.ChannelClearCall();
@@ -3726,7 +3737,20 @@ public class ParseAlgorithm
         	  
         	  return result;
           }
-
+          
+       // For Distributed Pluscal. Handling Logical clock objects inside macro
+       if ( stmt.getClass().equals( AST.ClockIncreaseObj.getClass() ) ) {
+    	   // TODO. Implement clock calls expansion inside macro
+       }
+       
+       if (stmt.getClass().equals( AST.ClockResetObj.getClass() )) {
+    	   // TODO. Implement clock calls expansion inside macro    	   
+       }
+       
+       if (stmt.getClass().equals( AST.ClockUpdateObj.getClass() ) ) {
+    	   // TODO. Implement clock calls expansion inside macro
+       }
+          
         PcalDebug.ReportBug(
            "Found unexpected statement type in macro at" +
              stmt.location() ); 
@@ -4930,7 +4954,7 @@ public class ParseAlgorithm
        }
    }
 	
-   //For Distributed PlusCal	
+   /*For Distributed PlusCal	
    public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
@@ -5020,9 +5044,10 @@ public class ParseAlgorithm
 		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
 		 * separated by commas. *
 		 ******************************************************************/
-		pv.setOrigin(new Region(beginLoc, endLoc));
+		/*pv.setOrigin(new Region(beginLoc, endLoc));
 		return pv;
 	}
+	*/
 
 	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();
@@ -5151,27 +5176,78 @@ public class ParseAlgorithm
 				ExpandChannelCallersInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
-			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
+			} else {
+				Vector expansion = null;
+				PcalDebug.reportInfo("Class type : " + stmt.getClass());
+				
+				if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
+					VarDecl varDecl = findVarDeclByVarName(((AST.ChannelSendCall) stmt).channelName, nodeDecls, globalDecls);
+					
+					if (((AST.ChannelSendCall) stmt).isBroadcast && !((AST.ChannelSendCall) stmt).isMulticast)
+						expansion = ((AST.ChannelSendCall) stmt).generateBroadcastBodyTemplate((AST.Channel) varDecl);
+					else if ( !((AST.ChannelSendCall) stmt).isBroadcast && ((AST.ChannelSendCall) stmt).isMulticast )
+						expansion = ((AST.ChannelSendCall) stmt).generateMulticastBodyTemplate((AST.Channel) varDecl);
+					else
+						expansion = ((AST.ChannelSendCall) stmt).generateBodyTemplate((AST.Channel) varDecl);
+					
+				} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
+					VarDecl chanVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).channelName, nodeDecls, globalDecls);
+					VarDecl targetVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).targetVarName, nodeDecls, globalDecls);
+					
+					if(targetVar == null) {
+						throw new ParseAlgorithmException("Trying to receive into variable: '" + targetVar + "' which is undefined");
+					}
+					
+					expansion = ((AST.ChannelReceiveCall) stmt).generateBodyTemplate((AST.Channel)chanVar, targetVar);
+				} else if (stmt.getClass().equals(AST.ChannelClearObj.getClass())) {
+					VarDecl chanVar = findVarDeclByVarName(((AST.ChannelClearCall) stmt).channelName, nodeDecls, globalDecls);
+					
+					if(chanVar == null) {
+						throw new ParseAlgorithmException("Channel clear exception");
+					}
+					
+					expansion = ((AST.ChannelClearCall) stmt).generateBodyTemplate((AST.Channel)chanVar);
+					PcalDebug.reportInfo("expansion at clear obj call : " + expansion);
+				} else if (stmt.getClass().equals(AST.ClockIncreaseObj.getClass())) {
+					VarDecl clock = findVarDeclByVarName(((AST.ClockIncreaseCall) stmt).clockName, nodeDecls, globalDecls);
+
+					if(clock == null) {
+						throw new ParseAlgorithmException("clock name is not defined");
+					}
+					
+					expansion = ((AST.ClockIncreaseCall) stmt).generateClockIncreaseTemplate((AST.Clock)clock);
+				} else if (stmt.getClass().equals(AST.ClockUpdateObj.getClass())) {
+					VarDecl clock1 = findVarDeclByVarName(((AST.ClockUpdateCall) stmt).clockName1, nodeDecls, globalDecls);
+					VarDecl clock2 = findVarDeclByVarName(((AST.ClockUpdateCall) stmt).clockName2, nodeDecls, globalDecls);
+
+					if(clock2 == null) {
+						throw new ParseAlgorithmException("The second clock is not given");
+					}
+
+					expansion = ((AST.ClockUpdateCall) stmt).generateClockUpdateTemplate((AST.Clock)clock1, (AST.Clock)clock2);
+				} else if (stmt.getClass().equals(AST.ClockResetObj.getClass())) {
+					VarDecl clock = findVarDeclByVarName(((AST.ClockResetCall) stmt).clockName, nodeDecls, globalDecls);
+
+					if(clock == null) {
+						throw new ParseAlgorithmException("clock name is not defined");
+					}
+					
+					expansion = ((AST.ClockResetCall) stmt).generateClockResetTemplate((AST.Clock)clock);
 				}
-				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
-				}
-				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ChannelClearCall.getClass())) {
-				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls);
-				stmtseq.remove(i);
+				
+				if (expansion.size() > 0) 
+		        { AST first = (AST) expansion.elementAt(0) ;
+		          first.lbl = stmt.lbl;
+		          first.lblLocation = stmt.lblLocation;
+		          Region callOrigin = stmt.getOrigin();
+		          if (callOrigin != null) {
+		              first.macroOriginBegin = callOrigin.getBegin();
+		              AST last = (AST) expansion.elementAt(expansion.size() - 1) ;
+		              last.macroOriginEnd = callOrigin.getEnd();
+		          }
+		        };
+		        
+		        stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
 					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
@@ -5179,113 +5255,12 @@ public class ParseAlgorithm
 				}
 				i = i + expansion.size() - 1;
 			}
+			
 			i = i + 1;
 		}
-		return;
+		return; // question. Do I have to return? since it is a void method?
 	}
 	
-	/**
-	 * 
-	 * @param call
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
-	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
-
-		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
-
-		Vector result = null;
-		if(call.isBroadcast) {
-			result = call.generateBroadcastBodyTemplate((AST.Channel) varDecl);
-		} if(call.isMulticast){
-			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
-
-		}else if(!call.isBroadcast && !call.isMulticast){
-			//construct body based on type 
-			result = call.generateBodyTemplate((AST.Channel) varDecl);
-		}
-
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param call
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
-			throws ParseAlgorithmException {
-
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
-		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);
-
-		if(targetVar == null) {
-			throw new ParseAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
-		}
-
-		//construct body based on type 
-		Vector result = call.generateBodyTemplate((AST.Channel)chanVar, targetVar);
-
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param call
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
-	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
-			throws ParseAlgorithmException {
-
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
-
-		if(chanVar == null) {
-			//throw and exception
-		}
-		
-		//construct body based on type 
-		Vector result = call.generateBodyTemplate((AST.Channel)chanVar);
-
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
-		return result;
-	}
 	
 	/**
 	 * 
@@ -5523,87 +5498,4 @@ public class ParseAlgorithm
 			return result;
 		}
 	   
-	   // For Distributed Pluscal. Expand Clock calls
-	   public static Vector ExpandClockIncreaseCall(AST.ClockIncreaseCall call, Vector nodeDecl, Vector globalDecl)
-				throws ParseAlgorithmException {
-
-			VarDecl clock = findVarDeclByVarName(call.clockName, nodeDecl, globalDecl);
-
-			if(clock == null) {
-				//throw and exception
-			}
-			
-			//construct body based on type 
-			Vector result = call.generateClockIncreaseTemplate((AST.Clock)clock);
-
-			if (result.size() > 0) 
-	        { AST first = (AST) result.elementAt(0) ;
-	          first.lbl = call.lbl;
-	          first.lblLocation = call.lblLocation;
-	          Region callOrigin = call.getOrigin();
-	          if (callOrigin != null) {
-	              first.macroOriginBegin = callOrigin.getBegin();
-	              AST last = (AST) result.elementAt(result.size() - 1) ;
-	              last.macroOriginEnd = callOrigin.getEnd();
-	          }
-	        };
-	        
-			return result;
-		}
-	   
-	   public static Vector ExpandClockUpdateCall(AST.ClockUpdateCall call, Vector nodeDecl, Vector globalDecl)
-				throws ParseAlgorithmException {
-
-			VarDecl clock1 = findVarDeclByVarName(call.clockName1, nodeDecl, globalDecl);
-			VarDecl clock2 = findVarDeclByVarName(call.clockName2, nodeDecl, globalDecl);
-
-			if(clock2 == null) {
-				throw new ParseAlgorithmException("The second clock is not given");
-			}
-
-			//construct body based on type 
-			Vector result = call.generateClockUpdateTemplate((AST.Clock)clock1, (AST.Clock)clock2);
-
-			if (result.size() > 0) 
-	        { AST first = (AST) result.elementAt(0) ;
-	          first.lbl = call.lbl;
-	          first.lblLocation = call.lblLocation;
-	          Region callOrigin = call.getOrigin();
-	          if (callOrigin != null) {
-	              first.macroOriginBegin = callOrigin.getBegin();
-	              AST last = (AST) result.elementAt(result.size() - 1) ;
-	              last.macroOriginEnd = callOrigin.getEnd();
-	          }
-	        };
-	        
-			return result;
-		}
-	   
-	   public static Vector ExpandClockResetCall(AST.ClockResetCall call, Vector nodeDecl, Vector globalDecl)
-				throws ParseAlgorithmException {
-
-			VarDecl clock = findVarDeclByVarName(call.clockName, nodeDecl, globalDecl);
-
-			if(clock == null) {
-				//throw and exception
-			}
-			
-			//construct body based on type 
-			Vector result = call.generateClockResetTemplate((AST.Clock)clock);
-
-			if (result.size() > 0) 
-	        { AST first = (AST) result.elementAt(0) ;
-	          first.lbl = call.lbl;
-	          first.lblLocation = call.lblLocation;
-	          Region callOrigin = call.getOrigin();
-	          if (callOrigin != null) {
-	              first.macroOriginBegin = callOrigin.getBegin();
-	              AST last = (AST) result.elementAt(result.size() - 1) ;
-	              last.macroOriginEnd = callOrigin.getEnd();
-	          }
-	        };
-	        
-			return result;
-		}
-	
 }

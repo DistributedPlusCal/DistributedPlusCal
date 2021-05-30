@@ -41,6 +41,7 @@ ProcSet == (Nodes)
 
 SubProcSet == [_n \in ProcSet |-> 1..3]
 
+
 Init == (* Global variables *)
         /\ cur = "none"
         /\ f_chan = [_n0 \in Nodes |-> {}]

@@ -32,8 +32,6 @@ ProcSet == (Nodes)
 
 SubProcSet == [_n \in ProcSet |-> 1]
 
-(* Comparator for lamport clocks *)
-Max(c,d) == IF c > d THEN c ELSE d
 
 Init == (* Global variables *)
         /\ x = 0
@@ -53,7 +51,7 @@ Next == (\E self \in Nodes: w(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4738e8b869122b25bb32a9cc4ba752ba
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-761793661fa9934f34fd6eea588c29ba
 
 
 =========================================================

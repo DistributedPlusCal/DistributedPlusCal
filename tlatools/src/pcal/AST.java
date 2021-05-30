@@ -111,13 +111,14 @@ public class AST
     public static AST.Macro        MacroObj        ;
     public static AST.MacroCall    MacroCallObj    ;
 
-    //For Distributed PlusCal	
+    //For Distributed PlusCal. Channels	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
-    public static AST.ChannelClearCall ChannelClearCall;
-    
+    public static AST.ChannelClearCall ChannelClearObj;
+    // For Distributed Pluscal. Logical clocks
     public static AST.ClockIncreaseCall ClockIncreaseObj;
     public static AST.ClockUpdateCall ClockUpdateObj;
+    public static AST.ClockResetCall ClockResetObj;
     
     public static final String SELF = "slf";
     
@@ -235,10 +236,14 @@ public class AST
         GotoObj         = new AST.Goto() ;
         MacroObj        = new AST.Macro() ;
         MacroCallObj    = new AST.MacroCall() ;
-        
-        ChannelSenderObj =  new AST.ChannelSendCall();
+        // For Distributed Pluscal. Channels
+        ChannelSenderObj   =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
-        ChannelClearCall = new AST.ChannelClearCall();
+        ChannelClearObj   = new AST.ChannelClearCall();
+        //For Distributed Pluscal. Logical clocks
+        ClockIncreaseObj   = new AST.ClockIncreaseCall();
+        ClockUpdateObj     = new AST.ClockUpdateCall();
+        ClockResetObj      = new AST.ClockResetCall();
       }
 
 
