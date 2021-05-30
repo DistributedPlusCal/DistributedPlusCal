@@ -361,6 +361,29 @@ public final class PcalParams
 	  exp.normalize() ;
 	  return exp ;
   }
+  
+  // For Distributed PLuscal logical clocks
+  public static TLAExpr DefaultLamportClockInit(){
+	  Vector<TLAToken> line = new Vector<TLAToken>() ;
+	  line.addElement(new TLAToken("0", 0, 0)) ;
+	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+	  vec.addElement(line) ;
+	  TLAExpr exp = new TLAExpr(vec) ;
+	  exp.normalize() ;
+	  return exp ;
+  }
+  
+  public static TLAExpr DefaultVectorClockInit(){
+	  Vector<TLAToken> line = new Vector<TLAToken>() ;
+	  line.addElement(new TLAToken("{", 0, 0)) ;
+	  line.addElement(new TLAToken("}", 0, 0)) ;
+	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+	  vec.addElement(line) ;
+	  TLAExpr exp = new TLAExpr(vec) ;
+	  exp.normalize() ;
+	  return exp ;
+  }
+  
  }  
 
 /* last modified on Thu 23 Aug 2007 at 10:40:25 PST by lamport */

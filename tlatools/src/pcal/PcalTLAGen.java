@@ -3323,7 +3323,11 @@ public class PcalTLAGen
                            prefixEnd = "";
                        } else {
                     	   prefixBegin = "\\A self \\in ";
-                    	   prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
+                    	   // For Distributed Pluscal.
+                    	   if (PcalParams.distpcalFlag)
+                    		   prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
+                    	   else
+                    		   prefixEnd = " : ";
                        }
                        
                        String padding = NSpaces(prefixBegin.length());
@@ -3368,7 +3372,7 @@ public class PcalTLAGen
         		   
         		   String pName = p.name;
                    if (!p.isEq) {
-                       pName = p.name + "(self)";
+                       pName = p.name + "(self)"; // question. Why is that self, but not self, subprocess for distpcal?
                    }
                    wfSB.append(pName);
         		   wfSB.append(")");
@@ -3444,7 +3448,7 @@ public class PcalTLAGen
                                }
                                sfPrcSB.append("SF_vars(");
                                sfPrcSB.append(prcAst.plusLabels.elementAt(j));
-                               sfPrcSB.append("(" + qSelf + ")") ;
+                               sfPrcSB.append("(" + qSelf + ")") ; // question. why not self, subprocess for distpcal?
                                sfPrcSB.append(")");
                            }
                        }
@@ -4690,6 +4694,15 @@ public class PcalTLAGen
 			addOneLineOfTLA(ps.toString());
 			endCurrentLineOfTLA();
 			addOneLineOfTLA("");
+			
+			// For Distributed Pluscal. for logical clocks
+			if (ParseAlgorithm.logicalClocks) {
+				addOneLineOfTLA("(* Comparator for lamport clocks *)");
+				addOneLineOfTLA("Max(c,d) == IF c > d THEN c ELSE d");
+			}
+			
+			endCurrentLineOfTLA();
+			addOneLineOfTLA("");
 			return;
 		}
 			
@@ -4738,6 +4751,10 @@ public class PcalTLAGen
 			addOneLineOfTLA(ps.toString());
 			
 		}
+		endCurrentLineOfTLA();
+		addOneLineOfTLA("");
+		
+		addOneLineOfTLA("Max(c,d) == IF c > d THEN c ELSE d");
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
 	}

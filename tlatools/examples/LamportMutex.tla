@@ -61,7 +61,17 @@ vars == << network, pc, clock, req, ack, sndr, msg >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [n \in ProcSet |-> 1..2]
+SubProcSet == [_n \in ProcSet |-> 1..2]
+
+Init == (* Global variables *)
+        /\ network = [_n0 \in Nodes, _n1 \in Nodes |-> <<>>]
+        (* Process n *)
+        /\ clock = [self \in Nodes |-> 0]
+        /\ req = [self \in Nodes |-> [n \in Nodes |-> 0]]
+        /\ ack = [self \in Nodes |-> {}]
+        /\ sndr = [self \in Nodes |-> defaultInitValue]
+        /\ msg = [self \in Nodes |-> defaultInitValue]
+        /\ pc = [self \in ProcSet |-> <<"ncs","rcv">>]
 
 ncs(self) == /\ pc[self] [1] = "ncs"
              /\ TRUE
@@ -130,5 +140,5 @@ Next == (\E self \in Nodes: n(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-9c2e8b7aeedc254dacd7fed61aa95dc5
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0b6844160ed23140b3ac7f89fb9bb041
 =======================

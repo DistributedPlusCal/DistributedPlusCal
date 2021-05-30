@@ -822,7 +822,6 @@ public class Tokenize
                 || tok.equals("channels")
                 || tok.equals("fifo")
                 || tok.equals("fifos")
-                || tok.equals("node")
                 || tok.equals("subprocess")
                ) ;
       }

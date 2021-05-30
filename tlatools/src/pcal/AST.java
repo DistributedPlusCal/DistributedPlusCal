@@ -116,6 +116,9 @@ public class AST
     public static AST.ChannelReceiveCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearCall;
     
+    public static AST.ClockIncreaseCall ClockIncreaseObj;
+    public static AST.ClockUpdateCall ClockUpdateObj;
+    
     public static final String SELF = "slf";
     
     public int col ;
@@ -1283,12 +1286,9 @@ public class AST
 
 		@Override
 		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
-			// For Distributed Pluscal. to build different clear calls depending on the callExp
-			PcalDebug.reportInfo("msg : " + msg.toString());
 			
 			int chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
 			int callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
-			
 			// compare channel dimension with call expr. incase of mismatch throw exception
 			if ( chan_dim < callExp_dim ) {
 				throw new ParseAlgorithmException("channel dimension is less than call Expression dimension. ");
@@ -1863,7 +1863,7 @@ public class AST
 		
 		@Override
 		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
-			// For Distributed Pluscal. to build different clear calls depending on the callExp
+			
 			int chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
 			int callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
 			
@@ -2389,5 +2389,141 @@ public class AST
 
 	  }
   }
+  
+  // For Distributed Pluscal. Clocks
+  public static abstract class Clock extends VarDecl{
+
+	   	public Clock() {};
+	   	List dimensions = null;
+	   	public abstract Vector increase(Clock clock, String clockName, TLAExpr callExp);
+	   	public abstract Vector update(Clock clock1, String clockName1, Clock clock2, String clockName2);
+	   	public abstract Vector reset(Clock clock, String clockName, TLAExpr callExp);
+  }
+  
+  public static class ClockIncreaseCall extends AST{
+	   public String name = "";
+	   public Channel clock = null;
+	   public String clockName = null;
+	   
+	   // For Distributed PLuscal. to support increase(clock[N])...
+	   public TLAExpr callExp = new TLAExpr(new Vector());
+	   
+	   public ClockIncreaseCall() {};
+
+	   public String toString()
+	   { return 
+			   Indent(lineCol()) + 
+			   "[type |-> \"ClockIncreaseCall\"," + NewLine() +
+			   Indent(" clock     |-> ") + clockName + "]" +
+			   EndIndent() +
+			   EndIndent() ;
+	   }
+
+	   public Vector generateClockIncreaseTemplate(Clock clock) throws ParseAlgorithmException {
+		   return clock.increase(clock, clockName, callExp);
+	   }
+  }
+  
+  public static class ClockUpdateCall extends AST{
+	   public String name1 = "";
+	   public Channel clock1 = null;
+	   public String clockName1 = null;
+	   public String name2 = "";
+	   public Channel clock2 = null;
+	   public String clockName2 = null;
+	   
+	   // For Distributed PLuscal. NEED TO THINK ABOUT : update(clock[self], clock[self-1]) ??? how to handle it
+	   public TLAExpr callExp1 = new TLAExpr(new Vector());
+	   public TLAExpr callExp2 = new TLAExpr(new Vector());
+	   
+	   public ClockUpdateCall() {};
+	   
+	   public String toString()
+	   { return 
+			   Indent(lineCol()) + 
+			   "[type |-> \"ClockUpdateCall\"," + NewLine() +
+			   Indent(" clock1    |-> ") + clockName1 + "]" +
+			   Indent(" clock2    |-> ") + clockName2 + "]" + 
+			   EndIndent() +
+			   EndIndent() ;
+	   }
+
+	   public Vector generateClockUpdateTemplate(Clock clock1, Clock clock2) throws ParseAlgorithmException {
+		   return clock1.update(clock1, clockName1, clock2, clockName2);
+	   }
+  }
+  
+  public static class ClockResetCall extends AST{
+	   public String name = "";
+	   public Channel clock = null;
+	   public String clockName = null;
+	   
+	   // For Distributed PLuscal. to support increase(clock[N])...
+	   public TLAExpr callExp = new TLAExpr(new Vector());
+	   
+	   public ClockResetCall() {};
+
+	   public String toString()
+	   { return 
+			   Indent(lineCol()) + 
+			   "[type |-> \"ClockResetCall\"," + NewLine() +
+			   Indent(" clock     |-> ") + clockName + "]" +
+			   EndIndent() +
+			   EndIndent() ;
+	   }
+
+	   public Vector generateClockResetTemplate(Clock clock) throws ParseAlgorithmException {
+		   return clock.increase(clock, clockName, callExp);
+	   }
+ }
+  
+  public static class LamportClock extends Clock {
+	  
+	public LamportClock() {};  
+	  
+	@Override
+	public Vector increase(Clock clock, String clockName, TLAExpr callExp) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Vector update(Clock clock1, String clockName1, Clock clock2, String clockName2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Vector reset(Clock clock, String clockName, TLAExpr callExp) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	  
+  }
+  
+  public static class VectorClock extends Clock {
+	  
+		public VectorClock() {};  
+		  
+		@Override
+		public Vector increase(Clock clock, String clockName, TLAExpr callExp) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Vector update(Clock clock1, String clockName1, Clock clock2, String clockName2) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Vector reset(Clock clock, String clockName, TLAExpr callExp) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		  
+	  }
+  
 
  }

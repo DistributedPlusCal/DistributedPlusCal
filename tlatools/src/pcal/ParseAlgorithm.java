@@ -235,6 +235,9 @@ public class ParseAlgorithm
     **********************************************************************/
    public static boolean pSyntax;
    public static boolean cSyntax;
+   
+   // For Distributed Pluscal clocks.
+   public static boolean logicalClocks;
 
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
@@ -301,6 +304,9 @@ public class ParseAlgorithm
      * incomplete initialization 
      */
     LATsize = 0 ;
+    
+    // For Distributed Pluscal.Initially logical clocks flag is false.
+    logicalClocks = false;
    }
 
    
@@ -336,17 +342,32 @@ public class ParseAlgorithm
        }
 
 	   Vector vdecls = new Vector();
-
-       if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
+	   
+	   // For Distributed Pluscal. Changed IF to WHILE to catch variable, channel and clocks
+       if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables") 
+    		   || PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+    		   || PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos") 
+    		   || (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
+    	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")))) {
+    	   PcalDebug.reportInfo("IF : " + PeekAtAlgToken(1));
     	   vdecls = GetVarDecls();
        }
        
+       PcalDebug.reportInfo("After while");
        //For Distributed PlusCal, could be surrounded by an if statement
        //to read channels and fifo channels
+       /*
        if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
     		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
     	   vdecls.addAll(GetChannelDecls());
        }
+       
+       if (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
+    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")) {
+    	   vdecls.addAll(GetClockDecls());
+    	   logicalClocks = true;
+       }
+       */
 
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
@@ -519,7 +540,6 @@ public class ParseAlgorithm
 			} else
 			{ 
 			
-				System.out.println("in uni process");
 			AST.Uniprocess uniproc = new AST.Uniprocess() ;
 			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
 			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
@@ -665,7 +685,7 @@ public class ParseAlgorithm
 	   if (body == null || (body.size() == 0)) {
            return;
        }
-	   // For Distributed Pluscal
+	   // For Distributed Pluscal. To handle c-syntax optimization problem with one label specs.
        if (PcalParams.distpcalFlag) {
            omitPC = false;
            omitStutteringWhenDone = false;
@@ -830,16 +850,7 @@ public class ParseAlgorithm
          { result.decls = new Vector(1) ; }
        else
          {
-    	   if ( PcalParams.distpcalFlag ) {
-	    	   if(result.decls == null) {
-					result.decls = new Vector();
-				}
-				result.decls.addAll(GetVarDecls());
-				result.decls.addAll(GetChannelDecls());
-    	   }
-    	   else {
-    		   result.decls = GetVarDecls() ;
-    	   }
+    		   result.decls = GetVarDecls() ;    	   
          } ;
          
        if ( PcalParams.distpcalFlag ) {
@@ -959,13 +970,22 @@ public class ParseAlgorithm
      /**********************************************************************
      * Parses a <VarDecls> as a Vector of AST.VarDecl objects.             *
      **********************************************************************/
-     { String tok = PeekAtAlgToken(1) ;
+     { 
+	   String tok = PeekAtAlgToken(1) ;
+	   // For Distributed Pluscal
+	   PcalDebug.reportInfo("GetVarDecls tok : " + tok);
+	   if (PcalParams.distpcalFlag && tok.contains("channel") || tok.contains("fifo")) 
+    	   MustGobbleThis(tok);
+	   else if (PcalParams.distpcalFlag && tok.contains("channels") || tok.contains("fifos"))
+		   GobbleThis(tok);
+	   // TODO. same for clocks.
+	   
        if ( tok.equals("variables"))
          { MustGobbleThis("variables") ; } 
-       else 
-         { GobbleThis("variable") ; } ;
+       else
+         { GobbleThis("variable") ; } ;     
        Vector result = new Vector() ;
-
+       
        /********************************************************************
        * The <VarDecls> nonterminal appears in two places:                 *
        *                                                                   *
@@ -983,10 +1003,8 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("define")  
                  || PeekAtAlgToken(1).equals("macro")  
                  //For Distributed PlusCal
- 				 || PeekAtAlgToken(1).equals("channel") 
- 				 || PeekAtAlgToken(1).equals("channels") 
- 				 || PeekAtAlgToken(1).equals("fifos") 
- 				 || PeekAtAlgToken(1).equals("fifo")
+ 				 || PeekAtAlgToken(1).equals("variable") 
+ 				 || PeekAtAlgToken(1).equals("variables") 
  				 || PeekAtAlgToken(1).equals("subprocess")))
          { result.addElement(GetVarDecl());
           }
@@ -994,29 +1012,98 @@ public class ParseAlgorithm
      }
 
    public static AST.VarDecl GetVarDecl() throws ParseAlgorithmException 
-     { AST.VarDecl pv = new AST.VarDecl() ;
-       pv.var = GetAlgToken() ;
-       PCalLocation beginLoc = GetLastLocationStart() ;
-       PCalLocation endLoc = GetLastLocationEnd() ;
-       pv.col  = lastTokCol ;
-       pv.line = lastTokLine ;
-       if (   PeekAtAlgToken(1).equals("=")
-           || PeekAtAlgToken(1).equals("\\in"))
-         { pv.isEq = GobbleEqualOrIf() ;
-           pv.val = GetExpr() ; 
-           endLoc = pv.val.getOrigin().getEnd() ;
-           if (pv.val.tokens.size()==0)
-             { ParsingError("Missing expression at ") ;} ;
-         } 
-       else {hasDefaultInitialization = true ;} ;
+     { 
+	   
+	   if ( PcalParams.distpcalFlag && (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) ) {
+		   AST.Channel pv;
+		   PCalLocation beginLoc, endLoc;
+		   //TODO is this default definition given here overridden at some point?
+		   if (PeekAtAlgToken(1).contains("channel")) {
+				pv = new AST.UnorderedChannel();
+				pv.val = PcalParams.DefaultChannelInit();
+				MustGobbleThis(PeekAtAlgToken(1));
+			} else if (PeekAtAlgToken(1).contains("fifo")) {
+				pv = new AST.FIFOChannel();
+				pv.val = PcalParams.DefaultFifoInit();
+				MustGobbleThis(PeekAtAlgToken(1));
+			} else {
+				// specify a default type
+				pv = null;
+				hasDefaultInitialization = true;
+				GobbleThis(PeekAtAlgToken(1));
+			}
 
-       GobbleCommaOrSemicolon();
-         /******************************************************************
-         * Changed on 24 Mar 2006 from GobbleThis(";") to allow            *
-         * declarations to be separated by commas.                         *
-         ******************************************************************/
-       pv.setOrigin(new Region(beginLoc, endLoc));
-       return pv ;
+			pv.var = GetAlgToken();
+			pv.isEq = true;		
+			
+			beginLoc = GetLastLocationStart();
+			endLoc = GetLastLocationEnd();
+			pv.col = lastTokCol;
+			pv.line = lastTokLine;
+			
+			if (PeekAtAlgToken(1).equals("[")) {
+
+				GobbleThis("[");
+				pv.dimensions = new ArrayList<>();
+				pv.dimensions.add(GetAlgToken());
+
+				String next = PeekAtAlgToken(1);
+				
+				//for one dimensional channels
+				if(next.equals("]")) {
+					GobbleThis("]");
+				} else {
+					while(!next.equals("]")) {
+						if(next.equals(",")) {
+							GobbleThis(",");
+							next = PeekAtAlgToken(1);
+							continue;
+						} else {
+							pv.dimensions.add(GetAlgToken());
+							next = PeekAtAlgToken(1);
+						}
+					}
+					GobbleThis("]");
+				}
+			}
+			
+			GobbleCommaOrSemicolon();
+	         /******************************************************************
+	         * Changed on 24 Mar 2006 from GobbleThis(";") to allow            *
+	         * declarations to be separated by commas.                         *
+	         ******************************************************************/
+	       pv.setOrigin(new Region(beginLoc, endLoc));
+	       return pv ;
+	   } 
+	   
+	   else {
+		   AST.VarDecl pv;
+		   PCalLocation beginLoc, endLoc;
+		   pv = new AST.VarDecl() ;
+	       pv.var = GetAlgToken() ;
+	       beginLoc = GetLastLocationStart() ;
+	       endLoc = GetLastLocationEnd() ;
+	       pv.col  = lastTokCol ;
+	       pv.line = lastTokLine ;
+	       if (   PeekAtAlgToken(1).equals("=")
+	           || PeekAtAlgToken(1).equals("\\in"))
+	         { pv.isEq = GobbleEqualOrIf() ;
+	           pv.val = GetExpr() ; 
+	           endLoc = pv.val.getOrigin().getEnd() ;
+	           if (pv.val.tokens.size()==0)
+	             { ParsingError("Missing expression at ") ;} ;
+	         } 
+	       else {hasDefaultInitialization = true ;} ;
+	       
+	       GobbleCommaOrSemicolon();
+	         /******************************************************************
+	         * Changed on 24 Mar 2006 from GobbleThis(";") to allow            *
+	         * declarations to be separated by commas.                         *
+	         ******************************************************************/
+	       pv.setOrigin(new Region(beginLoc, endLoc));
+	       return pv ;
+	   }
+       
      }
 
    public static TLAExpr GetExpr() throws ParseAlgorithmException
@@ -3442,6 +3529,203 @@ public class ParseAlgorithm
             result.to = tstmt.to ;
             return result;
           } ;
+          
+          // For Distributed Pluscal. Handling Channel objects inside macro
+          if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
+          {
+        	  AST.ChannelSendCall chanstmt = (AST.ChannelSendCall) stmt;
+        	  AST.ChannelSendCall result = new AST.ChannelSendCall();
+        	  result.col = chanstmt.col;
+        	  result.line = chanstmt.line;
+        	  result.macroCol = chanstmt.macroCol;
+        	  result.macroLine = chanstmt.macroLine;
+        	  result.setOrigin(chanstmt.getOrigin());
+        	  if (macroLine > 0) 
+        	  {
+        		  result.macroLine = macroLine;
+        		  result.macroCol = macroCol;
+        	  }
+        	  
+        	  if ( chanstmt.callExp.isEmpty() ) {
+        		  // no arguments. chan or fifo without dimension
+            	  result.callExp = chanstmt.callExp;
+        	  } 
+        	  else {
+        		  result.callExp = chanstmt.callExp;
+        		  
+        		  // with one or more arguments. chan or fifo with one or more arguments.         		  
+        		  ArrayList<String> dm = PcalTLAGen.getCallExprValues(chanstmt.callExp);
+        		  
+    	          // get the corresponding index by comparing args with params
+    	          ArrayList<Integer> param_indexes = new ArrayList<>();
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  for ( int j = 0; j < params.size(); j++ ) {
+    	        		  if ( dm.get(i).equals(params.get(j)) ) {
+    	        			  param_indexes.add(j);
+    	        			  break;
+    	        		  }
+    	        	  }
+    	          }
+    	          
+    	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
+    	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
+    	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
+    	          
+    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  int k = param_indexes.get(i);
+    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+    	        	  token_index += 2;
+    	          }
+        	  }
+        	  
+        	  result.channelName = chanstmt.channelName;
+        	  result.name = chanstmt.name;
+        	  result.isBroadcast = chanstmt.isBroadcast;
+        	  result.isMulticast = chanstmt.isBroadcast;
+        	  
+        	  int msg_index = -1;
+	          for ( int i = 0; i < params.size(); i++ ) {
+	        	  if ( params.get(i).equals(chanstmt.msg.toPlainString()) ) {
+	        		  msg_index = i;
+	        		  break;
+	        	  }
+	          }
+	          
+	          result.msg = (TLAExpr) args.elementAt(msg_index);
+        	  return result;
+          }
+          
+          if ( stmt.getClass().equals( AST.ChannelReceiverObj.getClass()) )
+          {
+        	  AST.ChannelReceiveCall chanstmt = (AST.ChannelReceiveCall) stmt;
+        	  AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
+        	  PcalDebug.reportInfo("receive call: " + chanstmt);
+	          result.col = chanstmt.col;
+        	  result.line = chanstmt.line;
+        	  result.macroCol = chanstmt.macroCol;
+        	  result.macroLine = chanstmt.macroLine;
+        	  result.setOrigin(chanstmt.getOrigin());
+        	  if (macroLine > 0)
+        	  {
+        		  result.macroCol = macroCol;
+        		  result.macroLine = macroLine;
+        	  }
+        	  
+        	  if ( chanstmt.callExp.isEmpty() ) {
+        		  // no arguments. chan or fifo without dimension
+        		  result.callExp = chanstmt.callExp;
+        	  } 
+        	  else {
+        		  // with one or more arguments. chan or fifo with one or more arguments.         		  
+        		  ArrayList<String> dm = PcalTLAGen.getCallExprValues(chanstmt.callExp);
+
+    	          // get the corresponding index by comparing args with params
+    	          ArrayList<Integer> param_indexes = new ArrayList<>();
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  for ( int j = 0; j < params.size(); j++ ) {
+    	        		  if ( dm.get(i).equals(params.get(j)) ) {
+    	        			  param_indexes.add(j);
+    	        			  break;
+    	        		  }
+    	        	  }
+    	          }
+    	          
+    	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
+    	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
+    	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
+    	          
+    	          result.callExp = chanstmt.callExp;
+    	          
+    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  int k = param_indexes.get(i);
+    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+    	        	  token_index += 2;
+    	          }
+        	  }
+        	  
+        	  result.channelName = chanstmt.channelName;
+        	  result.name = chanstmt.name;
+        	  result.args = args;
+        	  result.targetExp = chanstmt.targetExp;
+        	  
+        	  PcalDebug.reportInfo("args: " + args);
+        	  PcalDebug.reportInfo("params: " + params);
+        	  
+        	  // workaround params with args to retrieve need variable
+        	  int rec_var_index = -1;
+        	  for (int i = 0; i < params.size(); i++) {
+        		  if (chanstmt.targetVarName.equals(params.get(i))) {
+        			  rec_var_index = i;
+        			  break;
+        		  }
+        	  }
+        	  
+        	  Vector<TLAExpr> cp = args;
+        	  PcalDebug.reportInfo("args receive variable : " + cp.get(rec_var_index).toPlainString());        
+        	  result.targetVarName = cp.get(rec_var_index).toPlainString();
+        	  
+        	  return result;
+          }
+          
+          if ( stmt.getClass().equals( AST.ChannelClearCall.getClass()) )
+          {
+        	  AST.ChannelClearCall chanstmt = (AST.ChannelClearCall) stmt;
+        	  AST.ChannelClearCall result = new AST.ChannelClearCall();
+        	  result.col = chanstmt.col;
+        	  result.line = chanstmt.line;
+        	  result.macroCol = chanstmt.macroCol;
+        	  result.macroLine = chanstmt.macroLine;
+        	  result.setOrigin(chanstmt.getOrigin());
+        	  if (macroLine > 0)
+        	  {
+        		  result.macroCol = macroCol;
+        		  result.macroLine = macroLine;
+        	  }
+        	  
+        	  if ( chanstmt.callExp.isEmpty() ) {
+        		  // no arguments. chan or fifo without dimension
+            	  result.callExp = chanstmt.callExp;
+        	  } 
+        	  else {
+        		  // with one or more arguments. chan or fifo with one or more arguments.         		  
+        		  ArrayList<String> dm = PcalTLAGen.getCallExprValues(chanstmt.callExp);
+    	          
+    	          // get the corresponding index by comparing args with params
+    	          ArrayList<Integer> param_indexes = new ArrayList<>();
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  for ( int j = 0; j < params.size(); j++ ) {
+    	        		  if ( dm.get(i).equals(params.get(j)) ) {
+    	        			  param_indexes.add(j);
+    	        			  break;
+    	        		  }
+    	        	  }
+    	          }
+    	          
+    	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
+    	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
+    	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
+    	          
+    	          result.callExp = chanstmt.callExp;
+    	          
+    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+    	          for ( int i = 0; i < dm.size(); i++ ) {
+    	        	  int k = param_indexes.get(i);
+    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+    	        	  token_index += 2;
+    	          }    	          
+        	  }
+
+        	  result.channelName = chanstmt.channelName;
+        	  result.name = chanstmt.name;
+        	  result.channel = chanstmt.channel;
+        	  
+        	  return result;
+          }
 
         PcalDebug.ReportBug(
            "Found unexpected statement type in macro at" +
@@ -4766,9 +5050,7 @@ public class ParseAlgorithm
 			result.isBroadcast = true;
 		} else if(nextTok.equals("multicast")) {
 			result.isMulticast = true;
-		} else {
-			result.callExp = GetExpr();
-		}
+		} 
 
 		GobbleThis(",");
 		result.msg = GetExpr();
@@ -5051,4 +5333,277 @@ public class ParseAlgorithm
 		}
 		return chanVar;
 	}
+	
+	//For Distributed PlusCal logical cloks
+	   public static Vector GetClockDecls() throws ParseAlgorithmException {
+
+			String tok = PeekAtAlgToken(1);
+			String clockType = "";
+
+			if (tok.contains("lamport")) {
+				clockType = "Lamport";
+			} else if (tok.contains("vector")) {
+				clockType = "VECTOR";
+			} else {
+				//no channels to read
+				return new Vector();
+			}
+			
+			if (tok.contains("lamport") || tok.contains("vector")) {
+				MustGobbleThis(tok);
+			} else {
+				GobbleThis(tok);
+			}
+
+			Vector result = new Vector();
+
+			while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
+					|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
+					|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
+					|| PeekAtAlgToken(1).equals("macro")
+					|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
+					|| PeekAtAlgToken(1).equals("subprocess"))) {
+				// change here if we want to prevent variable declaration between threads
+				result.addElement(GetClockDecl(clockType));
+			}
+			return result;
+		}
+	   
+	   public static VarDecl GetClockDecl(String clockType) throws ParseAlgorithmException {
+
+			AST.Clock pv;
+			//TODO is this default definition given here overridden at some point?
+			if (clockType.equals("Lamport")) {
+				pv = new AST.LamportClock();
+				pv.val = PcalParams.DefaultLamportClockInit();
+			} else if (clockType.equals("VECTOR")) {
+				pv = new AST.VectorClock();
+				pv.val = PcalParams.DefaultVectorClockInit();
+			} else {
+				// specify a default type
+				pv = null;
+				hasDefaultInitialization = true;
+			}
+
+			pv.var = GetAlgToken();
+			pv.isEq = true;		
+			
+			PCalLocation beginLoc = GetLastLocationStart();
+			PCalLocation endLoc = GetLastLocationEnd();
+			pv.col = lastTokCol;
+			pv.line = lastTokLine;
+			
+			if (PeekAtAlgToken(1).equals("[")) {
+
+				GobbleThis("[");
+				pv.dimensions = new ArrayList<>();
+				pv.dimensions.add(GetAlgToken());
+
+				String next = PeekAtAlgToken(1);
+				
+				//for one dimensional channels
+				if(next.equals("]")) {
+					GobbleThis("]");
+				} else {
+					while(!next.equals("]")) {
+						if(next.equals(",")) {
+							GobbleThis(",");
+							next = PeekAtAlgToken(1);
+							continue;
+						} else {
+							pv.dimensions.add(GetAlgToken());
+							next = PeekAtAlgToken(1);
+						}
+					}
+					GobbleThis("]");
+				}
+			}
+			
+			GobbleCommaOrSemicolon();
+
+			/******************************************************************
+			 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
+			 * separated by commas. *
+			 ******************************************************************/
+			pv.setOrigin(new Region(beginLoc, endLoc));
+			return pv;
+		}
+	   
+	   
+	   public static AST.ClockIncreaseCall getIncreaseClockCall(String nextTok) throws ParseAlgorithmException {
+			AST.ClockIncreaseCall result = new AST.ClockIncreaseCall();
+			result.name = GetAlgToken() ;
+			MustGobbleThis("(");
+
+			result.col = curTokCol[0] + 1;
+			result.line = curTokLine[0] + 1;
+			/******************************************************************
+			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+			 * LAT[0] contains the next token. *
+			 ******************************************************************/
+			PCalLocation beginLoc = null;
+			PCalLocation endLoc = null;
+			result.clockName = GetAlgToken();
+			
+			// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
+			result.callExp = GetExpr();
+
+			beginLoc = GetLastLocationStart();
+			endLoc = GetLastLocationEnd();
+
+			//if there is more than one parameter an error is thrown
+			GobbleThis(")");
+			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+			GobbleThis(";");
+
+			return result;
+		}
+	
+	   public static AST.ClockUpdateCall getUpdateClockCall(String nextTok) throws ParseAlgorithmException {
+			AST.ClockUpdateCall result = new AST.ClockUpdateCall();
+			result.name1 = GetAlgToken() ;
+			MustGobbleThis("(");
+
+			result.col = curTokCol[0] + 1;
+			result.line = curTokLine[0] + 1;
+			/******************************************************************
+			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+			 * LAT[0] contains the next token. *
+			 ******************************************************************/
+			PCalLocation beginLoc = null;
+			PCalLocation endLoc = null;
+			result.clockName1 = GetAlgToken();
+
+			beginLoc = GetLastLocationStart();
+			endLoc = GetLastLocationEnd();
+
+			result.callExp1 = GetExpr();
+
+			GobbleThis(",");
+
+			result.name2 = GetAlgToken();
+			result.clockName2 = GetAlgToken();
+			
+			result.callExp2 = GetExpr();
+
+			//if there is more than one parameter an error is thrown
+			GobbleThis(")");
+			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+			GobbleThis(";");
+
+			return result;
+		}
+	   
+	   public static AST.ClockResetCall getResetClockCall(String nextTok) throws ParseAlgorithmException {
+			AST.ClockResetCall result = new AST.ClockResetCall();
+			result.name = GetAlgToken() ;
+			MustGobbleThis("(");
+
+			result.col = curTokCol[0] + 1;
+			result.line = curTokLine[0] + 1;
+			/******************************************************************
+			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
+			 * LAT[0] contains the next token. *
+			 ******************************************************************/
+			PCalLocation beginLoc = null;
+			PCalLocation endLoc = null;
+			result.clockName = GetAlgToken();
+			
+			// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
+			result.callExp = GetExpr();
+
+			beginLoc = GetLastLocationStart();
+			endLoc = GetLastLocationEnd();
+
+			//if there is more than one parameter an error is thrown
+			GobbleThis(")");
+			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+			GobbleThis(";");
+
+			return result;
+		}
+	   
+	   // For Distributed Pluscal. Expand Clock calls
+	   public static Vector ExpandClockIncreaseCall(AST.ClockIncreaseCall call, Vector nodeDecl, Vector globalDecl)
+				throws ParseAlgorithmException {
+
+			VarDecl clock = findVarDeclByVarName(call.clockName, nodeDecl, globalDecl);
+
+			if(clock == null) {
+				//throw and exception
+			}
+			
+			//construct body based on type 
+			Vector result = call.generateClockIncreaseTemplate((AST.Clock)clock);
+
+			if (result.size() > 0) 
+	        { AST first = (AST) result.elementAt(0) ;
+	          first.lbl = call.lbl;
+	          first.lblLocation = call.lblLocation;
+	          Region callOrigin = call.getOrigin();
+	          if (callOrigin != null) {
+	              first.macroOriginBegin = callOrigin.getBegin();
+	              AST last = (AST) result.elementAt(result.size() - 1) ;
+	              last.macroOriginEnd = callOrigin.getEnd();
+	          }
+	        };
+	        
+			return result;
+		}
+	   
+	   public static Vector ExpandClockUpdateCall(AST.ClockUpdateCall call, Vector nodeDecl, Vector globalDecl)
+				throws ParseAlgorithmException {
+
+			VarDecl clock1 = findVarDeclByVarName(call.clockName1, nodeDecl, globalDecl);
+			VarDecl clock2 = findVarDeclByVarName(call.clockName2, nodeDecl, globalDecl);
+
+			if(clock2 == null) {
+				throw new ParseAlgorithmException("The second clock is not given");
+			}
+
+			//construct body based on type 
+			Vector result = call.generateClockUpdateTemplate((AST.Clock)clock1, (AST.Clock)clock2);
+
+			if (result.size() > 0) 
+	        { AST first = (AST) result.elementAt(0) ;
+	          first.lbl = call.lbl;
+	          first.lblLocation = call.lblLocation;
+	          Region callOrigin = call.getOrigin();
+	          if (callOrigin != null) {
+	              first.macroOriginBegin = callOrigin.getBegin();
+	              AST last = (AST) result.elementAt(result.size() - 1) ;
+	              last.macroOriginEnd = callOrigin.getEnd();
+	          }
+	        };
+	        
+			return result;
+		}
+	   
+	   public static Vector ExpandClockResetCall(AST.ClockResetCall call, Vector nodeDecl, Vector globalDecl)
+				throws ParseAlgorithmException {
+
+			VarDecl clock = findVarDeclByVarName(call.clockName, nodeDecl, globalDecl);
+
+			if(clock == null) {
+				//throw and exception
+			}
+			
+			//construct body based on type 
+			Vector result = call.generateClockResetTemplate((AST.Clock)clock);
+
+			if (result.size() > 0) 
+	        { AST first = (AST) result.elementAt(0) ;
+	          first.lbl = call.lbl;
+	          first.lblLocation = call.lblLocation;
+	          Region callOrigin = call.getOrigin();
+	          if (callOrigin != null) {
+	              first.macroOriginBegin = callOrigin.getBegin();
+	              AST last = (AST) result.elementAt(result.size() - 1) ;
+	              last.macroOriginEnd = callOrigin.getEnd();
+	          }
+	        };
+	        
+			return result;
+		}
+	
 }
