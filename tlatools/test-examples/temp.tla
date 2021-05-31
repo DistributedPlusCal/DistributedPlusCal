@@ -11,47 +11,72 @@ Nodes == 1 .. N
 --algorithm message_queue {
 
 variable x = 0;
-channel chan[Nodes];
+channel chan;
 
 process ( w \in Nodes )
 variables cur = "none";
 {
     Clear1:
-      broadcast(chan, "msg");
+      clear(chan);
+} {
+    Send1:
+        send(chan, "msg");
+    Br1:
+        broadcast(chan, "msg");
+} {
+    Rc1:
+        receive(chan, cur);
 }
 
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-4146bd22d2c85eb0f2b44cf26459a4ed
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c39fafa4abf875b256e09efce84bbac5
 VARIABLES x, chan, pc, cur
 
 vars == << x, chan, pc, cur >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1]
+SubProcSet == [_n \in ProcSet |-> 1..3]
 
 
 Init == (* Global variables *)
         /\ x = 0
-        /\ chan = [_n0 \in Nodes |-> {}]
+        /\ chan = {}
         (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
-        /\ pc = [self \in ProcSet |-> <<"Clear1">>]
+        /\ pc = [self \in ProcSet |-> <<"Clear1","Send1","Rc1">>]
 
 Clear1(self) == /\ pc[self] [1] = "Clear1"
-                /\ chan' = [_n0 \in Nodes |-> chan[_n0] \cup {"msg"}]
+                /\ chan' = {}
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                 /\ UNCHANGED << x, cur >>
 
-w(self) ==  \/ Clear1(self)
+Send1(self) == /\ pc[self] [2] = "Send1"
+               /\ chan' = (chan \cup {"msg"})
+               /\ pc' = [pc EXCEPT ![self][2] = "Br1"]
+               /\ UNCHANGED << x, cur >>
+
+Br1(self) == /\ pc[self] [2] = "Br1"
+             /\ chan' = (chan \cup {"msg"})
+             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+             /\ UNCHANGED << x, cur >>
+
+Rc1(self) == /\ pc[self] [3] = "Rc1"
+             /\ \E _c149 \in chan:
+                  /\ chan' = chan \ {_c149}
+                  /\ cur' = [cur EXCEPT ![self] = _c149]
+             /\ pc' = [pc EXCEPT ![self][3] = "Done"]
+             /\ x' = x
+
+w(self) ==  \/ Clear1(self) \/ Send1(self) \/ Br1(self) \/ Rc1(self)
 
 Next == (\E self \in Nodes: w(self))
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-761793661fa9934f34fd6eea588c29ba
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bb45834cdaac644b17aeaf05be173ce7
 
 
 =========================================================

@@ -110,6 +110,10 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import pcal.AST.Channel;
+import pcal.AST.ChannelCall;
+import pcal.AST.ChannelReceiveCall;
+import pcal.AST.ChannelSendCall;
 import pcal.AST.VarDecl;
 import pcal.exception.ParseAlgorithmException;
 import pcal.exception.TLAExprException;
@@ -1379,15 +1383,10 @@ public class ParseAlgorithm
 		
 		if (PeekPastAlgToken(1).charAt(0) == '(') {
 
-			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) { // For channels
+			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")
+					|| nextTok.equals("receive") || nextTok.equals("clear")) { // For channels
 				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getSendToChannelCall(nextTok);
-			} else if(nextTok.equals("receive")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getReceiveFromChannelCall(nextTok);
-			} else if(nextTok.equals("clear")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getClearChannelCall(nextTok);
+				return getChannelCall(nextTok);
 			} else if (nextTok.equals("increase")) { // For logical clocks
 				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getIncreaseClockCall(nextTok);
@@ -4953,13 +4952,13 @@ public class ParseAlgorithm
        }
    }
 
-	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelSendCall result = new AST.ChannelSendCall();
-		result.name = GetAlgToken() ;
-
-		MustGobbleThis("(");
-
-		result.col = curTokCol[0] + 1;
+   	public static AST.ChannelCall getChannelCall(String nextTok) throws ParseAlgorithmException {
+   		AST.ChannelCall result = getChannelCallObject(nextTok);
+   		result.name = GetAlgToken();
+   		
+   		MustGobbleThis("(");
+   		
+   		result.col = curTokCol[0] + 1;
 		result.line = curTokLine[0] + 1;
 		/******************************************************************
 		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
@@ -4969,89 +4968,58 @@ public class ParseAlgorithm
 		PCalLocation endLoc = null;
 		result.channelName = GetAlgToken();
 		
-		// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
 		result.callExp = GetExpr();
 
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
 
-		if(nextTok.equals("broadcast")) {
-			result.isBroadcast = true;
-		} else if(nextTok.equals("multicast")) {
-			result.isMulticast = true;
+		if (nextTok.equals("broadcast") || nextTok.equals("multicast") || nextTok.equals("send")) {
+			AST.ChannelCall temp = result;
+			AST.ChannelSendCall call = (ChannelSendCall) (temp);
+			
+			if(nextTok.equals("broadcast")) {
+				call.isBroadcast = true;
+			} else if(nextTok.equals("multicast")) {
+				call.isMulticast = true;
+			}
+
+			GobbleThis(",");
+			call.msg = GetExpr();
+			
+			GobbleThis(")");
+			call.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+			GobbleThis(";");
+			
+			return call;
+		}  else if (nextTok.equals("receive")) {
+			AST.ChannelReceiveCall call = (ChannelReceiveCall) ((AST.ChannelCall)result);
+			GobbleThis(",");
+
+			call.targetVarName = GetAlgToken();
+			call.targetExp = GetExpr();
+			GobbleThis(")");
+			call.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
+			GobbleThis(";");
+			
+			return call;
 		} 
-
-		GobbleThis(",");
-		result.msg = GetExpr();
-
-		GobbleThis(")");
-		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-		GobbleThis(";");
-
-		return result;
-	}
-
-	public static AST.ChannelReceiveCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
-		result.name = GetAlgToken() ;
-		MustGobbleThis("(");
-
-		result.col = curTokCol[0] + 1;
-		result.line = curTokLine[0] + 1;
-		/******************************************************************
-		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-		 * LAT[0] contains the next token. *
-		 ******************************************************************/
-		PCalLocation beginLoc = null;
-		PCalLocation endLoc = null;
-		result.channelName = GetAlgToken();
-
-		beginLoc = GetLastLocationStart();
-		endLoc = GetLastLocationEnd();
-
-		result.callExp = GetExpr();
-
-		GobbleThis(",");
-
-		result.targetVarName = GetAlgToken();
-		result.targetExp = GetExpr();
-
-		//if there is more than one parameter an error is thrown
-		GobbleThis(")");
-		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-		GobbleThis(";");
-
-		return result;
-	}
-
-	public static AST.ChannelClearCall getClearChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelClearCall result = new AST.ChannelClearCall();
-		result.name = GetAlgToken() ;
-		MustGobbleThis("(");
-
-		result.col = curTokCol[0] + 1;
-		result.line = curTokLine[0] + 1;
-		/******************************************************************
-		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-		 * LAT[0] contains the next token. *
-		 ******************************************************************/
-		PCalLocation beginLoc = null;
-		PCalLocation endLoc = null;
-		result.channelName = GetAlgToken();
 		
-		// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
-		result.callExp = GetExpr();
-
-		beginLoc = GetLastLocationStart();
-		endLoc = GetLastLocationEnd();
-
-		//if there is more than one parameter an error is thrown
+		// else it is a clear call
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
-
-		return result;
-	}
+   		
+   		return result;
+   	}
+   	
+   	public static AST.ChannelCall getChannelCallObject(String nextTok) {
+   		if (nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast"))
+   			return new AST.ChannelSendCall();
+   		else if (nextTok.equals("receive"))
+   			return new AST.ChannelReceiveCall();
+   		else
+   			return new AST.ChannelClearCall();
+   	}
 
 	/**
 	 * 
@@ -5084,17 +5052,26 @@ public class ParseAlgorithm
 				Vector expansion = null;
 				PcalDebug.reportInfo("Class type : " + stmt.getClass());
 				
-				if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-					VarDecl varDecl = findVarDeclByVarName(((AST.ChannelSendCall) stmt).channelName, nodeDecls, globalDecls);
+				if (stmt instanceof ChannelCall) {
+					PcalDebug.reportInfo("stmt instance of ::: " + stmt.getClass());
+					VarDecl varDecl = findVarDeclByVarName(((AST.ChannelCall) stmt).channelName, nodeDecls, globalDecls);
 					
+					if(varDecl == null) {
+						throw new ParseAlgorithmException("Channel clear exception");
+					}
+					
+					expansion = ((AST.ChannelCall) stmt).generateTemplate((AST.Channel) varDecl);
+					/*
 					if (((AST.ChannelSendCall) stmt).isBroadcast && !((AST.ChannelSendCall) stmt).isMulticast)
 						expansion = ((AST.ChannelSendCall) stmt).generateBroadcastBodyTemplate((AST.Channel) varDecl);
 					else if ( !((AST.ChannelSendCall) stmt).isBroadcast && ((AST.ChannelSendCall) stmt).isMulticast )
 						expansion = ((AST.ChannelSendCall) stmt).generateMulticastBodyTemplate((AST.Channel) varDecl);
 					else
 						expansion = ((AST.ChannelSendCall) stmt).generateBodyTemplate((AST.Channel) varDecl);
+					*/
 					
-				} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
+				} 
+				/*else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
 					VarDecl chanVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).channelName, nodeDecls, globalDecls);
 					VarDecl targetVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).targetVarName, nodeDecls, globalDecls);
 					
@@ -5103,16 +5080,8 @@ public class ParseAlgorithm
 					}
 					
 					expansion = ((AST.ChannelReceiveCall) stmt).generateBodyTemplate((AST.Channel)chanVar, targetVar);
-				} else if (stmt.getClass().equals(AST.ChannelClearObj.getClass())) {
-					VarDecl chanVar = findVarDeclByVarName(((AST.ChannelClearCall) stmt).channelName, nodeDecls, globalDecls);
-					
-					if(chanVar == null) {
-						throw new ParseAlgorithmException("Channel clear exception");
-					}
-					
-					expansion = ((AST.ChannelClearCall) stmt).generateBodyTemplate((AST.Channel)chanVar);
-					PcalDebug.reportInfo("expansion at clear obj call : " + expansion);
-				} else if (stmt.getClass().equals(AST.ClockIncreaseObj.getClass())) {
+				}*/ 
+				else if (stmt.getClass().equals(AST.ClockIncreaseObj.getClass())) {
 					VarDecl clock = findVarDeclByVarName(((AST.ClockIncreaseCall) stmt).clockName, nodeDecls, globalDecls);
 
 					if(clock == null) {

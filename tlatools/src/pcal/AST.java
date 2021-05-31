@@ -1092,7 +1092,7 @@ public class AST
    	public Channel() {};
    	List dimensions = null;
    	public abstract Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp);
-   	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
+   	public abstract Vector receive(Channel channel, String channelName, String targetVarName, TLAExpr callExp, TLAExpr targetExp);
    	// For Distributed PLuscal. Add TLAExpr msg argument to implement new broadcast
    	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
@@ -1171,7 +1171,7 @@ public class AST
 
 
 		@Override
-		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(Channel channel, String channelName, String targetVarName, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
 			PcalDebug.reportInfo("varDecl is of type Unordered Channel : " + channel.var);
@@ -1211,8 +1211,8 @@ public class AST
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = targetVar.var;
-
+			sass.lhs.var = targetVarName;
+			
 			TLAExpr expr = new TLAExpr();
 
 			if(targetExp.tokens != null) {
@@ -1742,7 +1742,7 @@ public class AST
 		}
 		
 		@Override
-		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(Channel channel, String channelName,  String targetVarName, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
 			// For Distributed PlusCal. append _ to overcome variable name clash
@@ -1786,7 +1786,7 @@ public class AST
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = targetVar.var;
+			sass.lhs.var = targetVarName;
 
 			TLAExpr expr = new TLAExpr();
       // HC: fix bug FIFO (06/04/21)
@@ -2261,15 +2261,21 @@ public class AST
 			return result;
 		}
    }
-
-   public static class ChannelSendCall extends AST{
-   	TLAExpr msg = null;
-   	public String channelName = null ;
-   	public TLAExpr callExp = new TLAExpr(new Vector());
-   	public String name = "";
+   
+   // For Distributed Plucal2. 
+   public static abstract class ChannelCall extends AST {
+	   public String name = "";
+	   public String channelName = "";
+	   public TLAExpr callExp = new TLAExpr(new Vector());
+	   
+	   public abstract Vector generateTemplate(Channel channel) throws ParseAlgorithmException; 
+   }
+   
+   public static class ChannelSendCall extends ChannelCall{
+   	public TLAExpr msg = null;
    	public Boolean isBroadcast = false;
-   	
    	public Boolean isMulticast = false;
+   	
    	public ChannelSendCall() {};
    	public String toString()
    	{ return 
@@ -2289,10 +2295,21 @@ public class AST
      	 * generates the body for a send call
      	 * @param channel
      	 * @return
+     	 * @throws ParseAlgorithmException 
      	 */
-   	public Vector generateBodyTemplate(Channel channel) {
+   	
+   	public Vector generateTemplate(Channel channel) throws ParseAlgorithmException {
+   		if (isBroadcast)
+   			return channel.broadcast(channel, channelName, msg, callExp);
+   		else if (isMulticast)
+   			return channel.multicast(channel, channelName, msg);
+   		else
    			return channel.send(channel, channelName, msg, callExp);
    	}
+   	
+   	/*public Vector generateBodyTemplate(Channel channel) {
+   			return channel.send(channel, channelName, msg, callExp);
+   	}*/
    	
    	/**
    	 * 
@@ -2300,25 +2317,22 @@ public class AST
    	 * @return
    	 * @throws ParseAlgorithmException 
    	 */
-		public Vector generateBroadcastBodyTemplate(Channel channel) throws ParseAlgorithmException {
+		/*public Vector generateBroadcastBodyTemplate(Channel channel) throws ParseAlgorithmException {
    		return channel.broadcast(channel, channelName, msg, callExp);
-		}
+		}*/
 		/**
 		 * @param channel
 		 * @return
 		 * @throws ParseAlgorithmException 
 		 */
-		public Vector generateMulticastBodyTemplate(Channel channel) throws ParseAlgorithmException {
+		/*public Vector generateMulticastBodyTemplate(Channel channel) throws ParseAlgorithmException {
    		return channel.multicast(channel, channelName, msg);
-		}
+		}*/
 
    }
   
-   public static class ChannelReceiveCall extends AST{
-	   public String channelName = "";
-	   public TLAExpr callExp = new TLAExpr(new Vector());
+   public static class ChannelReceiveCall extends ChannelCall{
 	   public Vector args;
-	   public String name = "";
 	   String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
 	   public ChannelReceiveCall() {};
@@ -2337,18 +2351,19 @@ public class AST
 			   EndIndent() ;
 	   }
 
-	   public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
-		   return channel.receive(channel, channelName, targetVar, callExp, targetExp);
+	   public Vector generateTemplate(Channel channel) {
+		   return channel.receive(channel, channelName, targetVarName, callExp, targetExp);
 	   }
+	   
+	   /*public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
+		   return channel.receive(channel, channelName, targetVarName, callExp, targetExp);
+	   }*/
    }
 
    
-   public static class ChannelClearCall extends AST{
-	   public String name = "";
-	   public String channelName = null;
+   public static class ChannelClearCall extends ChannelCall{
+	   public String type;
 	   public ChannelClearCall() {};
-	   // For Distributed PLuscal. to support clear(chan[N])...
-	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   
 	   public String toString()
 	   { return 
@@ -2359,9 +2374,13 @@ public class AST
 			   EndIndent() ;
 	   }
 
-	   public Vector generateBodyTemplate(Channel channel) throws ParseAlgorithmException {
-		   return channel.clear(channel, channelName, callExp); // For Distributed Pluscal. add channelName and callExp arguments
+	   public Vector generateTemplate(Channel channel) throws ParseAlgorithmException {
+		   return channel.clear(channel, channelName, callExp);
 	   }
+	   
+	   /*public Vector generateBodyTemplate(Channel channel) throws ParseAlgorithmException {
+		   return channel.clear(channel, channelName, callExp); // For Distributed Pluscal. add channelName and callExp arguments
+	   }*/
    }
 
   
