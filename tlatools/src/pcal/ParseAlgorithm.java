@@ -3733,7 +3733,6 @@ public class ParseAlgorithm
 
         	  result.channelName = chanstmt.channelName;
         	  result.name = chanstmt.name;
-        	  result.channel = chanstmt.channel;
         	  
         	  return result;
           }
@@ -4953,101 +4952,6 @@ public class ParseAlgorithm
            System.out.println("*-" + array[i].toString() + "-*");
        }
    }
-	
-   /*For Distributed PlusCal	
-   public static Vector GetChannelDecls() throws ParseAlgorithmException {
-
-		String tok = PeekAtAlgToken(1);
-		String channelType = "";
-
-		if (tok.contains("channel")) {
-			channelType = "Unordered";
-		} else if (tok.contains("fifo")) {
-			channelType = "FIFO";
-		} else {
-			//no channels to read
-			return new Vector();
-		}
-		
-		if (tok.contains("channel") || tok.contains("fifo")) {
-			MustGobbleThis(tok);
-		} else {
-			GobbleThis(tok);
-		}
-
-		Vector result = new Vector();
-
-		while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
-				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
-				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("variable") 
-				|| PeekAtAlgToken(1).equals("variables") || PeekAtAlgToken(1).equals("subprocess"))) {
-			// change here if we want to prevent variable declaration between threads
-			result.addElement(GetChannelDecl(channelType));
-		}
-		return result;
-	}
-   
-   	//For Distributed PlusCal	
-	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
-
-		AST.Channel pv;
-		if (channelType.equals("Unordered")) {
-			pv = new AST.UnorderedChannel();
-			pv.val = PcalParams.DefaultChannelInit();
-		} else if (channelType.equals("FIFO")) {
-			pv = new AST.FIFOChannel();
-			pv.val = PcalParams.DefaultFifoInit();
-		} else {
-			// specify a default type
-			pv = null;
-			hasDefaultInitialization = true;
-		}
-
-		pv.var = GetAlgToken();
-		pv.isEq = true;		
-		
-		PCalLocation beginLoc = GetLastLocationStart();
-		PCalLocation endLoc = GetLastLocationEnd();
-		pv.col = lastTokCol;
-		pv.line = lastTokLine;
-		
-		if (PeekAtAlgToken(1).equals("[")) {
-
-			GobbleThis("[");
-			pv.dimensions = new ArrayList<>();
-			pv.dimensions.add(GetAlgToken());
-
-			String next = PeekAtAlgToken(1);
-			
-			//for one dimensional channels
-			if(next.equals("]")) {
-				GobbleThis("]");
-			} else {
-				while(!next.equals("]")) {
-					if(next.equals(",")) {
-						GobbleThis(",");
-						next = PeekAtAlgToken(1);
-						continue;
-					} else {
-						pv.dimensions.add(GetAlgToken());
-						next = PeekAtAlgToken(1);
-					}
-				}
-				GobbleThis("]");
-			}
-		}
-		
-		GobbleCommaOrSemicolon();
-
-		/******************************************************************
-		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
-		 * separated by commas. *
-		 ******************************************************************/
-		/*pv.setOrigin(new Region(beginLoc, endLoc));
-		return pv;
-	}
-	*/
 
 	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();

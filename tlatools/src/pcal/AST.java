@@ -2345,7 +2345,6 @@ public class AST
    
    public static class ChannelClearCall extends AST{
 	   public String name = "";
-	   public Channel channel = null;
 	   public String channelName = null;
 	   public ChannelClearCall() {};
 	   // For Distributed PLuscal. to support clear(chan[N])...
