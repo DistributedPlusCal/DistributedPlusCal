@@ -321,7 +321,8 @@ public class PcalTranslate {
                                         Vector unlabThen,
                                         String nextThen,
                                         Vector unlabElse,
-                                        String nextElse) {
+                                        String nextElse,
+                                        Integer threadIndex) {
         /*********************************************************************
         * Generate  if test then unlabThen; pc := nextThen ;                 *
         *           else unlabElse; pc := nextElse ;                         *
@@ -329,9 +330,9 @@ public class PcalTranslate {
         AST.If ifForLabelIf = new AST.If();
         ifForLabelIf.test = test;
         ifForLabelIf.Then = unlabThen;
-        ifForLabelIf.Then.addElement(UpdatePC(nextThen));
+        ifForLabelIf.Then.addElement(UpdatePC(nextThen,threadIndex));
         ifForLabelIf.Else = unlabElse;
-        ifForLabelIf.Else.addElement(UpdatePC(nextElse));
+        ifForLabelIf.Else.addElement(UpdatePC(nextElse,threadIndex));
         return ifForLabelIf;
     }
 
@@ -375,7 +376,7 @@ public class PcalTranslate {
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(
                                     ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i)));
+                                                     ast.prcds.elementAt(i),-1)); //HC: change with constant
             i = i + 1;
         }
         i = 0;
@@ -392,7 +393,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next));
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next,-1)); //HC: change with constant
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -416,7 +417,7 @@ public class PcalTranslate {
         newast.setOrigin(ast.getOrigin()) ;
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i)));
+                                                     ast.prcds.elementAt(i),-1)); //HC: change with constant
             i = i + 1;
         }
         i = 0;
@@ -499,7 +500,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next));
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next,-1));//HC: change with constant
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -584,7 +585,7 @@ public class PcalTranslate {
                 result1.removeElementAt(result1.size()-1);
                 // Note: if there's a GotoObj, then omitPC should be false.
                 //For Distributed pluscal (add threadIndex)
-                result1.addElement(UpdatePC(g.to),threadIndex);
+                result1.addElement(UpdatePC(g.to,threadIndex));
             }
             else if (last.getClass().equals(AST.CallObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
@@ -747,7 +748,7 @@ public class PcalTranslate {
         if (! ParseAlgorithm.omitPC) {
            /* prepend pc check */
           //For Distributed pluscal (add threadIndex)
-          newast.stmts.insertElementAt(CheckPC(newast.label), threadIndex, 0);
+          newast.stmts.insertElementAt(CheckPC(newast.label, threadIndex), 0);
            result.addElement(newast);
         }
         /* add recursively generated labeled statements */

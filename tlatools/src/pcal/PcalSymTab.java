@@ -187,22 +187,23 @@ public class PcalSymTab {
 
             //For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
-              if (n.threads.size() == 0)
+              if (p.threads.size() == 0)
                 this.iPC = null;
               else {
-                this.iPC = new StringBuffer();
+                StringBuffer liPC = new StringBuffer();
 				
-                for(int i = 0; i < n.threads.size(); i++) {
-                  AST.Thread t = n.threads.get(i);
+                for(int i = 0; i < p.threads.size(); i++) {
+                  AST.Thread t = p.threads.get(i);
                   AST.LabeledStmt ls = (AST.LabeledStmt) t.body.elementAt(0);
 
                   //assuming the main block cannot be empty of labels ?
                   if(i != 0) {
-                    this.iPC.append(", " + ls.label);
+                    liPC.append(", " + ls.label);
                   } else {
-                    this.iPC.append(ls.label);
+                    liPC.append(ls.label);
                   }
                 }
+                this.iPC = liPC.toString();
               }
             } else { 
               if (p.body.size() == 0) this.iPC = null;
