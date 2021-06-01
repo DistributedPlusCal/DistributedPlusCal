@@ -119,6 +119,7 @@ import pcal.exception.ParseAlgorithmException;
 import pcal.exception.TLAExprException;
 import pcal.exception.TokenizerException;
 import pcal.exception.UnrecoverableException;
+import sun.security.action.GetLongAction;
 import tla2tex.Debug;
 
 
@@ -347,31 +348,14 @@ public class ParseAlgorithm
 
 	   Vector vdecls = new Vector();
 	   
-	   // For Distributed Pluscal. Changed IF to WHILE to catch variable, channel and clocks
+	   // For Distributed Pluscal.
        if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables") 
     		   || PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
     		   || PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos") 
     		   || (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
     	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")))) {
-    	   PcalDebug.reportInfo("IF : " + PeekAtAlgToken(1));
     	   vdecls = GetVarDecls();
        }
-       
-       PcalDebug.reportInfo("After while");
-       //For Distributed PlusCal, could be surrounded by an if statement
-       //to read channels and fifo channels
-       /*
-       if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
-    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
-    	   vdecls.addAll(GetChannelDecls());
-       }
-       
-       if (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
-    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")) {
-    	   vdecls.addAll(GetClockDecls());
-    	   logicalClocks = true;
-       }
-       */
 
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
@@ -1015,71 +999,19 @@ public class ParseAlgorithm
      { 
 	   PcalDebug.reportInfo("At GetVarDecl : " + PeekAtAlgToken(1));
 	   if ( PcalParams.distpcalFlag && (PeekAtAlgToken(1).contains("channel") || PeekAtAlgToken(1).contains("fifo")) ) {
-		   AST.Channel pv;
-		   PCalLocation beginLoc, endLoc;
-		   PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
-		   //TODO is this default definition given here overridden at some point?
-		   if (PeekAtAlgToken(1).contains("channel")) {
-				pv = new AST.UnorderedChannel();
-				pv.val = PcalParams.DefaultChannelInit();
-				PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
-				MustGobbleThis(PeekAtAlgToken(1));
-			} else if (PeekAtAlgToken(1).contains("fifo")) {
-				pv = new AST.FIFOChannel();
-				pv.val = PcalParams.DefaultFifoInit();
-				PcalDebug.reportInfo("peek at 1 : " + PeekAtAlgToken(1));
-				MustGobbleThis(PeekAtAlgToken(1));
-			} else {
-				// specify a default type
-				pv = null;
-				hasDefaultInitialization = true;
-				GobbleThis(PeekAtAlgToken(1));
-			}
-
-			pv.var = GetAlgToken();
-			pv.isEq = true;		
-			
-			beginLoc = GetLastLocationStart();
-			endLoc = GetLastLocationEnd();
-			pv.col = lastTokCol;
-			pv.line = lastTokLine;
-			
-			PcalDebug.reportInfo("pv.var : " + pv.var);
-			
-			if (PeekAtAlgToken(1).equals("[")) {
-				GobbleThis("[");
-				pv.dimensions = new ArrayList<>();
-				pv.dimensions.add(GetAlgToken());
-
-				String next = PeekAtAlgToken(1);
-				
-				//for one dimensional channels
-				if(next.equals("]")) {
-					GobbleThis("]");
-				} else {
-					while(!next.equals("]")) {
-						if(next.equals(",")) {
-							GobbleThis(",");
-							next = PeekAtAlgToken(1);
-							continue;
-						} else {
-							pv.dimensions.add(GetAlgToken());
-							next = PeekAtAlgToken(1);
-						}
-					}
-					GobbleThis("]");
-				}
-			}
-			PcalDebug.reportInfo("Before gobble comma ");
-			GobbleCommaOrSemicolon();
-	         /******************************************************************
-	         * Changed on 24 Mar 2006 from GobbleThis(";") to allow            *
-	         * declarations to be separated by commas.                         *
-	         ******************************************************************/
-	       pv.setOrigin(new Region(beginLoc, endLoc));
-	       return pv ;
+		   if (PeekAtAlgToken(1).contains("channel"))
+		   		return GetChannelDecl("Unordered");
+		   else
+		   		return GetChannelDecl("FIFO");
 	   } 
-	   
+	   else if (PcalParams.distpcalFlag && (PeekAtAlgToken(1).contains("lamport") || PeekAtAlgToken(1).contains("vector")) ) {
+		   	logicalClocks = true;
+		   	PcalDebug.reportInfo("CLOCKS");
+		   	if (PeekAtAlgToken(1).contains("lamportClock"))
+		   		return GetClockDecl("Lamport");
+		   	else
+		   		return GetClockDecl("VECTOR");
+	   }
 	   else {
 		   PcalDebug.reportInfo("ELSE BRANCH ");
 		   AST.VarDecl pv;
@@ -5061,26 +4993,7 @@ public class ParseAlgorithm
 					}
 					
 					expansion = ((AST.ChannelCall) stmt).generateTemplate((AST.Channel) varDecl);
-					/*
-					if (((AST.ChannelSendCall) stmt).isBroadcast && !((AST.ChannelSendCall) stmt).isMulticast)
-						expansion = ((AST.ChannelSendCall) stmt).generateBroadcastBodyTemplate((AST.Channel) varDecl);
-					else if ( !((AST.ChannelSendCall) stmt).isBroadcast && ((AST.ChannelSendCall) stmt).isMulticast )
-						expansion = ((AST.ChannelSendCall) stmt).generateMulticastBodyTemplate((AST.Channel) varDecl);
-					else
-						expansion = ((AST.ChannelSendCall) stmt).generateBodyTemplate((AST.Channel) varDecl);
-					*/
-					
 				} 
-				/*else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-					VarDecl chanVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).channelName, nodeDecls, globalDecls);
-					VarDecl targetVar = findVarDeclByVarName(((AST.ChannelReceiveCall) stmt).targetVarName, nodeDecls, globalDecls);
-					
-					if(targetVar == null) {
-						throw new ParseAlgorithmException("Trying to receive into variable: '" + targetVar + "' which is undefined");
-					}
-					
-					expansion = ((AST.ChannelReceiveCall) stmt).generateBodyTemplate((AST.Channel)chanVar, targetVar);
-				}*/ 
 				else if (stmt.getClass().equals(AST.ClockIncreaseObj.getClass())) {
 					VarDecl clock = findVarDeclByVarName(((AST.ClockIncreaseCall) stmt).clockName, nodeDecls, globalDecls);
 
@@ -5099,6 +5012,7 @@ public class ParseAlgorithm
 
 					expansion = ((AST.ClockUpdateCall) stmt).generateClockUpdateTemplate((AST.Clock)clock1, (AST.Clock)clock2);
 				} else if (stmt.getClass().equals(AST.ClockResetObj.getClass())) {
+					PcalDebug.reportInfo("Clock reset obj");
 					VarDecl clock = findVarDeclByVarName(((AST.ClockResetCall) stmt).clockName, nodeDecls, globalDecls);
 
 					if(clock == null) {
@@ -5181,41 +5095,6 @@ public class ParseAlgorithm
 		}
 		return chanVar;
 	}
-	
-	//For Distributed PlusCal logical cloks
-	   public static Vector GetClockDecls() throws ParseAlgorithmException {
-
-			String tok = PeekAtAlgToken(1);
-			String clockType = "";
-
-			if (tok.contains("lamport")) {
-				clockType = "Lamport";
-			} else if (tok.contains("vector")) {
-				clockType = "VECTOR";
-			} else {
-				//no channels to read
-				return new Vector();
-			}
-			
-			if (tok.contains("lamport") || tok.contains("vector")) {
-				MustGobbleThis(tok);
-			} else {
-				GobbleThis(tok);
-			}
-
-			Vector result = new Vector();
-
-			while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
-					|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
-					|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-					|| PeekAtAlgToken(1).equals("macro")
-					|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
-					|| PeekAtAlgToken(1).equals("subprocess"))) {
-				// change here if we want to prevent variable declaration between threads
-				result.addElement(GetClockDecl(clockType));
-			}
-			return result;
-		}
 	   
 	   public static VarDecl GetClockDecl(String clockType) throws ParseAlgorithmException {
 
@@ -5224,9 +5103,74 @@ public class ParseAlgorithm
 			if (clockType.equals("Lamport")) {
 				pv = new AST.LamportClock();
 				pv.val = PcalParams.DefaultLamportClockInit();
+				MustGobbleThis("lamportClock");
 			} else if (clockType.equals("VECTOR")) {
 				pv = new AST.VectorClock();
 				pv.val = PcalParams.DefaultVectorClockInit();
+				MustGobbleThis("vectorClock");
+			} else {
+				// specify a default type
+				pv = null;
+				hasDefaultInitialization = true;
+			}
+
+			pv.var = GetAlgToken();
+			pv.isEq = true;		
+			
+			PCalLocation beginLoc = GetLastLocationStart();
+			PCalLocation endLoc = GetLastLocationEnd();
+			pv.col = lastTokCol;
+			pv.line = lastTokLine;
+			
+			if (PeekAtAlgToken(1).equals("[")) {
+
+				GobbleThis("[");
+				pv.dimensions = new ArrayList<>();
+				pv.dimensions.add(GetAlgToken());
+
+				String next = PeekAtAlgToken(1);
+				
+				//for one dimensional channels
+				if(next.equals("]")) {
+					GobbleThis("]");
+				} else {
+					while(!next.equals("]")) {
+						if(next.equals(",")) {
+							GobbleThis(",");
+							next = PeekAtAlgToken(1);
+							continue;
+						} else {
+							pv.dimensions.add(GetAlgToken());
+							next = PeekAtAlgToken(1);
+						}
+					}
+					GobbleThis("]");
+				}
+			}
+			
+			GobbleCommaOrSemicolon();
+
+			/******************************************************************
+			 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
+			 * separated by commas. *
+			 ******************************************************************/
+			pv.setOrigin(new Region(beginLoc, endLoc));
+			return pv;
+		}
+	   
+	 //For Distributed PlusCal	
+		public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
+
+			AST.Channel pv;
+			//TODO is this default definition given here overridden at some point?
+			if (channelType.equals("Unordered")) {
+				pv = new AST.UnorderedChannel();
+				pv.val = PcalParams.DefaultChannelInit();
+				MustGobbleThis("channel");
+			} else if (channelType.equals("FIFO")) {
+				pv = new AST.FIFOChannel();
+				pv.val = PcalParams.DefaultFifoInit();
+				MustGobbleThis("fifo");
 			} else {
 				// specify a default type
 				pv = null;

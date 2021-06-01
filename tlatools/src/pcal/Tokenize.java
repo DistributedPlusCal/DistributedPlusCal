@@ -823,6 +823,11 @@ public class Tokenize
                 || tok.equals("fifo")
                 || tok.equals("fifos")
                 || tok.equals("subprocess")
+                // For Distributed Pluscal. Logical clocks
+                || tok.equals("lamportClock")
+                || tok.equals("vectorClock")
+                || tok.equals("lamportClocks")
+                || tok.equals("vectorClocks")
                ) ;
       }
 

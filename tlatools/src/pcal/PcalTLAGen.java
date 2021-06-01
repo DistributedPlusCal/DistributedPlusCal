@@ -4754,7 +4754,6 @@ public class PcalTLAGen
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
 		
-		addOneLineOfTLA("Max(c,d) == IF c > d THEN c ELSE d");
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
 	}
