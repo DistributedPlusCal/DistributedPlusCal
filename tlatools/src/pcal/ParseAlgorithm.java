@@ -414,16 +414,9 @@ public class ParseAlgorithm
 				}
 				};        	   
 
-        //For Distributed PlusCal
-        if(PcalParams.distpcalFlag) {
-					AST.Node proc = GetNode();
-          proc.fairness = fairness ;
-          multiproc.procs.addElement(proc) ; 
-        } else {
-          AST.Process proc =  GetProcess() ;
-          proc.fairness = fairness ;
-          multiproc.procs.addElement(proc) ; 
-				} ;
+        AST.Process proc =  GetProcess() ;
+        proc.fairness = fairness ;
+        multiproc.procs.addElement(proc) ; 
         }
         
 				if (pSyntax)
@@ -446,41 +439,41 @@ public class ParseAlgorithm
 
 				while (i < multiproc.procs.size())
 				{
-        //For Distributed PlusCal
-        if(PcalParams.distpcalFlag) {
-					AST.Node node = (AST.Node) multiproc.procs.elementAt(i);
-          omitStutteringWhenDone = true;
-          int j = 0;
-					while (j < node.threads.size()) {
-						AST.Thread thread = (AST.Thread) node.threads.elementAt(j);
-						
-						ExpandChannelCallersInStmtSeq(thread.body, node.decls, vdecls);
 
-						ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
-						AddLabelsToStmtSeq(thread.body);
-						thread.body = MakeLabeledStmtSeq(thread.body);
-
-						checkBody(thread.body);
-						omitStutteringWhenDoneValue =
-                omitStutteringWhenDoneValue || omitStutteringWhenDone;
-						j++;
-					}
-          if(node.threads.size() > 1) {
-            omitPC = false;
-          }
-        } else {
           AST.Process proc = 
-				(AST.Process) multiproc.procs.elementAt(i);
-				ExpandMacrosInStmtSeq(proc.body, multiproc.macros) ;
-				AddLabelsToStmtSeq(proc.body) ;
-				proc.body = MakeLabeledStmtSeq(proc.body);
-
-				omitStutteringWhenDone = true;
-				checkBody(proc.body);
-				omitStutteringWhenDoneValue = 
-						omitStutteringWhenDoneValue || omitStutteringWhenDone;
-        }
-				i = i + 1 ;
+            (AST.Process) multiproc.procs.elementAt(i);
+          //For Distributed PlusCal
+          if(PcalParams.distpcalFlag) {
+            omitStutteringWhenDone = true;
+            int j = 0;
+            while (j < proc.threads.size()) {
+              AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
+              
+              ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
+              
+              ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
+              AddLabelsToStmtSeq(thread.body);
+              thread.body = MakeLabeledStmtSeq(thread.body);
+              
+              checkBody(thread.body);
+              omitStutteringWhenDoneValue =
+                omitStutteringWhenDoneValue || omitStutteringWhenDone;
+              j++;
+            }
+            if(proc.threads.size() > 1) {
+              omitPC = false;
+            }
+          } else {
+            ExpandMacrosInStmtSeq(proc.body, multiproc.macros) ;
+            AddLabelsToStmtSeq(proc.body) ;
+            proc.body = MakeLabeledStmtSeq(proc.body);
+            
+            omitStutteringWhenDone = true;
+            checkBody(proc.body);
+            omitStutteringWhenDoneValue = 
+              omitStutteringWhenDoneValue || omitStutteringWhenDone;
+          }
+          i = i + 1 ;
 				} ;
 				omitStutteringWhenDone = omitStutteringWhenDoneValue;
 				i = 0 ;
@@ -673,6 +666,15 @@ public class ParseAlgorithm
            omitStutteringWhenDone = false;
            return;
        } ;
+
+       //For Distributed PlusCal
+       // HC: doublecheck
+       if (PcalParams.distpcalFlag) {
+           omitPC = false;
+           omitStutteringWhenDone = false;
+           return;
+       }
+
        AST.LabeledStmt lblStmt = (AST.LabeledStmt) body.elementAt(0);
        if ( (lblStmt.stmts == null) || (lblStmt.stmts.size() == 0)) {
            // Again, this shouldn't happen.
@@ -693,9 +695,8 @@ public class ParseAlgorithm
            return;
        }
        Vector line = (Vector) tokens.elementAt(0);
-       // dostonbek. add || PcalParams.distpcalFlag condition to correct label handling in sub-processes. 
-       if (line.size() != 1 || PcalParams.distpcalFlag) {
-    	   
+
+       if (line.size() != 1) {
            omitPC = false;
            omitStutteringWhenDone = false;
            return;
