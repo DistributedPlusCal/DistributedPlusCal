@@ -819,16 +819,75 @@ public class ParseAlgorithm
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
-       if (   PeekAtAlgToken(1).equals("begin")
-           || PeekAtAlgToken(1).equals("{")
-           //For Distributed PlusCal, when using p-syntax
-           || PeekAtAlgToken(1).equals("subprocess"))
-         { result.decls = new Vector(1) ; }
-       else
-         { result.decls = GetVarDecls() ; } ;
-       GobbleBeginOrLeftBrace() ;
-       result.body = GetStmtSeq() ;
-       GobbleEndOrRightBrace("process") ;
+
+       
+       //For Distributed PlusCal, when using p-syntax
+       // HC: doublecheck if (with subprocess)
+       if (PcalParams.distpcalFlag) {
+         if (   PeekAtAlgToken(1).equals("begin")
+                || PeekAtAlgToken(1).equals("{")
+                // when using p-syntax
+                || PeekAtAlgToken(1).equals("subprocess"))
+           { result.decls = new Vector(1) ; }
+         else
+           { result.decls = GetVarDecls() ;
+             // HC: add GetChannelDecls()?
+           } ;
+
+         Vector<AST.Thread> threads = new Vector<>();
+         int i = 0;
+         AST.Thread thread = new AST.Thread();
+         thread.index = i++;
+         thread.id = result.id;
+		
+         //read the sub-process delimiter
+         GobbleBeginOrLeftBrace();  // HC: works for subprocess?
+         thread.body = GetStmtSeq();
+         GobbleEndOrRightBrace("process");
+	
+         if(pSyntax) {
+           GobbleThis(";");
+         }
+		
+         threads.add(thread);	
+         if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { // HC: works for subprocess?
+           while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { // HC: works for subprocess?
+             thread = new AST.Thread();
+             thread.index = i++;
+             thread.id = result.id;
+				
+             //read the sub-process delimiter
+             // HC: why nor GobbleBeginOrLeftBrace();?
+             if(pSyntax){
+               GobbleThis("begin");
+             } else {
+               GobbleThis("{");
+             }
+
+             thread.body = GetStmtSeq();
+
+             //to make sure this works remove the key node from the algorithm completely
+             GobbleEndOrRightBrace("subprocess");
+				
+             if(pSyntax) {
+               GobbleThis(";");
+             }
+             threads.add(thread);
+           }
+         }
+         result.threads = threads;
+       } else {
+         if (   PeekAtAlgToken(1).equals("begin")
+                || PeekAtAlgToken(1).equals("{"))
+           { result.decls = new Vector(1) ; }
+         else
+           { result.decls = GetVarDecls() ; } ;
+         
+         GobbleBeginOrLeftBrace() ;
+         result.body = GetStmtSeq() ;
+         GobbleEndOrRightBrace("process") ;
+       }
+       
        PCalLocation endLoc = GetLastLocationEnd() ;
        if (PeekAtAlgToken(1).equals(";"))
          { String tok = GetAlgToken() ; } ;
@@ -4582,129 +4641,7 @@ public class ParseAlgorithm
        }
    }
 
-   
-   //For Distributed PlusCal 
-   //parse the node with keyword 'process' or 'node' and place it inside an object of type AST.Node
-   public static AST.Node GetNode() throws ParseAlgorithmException {
-		AST.Node result = new AST.Node();
-		
-		if(PeekAtAlgToken(1).equals("process")) {
-			GobbleThis("process");
-		} else {
-			GobbleThis("node");
-		}
-
-		PCalLocation beginLoc = GetLastLocationStart();
-		result.col = lastTokCol;
-		result.line = lastTokLine;
-		if (cSyntax) {
-			GobbleThis("(");
-		}
-
-		result.name = GetAlgToken();
-		result.isEq = GobbleEqualOrIf();
-		result.id = GetExpr();
-		plusLabels = new Vector(0);
-		minusLabels = new Vector(0);
-		proceduresCalled = new Vector(0);
-
-		if (cSyntax) {
-			GobbleThis(")");
-		}
-
-		if (result.id.tokens.size() == 0) {
-			ParsingError("Empty node id at ");
-		}
-
-		if (PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("subprocess")) {
-			result.decls = new Vector(1);
-		} else {
-
-			if(result.decls == null) {
-				result.decls = new Vector();
-			}
-			result.decls.addAll(GetVarDecls());
-			result.decls.addAll(GetChannelDecls());
-		}
-		
-		// this is a vector of vectors,
-		// where each vector inside it represents a sub thread of the node
-
-		Vector<AST.Thread> threads = new Vector<>();
-		int i = 0;
-		AST.Thread thread = new AST.Thread();
-		thread.index = i++;
-		thread.id = result.id;
-		
-		//read the sub-process delimiter
-		GobbleBeginOrLeftBrace() ;
-		/* GobbleBeginOrLeftBrace() ; instead of the following if/else block
-		if(pSyntax){
-    		 GobbleThis("process");
-    	 } else {
-    		 GobbleThis("{");
-    	 }
-    	 */
-		
-		// GobbleBeginOrLeftBrace() ; returns error. This code is from getProcess method but does not work in distributed pluscal
-		// check that next is not the end brace
-		thread.body = GetStmtSeq();
-
-		//to make sure this works remove the key node from the algorithm completely
-		GobbleEndOrRightBrace("process");
-		
-	
-		if(pSyntax) {
-			GobbleThis(";");
-		}
-		
-		threads.add(thread);	
-		if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
-
-			while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) {
-
-				thread = new AST.Thread();
-				thread.index = i++;
-				thread.id = result.id;
-				
-				//read the sub-process delimiter
-				if(pSyntax){
-		    		 GobbleThis("begin");
-		    	 } else {
-		    		 GobbleThis("{");
-		    	 }
-
-				// check that next is not the end brace
-				thread.body = GetStmtSeq();
-
-				//to make sure this works remove the key node from the algorithm completely
-				GobbleEndOrRightBrace("subprocess");
-				
-				if(pSyntax) {
-					GobbleThis(";");
-				}
-				
-				threads.add(thread);
-			}
-		}
-
-		result.threads = threads;
-
-		PCalLocation endLoc = GetLastLocationEnd();
-		if (PeekAtAlgToken(1).equals(";")) {
-			String tok = GetAlgToken();
-		}
-		
-		//TODO
-		// CheckLabeledStmtSeq(result.body) ;
-		result.plusLabels = plusLabels;
-		result.minusLabels = minusLabels;
-		result.proceduresCalled = proceduresCalled;
-		result.setOrigin(new Region(beginLoc, endLoc));
-		PcalDebug.reportInfo("Finished without errors AST.NODE");
-		return result;
-	}
-
+  
    //For Distributed PlusCal	
    public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
