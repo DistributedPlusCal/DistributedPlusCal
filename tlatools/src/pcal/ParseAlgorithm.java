@@ -827,7 +827,9 @@ public class ParseAlgorithm
          if (   PeekAtAlgToken(1).equals("begin")
                 || PeekAtAlgToken(1).equals("{")
                 // when using p-syntax
-                || PeekAtAlgToken(1).equals("subprocess"))
+                // HC: still use subprocess?
+                // || PeekAtAlgToken(1).equals("subprocess")
+                )
            { result.decls = new Vector(1) ; }
          else
            { result.decls = GetVarDecls() ;
@@ -858,11 +860,12 @@ public class ParseAlgorithm
 				
              //read the sub-process delimiter
              // HC: why nor GobbleBeginOrLeftBrace();?
-             if(pSyntax){
-               GobbleThis("begin");
-             } else {
-               GobbleThis("{");
-             }
+             GobbleBeginOrLeftBrace();
+             // if(pSyntax){
+               // GobbleThis("begin");
+             // } else {
+               // GobbleThis("{");
+             // }
 
              thread.body = GetStmtSeq();
 
