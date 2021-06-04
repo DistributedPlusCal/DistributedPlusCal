@@ -1,0 +1,4 @@
+* NoProcessOneLabel
+- dummy algorithm with NO processes and ONE label
+- should produce the same code (except for indexed pc) with distpcal
+  flag or not
