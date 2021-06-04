@@ -275,8 +275,17 @@ public class PcalFixIDs {
     private static void FixProcess(AST.Process ast, String context) throws PcalFixIDException {
         for (int i = 0; i < ast.decls.size(); i++)
             FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
-        for (int i = 0; i < ast.body.size(); i++)
+        // For Distributed Pluscal.
+        if ( PcalParams.distpcalFlag ) {
+          for (AST.Thread thread : ast.threads) {
+        		for (int i = 0; i < thread.body.size(); i++) {
+        			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+        		}
+          }
+        } else {
+          for (int i = 0; i < ast.body.size(); i++)
             FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
+        }
         PcalSymTab.ProcessEntry p = 
             (PcalSymTab.ProcessEntry)
             st.processes.elementAt(st.FindProcess(ast.name));
@@ -593,5 +602,3 @@ options (termination)
 
 
 *****************************************************************************************/
-
-

@@ -505,20 +505,19 @@ public class PcalTLAGen
         String indentSpaces = NSpaces(buf.length() + 2);        
 
         //For Distributed PlusCal
-        // HC: factorize the inner for loop
         if(PcalParams.distpcalFlag) {
-          for (int j = 0; j < ast.threads.size(); j++) {
+          for (int i = 0; i < ast.threads.size(); i++) {
             //iterate the threads of each node
-            AST.Thread thread = ast.threads.elementAt(j);
-            for (int i = 0; i < thread.body.size(); i++) {
-              AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
+            AST.Thread thread = ast.threads.elementAt(i);
+            for (int k = 0; k < thread.body.size(); k++) {
+              AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
               String disjunct = stmt.label + argument;
               if (   i != 0 
                      && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
                      + disjunct.length() > wrapColumn) {
                 endCurrentLineOfTLA();
               }
-              if (i != 0) {
+              if (i != 0) { //HC: doublecheck if condition needed
                 addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
               }
               addLeftParen(stmt.getOrigin());
@@ -3324,7 +3323,13 @@ public class PcalTLAGen
                            prefixEnd = "";
                        } else {
                     	   prefixBegin = "\\A self \\in ";
-                    	   prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
+                    	   // For Distributed Pluscal.
+                         // HC: doublecheck (seems different from Heba's code
+                    	   if (PcalParams.distpcalFlag){
+                    		   prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
+                         } else {
+                    		   prefixEnd = " : ";
+                         }                           
                        }
                        
                        String padding = NSpaces(prefixBegin.length());

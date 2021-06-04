@@ -57,7 +57,7 @@ a1: if (aState = "unknown") {
   }
  }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-10ef0782d682811a6209bc7ae9380d8a
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-59de798c8b887c07967c9603f10f77dc
 VARIABLES coord, agt, pc, aState, cState, commits, msg
 
 vars == << coord, agt, pc, aState, cState, commits, msg >>
@@ -70,9 +70,9 @@ SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
 Init == (* Global variables *)
         /\ coord = {}
         /\ agt = [a0 \in Agent |-> {}]
-        (* Node a *)
+        (* Process a *)
         /\ aState = [self \in Agent |-> "unknown"]
-        (* Node c *)
+        (* Process c *)
         /\ cState = "unknown"
         /\ commits = {}
         /\ msg = {}
@@ -107,7 +107,7 @@ a4(self) == /\ pc[self] [2] = "a4"
             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
             /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-a(self) ==  \/ a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
+a(self) == a1(self)a2(self) \/ a3(self) \/ a4(self)
 
 c1 == /\ pc[Coord] [1] = "c1"
       /\ (cState \in {"commit", "abort"})
@@ -136,15 +136,22 @@ c2 == /\ pc[Coord] [2] = "c2"
                  /\ UNCHANGED << coord, cState, commits, msg >>
       /\ UNCHANGED << agt, aState >>
 
-c ==  \/ c1 \/ c2
+c == c1 \/ c2
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == c
            \/ (\E self \in Agent: a(self))
+           \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in Agent : \A subprocess \in SubProcSet[self] : WF_vars(a(self))
         /\ WF_vars(c)
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4f64cd31513ae9ab5fb4c4d834f56ead
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-37867519459e21b9acbce60d808183b7
 
 =============================================================================
