@@ -8,58 +8,65 @@ Nodes == 1 .. N
 (* PlusCal options (-distpcal) *)
 
 (*
---algorithm message_queue {
+--algorithm LamportMutex {
 
-variable x = 0;
+variable c = 0;
 
-process ( w \in Nodes )
-lamportClock cl;
-{
-    Clear:
-      reset(cl);
-} {
-    Inc:
-        increase(cl);
+procedure f(x) {
+    Add:
+        c := c + x;
+        return;
 }
 
+{
+    St:
+        call f(2);
+}
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-e0ba5a23d1e1d4c9d93e4dec783f68cd
-VARIABLES x, pc, cl
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c0e22c5d063699fa64fce5fa11aad708
+CONSTANT defaultInitValue
+VARIABLES c, pc, stack, x
 
-vars == << x, pc, cl >>
-
-ProcSet == (Nodes)
-
-SubProcSet == [_n \in ProcSet |-> 1..2]
-
-(* Comparator for Lamport clocks *)
-Max(c,d) == IF c > d THEN c ELSE d
+vars == << c, pc, stack, x >>
 
 Init == (* Global variables *)
-        /\ x = 0
-        (* Process w *)
-        /\ cl = [self \in Nodes |-> 0]
-        /\ pc = [self \in ProcSet |-> <<"Clear","Inc">>]
+        /\ c = 0
+        (* Procedure f *)
+        /\ x = defaultInitValue
+        /\ stack = << >>
+        /\ pc = "St"
 
-Clear(self) == /\ pc[self] [1] = "Clear"
-               /\ cl' = [cl EXCEPT ![self] = 0]
-               /\ pc' = [pc EXCEPT ![self][1] = "Done"]
-               /\ x' = x
+Add == /\ pc = "Add"
+       /\ c' = c + x
+       /\ pc' = Head(stack).pc
+       /\ x' = Head(stack).x
+       /\ stack' = Tail(stack)
 
-Inc(self) == /\ pc[self] [2] = "Inc"
-             /\ cl' = [cl EXCEPT ![self] = cl[self] + 1 ]
-             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
-             /\ x' = x
+f == Add
 
-w(self) ==  \/ Clear(self) \/ Inc(self)
+St == /\ pc = "St"
+      /\ /\ stack' = << [ procedure |->  "f",
+                          pc        |->  "Done",
+                          x         |->  x ] >>
+                      \o stack
+         /\ x' = 2
+      /\ pc' = "Add"
+      /\ c' = c
 
-Next == (\E self \in Nodes: w(self))
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == pc = "Done" /\ UNCHANGED vars
+
+Next == f \/ St
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4c201d6a84dd9554a52a1c07852d8fb3
+Termination == <>(pc = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f0939f89867ca7560be2476514690f18
+
 
 
 =========================================================

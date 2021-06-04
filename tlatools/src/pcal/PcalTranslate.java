@@ -43,7 +43,9 @@ public class PcalTranslate {
      */
     private static String currentProcedure;  
     public final static Integer DEFAULT_THREAD = -1;
-
+    
+    private static boolean mp; // For Distributed Pluscal. true if multiprocess spec otherwise false
+    
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
      *************************************************************************/
@@ -294,8 +296,8 @@ public class PcalTranslate {
         Vector toks = new Vector();
 
         toks.addElement(AddedToken("pc"));
-        //For Distributed pluscal
-        if(PcalParams.distpcalFlag) {
+        //For Distributed pluscal. dm && mp
+        if(PcalParams.distpcalFlag && mp) {
           toks.addElement(BuiltInToken(threadIndex == DEFAULT_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
         }
         toks.addElement(BuiltInToken("="));
@@ -398,6 +400,9 @@ public class PcalTranslate {
             nextLS = (ast.body.size() > i + 1)
                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
         }
+        // For Distributed Pluscal. set mp to false
+        mp = false;
+        
         return newast;
     }
         
@@ -429,6 +434,8 @@ public class PcalTranslate {
                                                    ast.procs.elementAt(i)));
             i = i + 1;
         }
+        // For Distributed Pluscal set mp to true
+        mp = true;
         return newast;
     }
 

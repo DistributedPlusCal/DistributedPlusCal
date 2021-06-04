@@ -114,6 +114,7 @@ import pcal.AST.Channel;
 import pcal.AST.ChannelCall;
 import pcal.AST.ChannelReceiveCall;
 import pcal.AST.ChannelSendCall;
+import pcal.AST.ClockCall;
 import pcal.AST.VarDecl;
 import pcal.exception.ParseAlgorithmException;
 import pcal.exception.TLAExprException;
@@ -962,7 +963,7 @@ public class ParseAlgorithm
      { 
 	   String tok = PeekAtAlgToken(1) ;
 	   
-       if ( tok.equals("variables"))
+       if ( tok.equals("variables")) 
          { MustGobbleThis("variables") ; } 
        else if (tok.equals("variable"))
          { GobbleThis("variable") ; }    
@@ -1006,14 +1007,12 @@ public class ParseAlgorithm
 	   } 
 	   else if (PcalParams.distpcalFlag && (PeekAtAlgToken(1).contains("lamport") || PeekAtAlgToken(1).contains("vector")) ) {
 		   	logicalClocks = true;
-		   	PcalDebug.reportInfo("CLOCKS");
 		   	if (PeekAtAlgToken(1).contains("lamportClock"))
 		   		return GetClockDecl("Lamport");
 		   	else
 		   		return GetClockDecl("VECTOR");
 	   }
 	   else {
-		   PcalDebug.reportInfo("ELSE BRANCH ");
 		   AST.VarDecl pv;
 		   PCalLocation beginLoc, endLoc;
 		   pv = new AST.VarDecl() ;
@@ -1317,16 +1316,12 @@ public class ParseAlgorithm
 
 			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")
 					|| nextTok.equals("receive") || nextTok.equals("clear")) { // For channels
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getChannelCall(nextTok);
 			} else if (nextTok.equals("increase")) { // For logical clocks
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getIncreaseClockCall(nextTok);
 			} else if (nextTok.equals("update") ) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getUpdateClockCall(nextTok);
 			} else if (nextTok.equals("reset")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 				return getResetClockCall(nextTok);
 			}
 			else {
@@ -3543,7 +3538,6 @@ public class ParseAlgorithm
           {
         	  AST.ChannelReceiveCall chanstmt = (AST.ChannelReceiveCall) stmt;
         	  AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
-        	  PcalDebug.reportInfo("receive call: " + chanstmt);
 	          result.col = chanstmt.col;
         	  result.line = chanstmt.line;
         	  result.macroCol = chanstmt.macroCol;
@@ -3594,9 +3588,6 @@ public class ParseAlgorithm
         	  result.args = args;
         	  result.targetExp = chanstmt.targetExp;
         	  
-        	  PcalDebug.reportInfo("args: " + args);
-        	  PcalDebug.reportInfo("params: " + params);
-        	  
         	  // workaround params with args to retrieve need variable
         	  int rec_var_index = -1;
         	  for (int i = 0; i < params.size(); i++) {
@@ -3607,7 +3598,6 @@ public class ParseAlgorithm
         	  }
         	  
         	  Vector<TLAExpr> cp = args;
-        	  PcalDebug.reportInfo("args receive variable : " + cp.get(rec_var_index).toPlainString());        
         	  result.targetVarName = cp.get(rec_var_index).toPlainString();
         	  
         	  return result;
@@ -4980,12 +4970,10 @@ public class ParseAlgorithm
 				ExpandChannelCallersInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
-			} else {
+			} else if (stmt instanceof ChannelCall || stmt instanceof ClockCall) {
 				Vector expansion = null;
-				PcalDebug.reportInfo("Class type : " + stmt.getClass());
 				
 				if (stmt instanceof ChannelCall) {
-					PcalDebug.reportInfo("stmt instance of ::: " + stmt.getClass());
 					VarDecl varDecl = findVarDeclByVarName(((AST.ChannelCall) stmt).channelName, nodeDecls, globalDecls);
 					
 					if(varDecl == null) {
@@ -5012,7 +5000,6 @@ public class ParseAlgorithm
 
 					expansion = ((AST.ClockUpdateCall) stmt).generateClockUpdateTemplate((AST.Clock)clock1, (AST.Clock)clock2);
 				} else if (stmt.getClass().equals(AST.ClockResetObj.getClass())) {
-					PcalDebug.reportInfo("Clock reset obj");
 					VarDecl clock = findVarDeclByVarName(((AST.ClockResetCall) stmt).clockName, nodeDecls, globalDecls);
 
 					if(clock == null) {
@@ -5056,7 +5043,7 @@ public class ParseAlgorithm
 	 * @param globalDecl
 	 * @return
 	 */
-	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
+	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) throws ParseAlgorithmException{
 		VarDecl chanVar = null;
 		int i = 0;
 
@@ -5090,7 +5077,7 @@ public class ParseAlgorithm
 			}
 
 			if(chanVar == null) {
-				//throw an error
+				throw new ParseAlgorithmException("variable is not found");
 			}
 		}
 		return chanVar;
@@ -5157,6 +5144,7 @@ public class ParseAlgorithm
 			pv.setOrigin(new Region(beginLoc, endLoc));
 			return pv;
 		}
+	   
 	   
 	 //For Distributed PlusCal	
 		public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
@@ -5252,7 +5240,7 @@ public class ParseAlgorithm
 		}
 	
 	   public static AST.ClockUpdateCall getUpdateClockCall(String nextTok) throws ParseAlgorithmException {
-			AST.ClockUpdateCall result = new AST.ClockUpdateCall();
+		   AST.ClockUpdateCall result = new AST.ClockUpdateCall();
 			result.name1 = GetAlgToken() ;
 			MustGobbleThis("(");
 
@@ -5270,14 +5258,13 @@ public class ParseAlgorithm
 			endLoc = GetLastLocationEnd();
 
 			result.callExp1 = GetExpr();
-
-			GobbleThis(",");
-
-			result.name2 = GetAlgToken();
-			result.clockName2 = GetAlgToken();
 			
+			GobbleThis(",");
+			
+			result.name2 = GetAlgToken();
+			result.clockName2 = result.name2;
+			//result.clockName2 = GetAlgToken();
 			result.callExp2 = GetExpr();
-
 			//if there is more than one parameter an error is thrown
 			GobbleThis(")");
 			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));

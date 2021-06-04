@@ -1174,7 +1174,6 @@ public class AST
 		public Vector receive(Channel channel, String channelName, String targetVarName, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-			PcalDebug.reportInfo("varDecl is of type Unordered Channel : " + channel.var);
 			// For Distributed PlusCal. append _ to overcome variable name clash
 			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
 
@@ -1409,8 +1408,6 @@ public class AST
 		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
-
-			PcalDebug.reportInfo("Sending a multicast message for an Unordered channel : " + channelName);
 
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
@@ -1985,7 +1982,6 @@ public class AST
 		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
-			PcalDebug.reportInfo("Sending a multicast message for a FIFOChannel : " + channelName);
 
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
@@ -2395,7 +2391,11 @@ public class AST
 	   	public abstract Vector reset(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException;
   }
   
-  public static class ClockIncreaseCall extends AST{
+  public static interface ClockCall {
+	  
+  }
+  
+  public static class ClockIncreaseCall extends AST implements ClockCall{
 	   public String name = "";
 	   public Channel clock = null;
 	   public String clockName = null;
@@ -2419,7 +2419,7 @@ public class AST
 	   }
   }
   
-  public static class ClockUpdateCall extends AST{
+  public static class ClockUpdateCall extends AST implements ClockCall{
 	   public String name1 = "";
 	   public Channel clock1 = null;
 	   public String clockName1 = null;
@@ -2448,7 +2448,7 @@ public class AST
 	   }
   }
   
-  public static class ClockResetCall extends AST{
+  public static class ClockResetCall extends AST implements ClockCall{
 	   public String name = "";
 	   public Channel clock = null;
 	   public String clockName = null;
@@ -2530,7 +2530,7 @@ public class AST
 	@Override
 	public Vector update(Clock clock1, String clockName1, TLAExpr callExp1, Clock clock2, String clockName2, TLAExpr callExp2) throws ParseAlgorithmException {
 		Vector result = new Vector();
-
+		
    		AST.SingleAssign sass = new AST.SingleAssign();
    		sass.line = line;
    		sass.col  = col;
@@ -2542,7 +2542,7 @@ public class AST
    			sass.lhs.sub = callExp1;
    		else
    			sass.lhs.sub = new TLAExpr(new Vector());
-
+   		
    		expr = new TLAExpr();
    		expr.addLine();
 
@@ -2560,30 +2560,10 @@ public class AST
    				}
    			}
    		}
-
-   		sass.rhs = expr;
-   		sass.setOrigin(this.getOrigin());
-
-   		AST.Assign assign = new AST.Assign();
-   		assign.ass = new Vector();
-   		assign.line = line ;
-   		assign.col  = col ;
-   		assign.setOrigin(this.getOrigin());
-   		assign.ass.addElement(sass);
-
-   		result.addElement(assign);		
-
-   		////////
-   		sass = new AST.SingleAssign();
-   		sass.line = line;
-   		sass.col  = col;
-   		sass.lhs.var = clock1.var;
-
-   		expr = new TLAExpr();
-   		expr.addLine();
-
+   		
+   		expr.addToken(PcalTranslate.BuiltInToken(", "));
    		expr.addToken(PcalTranslate.IdentToken(clockName2));
-
+   		
    		if(callExp2.tokens != null) {
    			for(int i = 0; i < callExp2.tokens.size(); i++) {
 
@@ -2595,29 +2575,24 @@ public class AST
    				}
    			}
    		}
-
    		
-   		expr.addToken(PcalTranslate.BuiltInToken(" ) + 1 "));
-   		
+   		expr.addToken(PcalTranslate.BuiltInToken(") + 1"));
    		sass.rhs = expr;
    		sass.setOrigin(this.getOrigin());
 
-   		assign = new AST.Assign();
+   		AST.Assign assign = new AST.Assign();
    		assign.ass = new Vector();
    		assign.line = line ;
    		assign.col  = col ;
    		assign.setOrigin(this.getOrigin());
    		assign.ass.addElement(sass);
 
-   		
-   		result.addElement(assign);		
-   				
+   		result.addElement(assign);
 		return result;
 	}
 
 	@Override
 	public Vector reset(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException {
-		PcalDebug.reportInfo("clock reset");
 		Vector result = new Vector();
 		 
 		int clock_dim = (clock.dimensions == null) ? 0 : clock.dimensions.size();

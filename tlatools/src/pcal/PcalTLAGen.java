@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import pcal.AST.Channel;
+import pcal.AST.Clock;
 import pcal.AST.VarDecl;
 import pcal.exception.PcalTLAGenException;
 import pcal.exception.TLAExprException;
@@ -635,6 +636,7 @@ public class PcalTLAGen
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
         	
         	if(PcalParams.distpcalFlag && context.equals("procedure")) {
+        		PcalDebug.reportInfo("distpcal and context=procedure");
                 sb.append("(self, subprocess)");
         	} else {
                 sb.append("(self)");
@@ -1024,14 +1026,16 @@ public class PcalTLAGen
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
                 
                 //inside the procedure extend the self exp for both pc and stack variables
-                if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                // dm. iff distpcal and mp then for stack and pc 2 dimensional
+                if(PcalParams.distpcalFlag && mp && context.equals("procedure") &&
+                		(sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc"))) {
                 	sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
             	}
                 
                 if (mp
                         && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) 
-                        		/*|| IsNodeSetVar(sass.lhs.var)*/ || sass.lhs.var.equals("stack")))
+                        		|| sass.lhs.var.equals("stack")))
                 {
                 	
                 	//if the context is not a procedure then we are handling a procedure call and we need to update
@@ -4334,6 +4338,11 @@ public class PcalTLAGen
 			RewriteVarDeclDimensions(((Channel)decl));
 		}
 		
+        if((decl instanceof AST.LamportClock || decl instanceof AST.VectorClock)
+				&& ((Clock) decl).dimensions != null) {
+			RewriteVarDeclDimensions(((Clock)decl));
+		}
+        
         addExprToTLA(decl.val);
         if (needsParens) {
             addOneTokenToTLA(")");
@@ -4794,6 +4803,40 @@ public class PcalTLAGen
 			expr.addToken(PcalTranslate.BuiltInToken("{"));
 			expr.addToken(PcalTranslate.BuiltInToken("}"));
 		}
+		
+		expr.addToken(PcalTranslate.BuiltInToken("]"));
+
+		expr.setOrigin(decl.val.getOrigin());
+		expr.normalize();
+		decl.val = expr;
+	}
+	
+	private void RewriteVarDeclDimensions(Clock decl) {
+		TLAExpr expr = new TLAExpr();
+		expr.addLine();
+		
+		for(int i = 0; i < decl.dimensions.size(); i++) {
+			String dimension = (String) decl.dimensions.get(i);
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+
+			if(i == 0) {
+				expr.addToken(PcalTranslate.BuiltInToken("["));
+			}
+			expr.addToken(PcalTranslate.IdentToken(tempVarName));
+			expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+			expr.addToken(PcalTranslate.IdentToken(dimension));
+
+
+			if(decl.dimensions.size() != 1 && i != decl.dimensions.size() - 1) {
+				expr.addToken(PcalTranslate.BuiltInToken(", "));
+			}
+		}
+
+		expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+		
+		expr.addToken(PcalTranslate.BuiltInToken("0 "));
+		
 		
 		expr.addToken(PcalTranslate.BuiltInToken("]"));
 
