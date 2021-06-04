@@ -245,16 +245,20 @@ public class PcalTranslate {
          *********************************************************************/
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
-        // sAss.lhs.sub = MakeExpr(new Vector()) ;
-        //For Distributed pluscal 
-        if(threadIndex == null) {
-        	sAss.lhs.sub = MakeExpr(new Vector());
-        } else {
-        	TLAExpr expr = new TLAExpr();
-        	expr.addLine();
+        //For Distributed pluscal
+        if(PcalParams.distpcalFlag) {
+          if(threadIndex == null) {
+            sAss.lhs.sub = MakeExpr(new Vector());
+          } else {
+            TLAExpr expr = new TLAExpr();
+            expr.addLine();
             TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
             expr.addToken(tok);
             sAss.lhs.sub = expr;
+          }
+        } else {
+          // HC: shouldn't rely on threadIndex when not distpcalFlag 
+          sAss.lhs.sub = MakeExpr(new Vector()) ;
         }
         sAss.rhs = exp ;
         AST.Assign result = new AST.Assign() ;
@@ -513,7 +517,6 @@ public class PcalTranslate {
   //For Distributed pluscal (add threadIndex)
   private static Vector CopyAndExplodeLastStmt(Vector stmts, String next,
                                                Integer threadIndex) throws PcalTranslateException {
-    	
         /**************************************************************
         * The arguments are:                                               *
         *                                                                  *
@@ -706,7 +709,8 @@ public class PcalTranslate {
       Vector res = CopyAndExplodeLastStmt(stmts, next, threadIndex) ;
         if (((BoolObj) res.elementAt(2)).val) {
           //For Distributed pluscal (add threadIndex)
-          ((Vector) res.elementAt(0)).addElement(UpdatePC(next, threadIndex)); } ;    
+          ((Vector) res.elementAt(0)).addElement(UpdatePC(next, threadIndex)); } ;
+
       return Pair(res.elementAt(0), res.elementAt(1)) ;
     }
 
