@@ -6,3 +6,6 @@
 - dummy algorithm with NO processes and TWO labels
 - should produce the same code with distpcal flag or not
 
+* OneProcessOneLabel
+- dummy algorithm with ONE process and TWO labels
+- should produce the same code (except for pc) with distpcal flag or not

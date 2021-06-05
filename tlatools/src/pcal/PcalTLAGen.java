@@ -506,11 +506,11 @@ public class PcalTLAGen
 
         //For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
-          for (int i = 0; i < ast.threads.size(); i++) {
+          for (int j = 0; j < ast.threads.size(); j++) {
             //iterate the threads of each node
-            AST.Thread thread = ast.threads.elementAt(i);
-            for (int k = 0; k < thread.body.size(); k++) {
-              AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
+            AST.Thread thread = ast.threads.elementAt(j);
+            for (int i = 0; i < thread.body.size(); i++) {
+              AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(i);
               String disjunct = stmt.label + argument;
               if (   i != 0 
                      && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
