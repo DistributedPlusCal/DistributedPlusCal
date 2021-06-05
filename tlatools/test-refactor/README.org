@@ -6,6 +6,17 @@
 - dummy algorithm with NO processes and TWO labels
 - should produce the same code with distpcal flag or not
 
-* OneProcessOneLabel
-- dummy algorithm with ONE process and TWO labels
+* OneProcessOneThread (one process instance or n process instances)
+- dummy algorithm with ONE process and ONE/TWO labels
 - should produce the same code (except for pc) with distpcal flag or not
+- but WF_vars(pid) in
+     Spec == /\ Init /\ [][Next]_vars
+             /\ WF_vars(pid)
+  not generated
+
+* TwoProcessesOneThread2C
+- dummy algorithm with TWO processes (1 and n instances) and one thread
+- TODO: check wtihout flag
+
+* MultiProcessMultiThread1C
+- dummy algorithm with TWO processes (1 and n instances), each with 2 threads
