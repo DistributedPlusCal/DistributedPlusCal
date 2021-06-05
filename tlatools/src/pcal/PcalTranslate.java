@@ -250,7 +250,7 @@ public class PcalTranslate {
          *********************************************************************/
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
-        For Distributed pluscal
+        // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
           if(threadIndex == NO_THREAD) {
             sAss.lhs.sub = MakeExpr(new Vector());
