@@ -517,7 +517,7 @@ public class PcalTLAGen
                      + disjunct.length() > wrapColumn) {
                 endCurrentLineOfTLA();
               }
-              if (i != 0) { //HC: doublecheck if condition needed
+              if (i != 0 || j != 0) { //HC: not first thread or not first label
                 addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
               }
               addLeftParen(stmt.getOrigin());
