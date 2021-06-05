@@ -1,4 +1,4 @@
------------------------- MODULE NoProcessOneLabelP -------------------------
+------------------------ MODULE NoProcessTwoLabelsC -------------------------
 EXTENDS Naturals, TLC
 
 CONSTANT N      (* Size of arrays *)

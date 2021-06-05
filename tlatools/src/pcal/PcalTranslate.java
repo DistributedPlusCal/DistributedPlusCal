@@ -43,6 +43,11 @@ public class PcalTranslate {
      */
     private static String currentProcedure;  
 
+  /**
+   * Indicates that there is no thread in the algorithm
+   */
+  public final static Integer NO_THREAD = null;
+
 
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
@@ -245,9 +250,9 @@ public class PcalTranslate {
          *********************************************************************/
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
-        //For Distributed pluscal
+        For Distributed pluscal
         if(PcalParams.distpcalFlag) {
-          if(threadIndex == null) {
+          if(threadIndex == NO_THREAD) {
             sAss.lhs.sub = MakeExpr(new Vector());
           } else {
             TLAExpr expr = new TLAExpr();
@@ -257,7 +262,7 @@ public class PcalTranslate {
             sAss.lhs.sub = expr;
           }
         } else {
-          // HC: shouldn't rely on threadIndex when not distpcalFlag 
+          // HC: could rely on threadIndex when no distpcalFlag and remove the else
           sAss.lhs.sub = MakeExpr(new Vector()) ;
         }
         sAss.rhs = exp ;
@@ -380,7 +385,7 @@ public class PcalTranslate {
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(
                                     ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i),-1)); //HC: change with constant
+                                                     ast.prcds.elementAt(i),NO_THREAD));
             i = i + 1;
         }
         i = 0;
@@ -397,7 +402,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next,-1)); //HC: change with constant
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next,NO_THREAD)); 
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -421,7 +426,7 @@ public class PcalTranslate {
         newast.setOrigin(ast.getOrigin()) ;
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i),-1)); //HC: change with constant
+                                                     ast.prcds.elementAt(i),NO_THREAD));
             i = i + 1;
         }
         i = 0;
@@ -504,7 +509,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next,-1));//HC: change with constant
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
