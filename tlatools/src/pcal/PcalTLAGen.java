@@ -2209,7 +2209,7 @@ public class PcalTLAGen
     /* Generate the Init == statement. */
     /**
      **********************************/
-    private void GenInit(Vector globals, Vector procs, Vector processes) throws PcalTLAGenException
+  private void GenInit(Vector globals, Vector procs, Vector processes) throws PcalTLAGenException
     {
         int col = "Init == ".length();
         StringBuffer is = new StringBuffer();
@@ -2222,15 +2222,14 @@ public class PcalTLAGen
 //            tlacode.addElement(is.toString());
             addOneLineOfTLA(is.toString()) ;
             is = new StringBuffer(NSpaces(col));
-            System.out.println("IS = "+is);
             for (int i = 0; i < globals.size(); i++)
             {
                 AST.VarDecl decl = (AST.VarDecl) globals.elementAt(i);
                 addVarDeclToTLA(decl, is);
                 is = new StringBuffer(NSpaces(col));
             }
-            System.out.println("IS = "+is);
         }
+
         if (procs != null && procs.size() > 0)
         {
             /* Procedure variables and parameters */

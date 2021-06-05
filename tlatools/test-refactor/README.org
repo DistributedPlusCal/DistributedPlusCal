@@ -1,4 +1,8 @@
 * NoProcessOneLabel
 - dummy algorithm with NO processes and ONE label
-- should produce the same code (except for indexed pc) with distpcal
-  flag or not
+- should produce the same code with distpcal flag or not
+
+* NoProcessTwoLabels
+- dummy algorithm with NO processes and TWO labels
+- should produce the same code with distpcal flag or not
+
