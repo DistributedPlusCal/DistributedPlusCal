@@ -296,7 +296,7 @@ public class PcalTranslate {
         Vector toks = new Vector();
 
         toks.addElement(AddedToken("pc"));
-        //For Distributed pluscal. dm && mp
+        //For Distributed pluscal. distpcal && mp
         if(PcalParams.distpcalFlag && mp) {
           toks.addElement(BuiltInToken(threadIndex == DEFAULT_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
         }
@@ -350,10 +350,13 @@ public class PcalTranslate {
         *********************************************************************/
         st = symtab;
         currentProcedure = null;  // added by LL on 7 June 2010
-        if (ast.getClass().equals(AST.UniprocessObj.getClass()))
+        if (ast.getClass().equals(AST.UniprocessObj.getClass())) 
             return ExplodeUniprocess((AST.Uniprocess) ast);
-        else if (ast.getClass().equals(AST.MultiprocessObj.getClass()))
-            return ExplodeMultiprocess((AST.Multiprocess) ast);
+        else if (ast.getClass().equals(AST.MultiprocessObj.getClass())) {
+        	// For Distributed Pluscal set mp to true
+            mp = true;
+        	return ExplodeMultiprocess((AST.Multiprocess) ast);
+        }
         else {
             PcalDebug.ReportBug("Unexpected AST type.");
             return null;
@@ -400,8 +403,6 @@ public class PcalTranslate {
             nextLS = (ast.body.size() > i + 1)
                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
         }
-        // For Distributed Pluscal. set mp to false
-        mp = false;
         
         return newast;
     }
@@ -434,8 +435,7 @@ public class PcalTranslate {
                                                    ast.procs.elementAt(i)));
             i = i + 1;
         }
-        // For Distributed Pluscal set mp to true
-        mp = true;
+        
         return newast;
     }
 

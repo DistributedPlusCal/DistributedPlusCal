@@ -10,62 +10,55 @@ Nodes == 1 .. N
 (*
 --algorithm LamportMutex {
 
-variable c = 0;
+fifo chan;
 
-procedure f(x) {
-    Add:
-        c := c + x;
-        return;
-}
-
+process (x \in Nodes)
+variable i = "none";
 {
-    St:
-        call f(2);
+    Add:
+        send(chan, "msg");
+} {
+    Rec:
+        receive(chan, i);
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c0e22c5d063699fa64fce5fa11aad708
-CONSTANT defaultInitValue
-VARIABLES c, pc, stack, x
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-10cb47ac85519825af433a198b3d5cf1
+VARIABLES chan, pc, i
 
-vars == << c, pc, stack, x >>
+vars == << chan, pc, i >>
+
+ProcSet == (Nodes)
+
+SubProcSet == [_n \in ProcSet |-> 1..2]
+
 
 Init == (* Global variables *)
-        /\ c = 0
-        (* Procedure f *)
-        /\ x = defaultInitValue
-        /\ stack = << >>
-        /\ pc = "St"
+        /\ chan = <<>>
+        (* Process x *)
+        /\ i = [self \in Nodes |-> "none"]
+        /\ pc = [self \in ProcSet |-> <<"Add","Rec">>]
 
-Add == /\ pc = "Add"
-       /\ c' = c + x
-       /\ pc' = Head(stack).pc
-       /\ x' = Head(stack).x
-       /\ stack' = Tail(stack)
+Add(self) == /\ pc[self] [1] = "Add"
+             /\ chan' =  Append(chan, "msg")
+             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+             /\ i' = i
 
-f == Add
+Rec(self) == /\ pc[self] [2] = "Rec"
+             /\ Len(chan) > 0 
+             /\ i' = [i EXCEPT ![self] = Head(chan)]
+             /\ chan' =  Tail(chan)
+             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
 
-St == /\ pc = "St"
-      /\ /\ stack' = << [ procedure |->  "f",
-                          pc        |->  "Done",
-                          x         |->  x ] >>
-                      \o stack
-         /\ x' = 2
-      /\ pc' = "Add"
-      /\ c' = c
+x(self) ==  \/ Add(self) \/ Rec(self)
 
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == pc = "Done" /\ UNCHANGED vars
-
-Next == f \/ St
-           \/ Terminating
+Next == (\E self \in Nodes: x(self))
 
 Spec == Init /\ [][Next]_vars
 
-Termination == <>(pc = "Done")
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-dd761a0b52be12fe5c676ddd923de47b
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f0939f89867ca7560be2476514690f18
 
 
 
