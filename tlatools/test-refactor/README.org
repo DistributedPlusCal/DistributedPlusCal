@@ -1,27 +1,24 @@
 * NoProcessEmptyBody
 - dummy algorithm with NO body
 - only possible with P syntax
-- should produce the same code with distpcal flag or not
+- should produce the same code with distpcal flag or not - OK
+- doens't parse in Toolbox
 
 * NoProcessNoLabel
 - dummy algorithm with NO processes and No label
-- should produce the same code with distpcal flag or not
+- should produce the same code with distpcal flag or not - OK
 
 * NoProcessOneLabel
 - dummy algorithm with NO processes and ONE label
-- should produce the same code with distpcal flag or not
+- should produce the same code with distpcal flag or not - OK
 
 * NoProcessTwoLabels
 - dummy algorithm with NO processes and TWO labels
-- should produce the same code with distpcal flag or not
+- should produce the same code with distpcal flag or not - OK
 
 * OneProcessOneThread (one process instance or n process instances)
 - dummy algorithm with ONE process and ONE/TWO labels
-- should produce the same code (except for pc) with distpcal flag or not
-- but WF_vars(pid) in
-     Spec == /\ Init /\ [][Next]_vars
-             /\ WF_vars(pid)
-  not generated
+- should produce the same code (except for pc) with distpcal flag or not - OK
 
 * TwoProcessesOneThread2C
 - dummy algorithm with TWO processes (1 and n instances) and one thread
