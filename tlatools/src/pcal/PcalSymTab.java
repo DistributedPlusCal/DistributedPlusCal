@@ -187,7 +187,8 @@ public class PcalSymTab {
 
             //For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
-              if (p.threads.size() == 0)
+              // HC: there is always a thread (whose body could be empty)
+              if (p.threads.size() == 1 && p.threads.get(0).body.size() == 0) 
                 this.iPC = null;
               else {
                 StringBuffer liPC = new StringBuffer();
