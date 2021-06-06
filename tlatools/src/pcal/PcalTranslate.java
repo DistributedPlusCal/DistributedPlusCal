@@ -305,7 +305,9 @@ public class PcalTranslate {
         toks.addElement(AddedToken("pc"));
         //For Distributed pluscal
         if(PcalParams.distpcalFlag) {
-          toks.addElement(BuiltInToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+          if(threadIndex != NO_THREAD) {
+            toks.addElement(BuiltInToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+          }
         }
         toks.addElement(BuiltInToken("="));
         toks.addElement(StringToken(label));
