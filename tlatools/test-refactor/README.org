@@ -28,7 +28,8 @@
 
 * TwoProcessesOneThread2C
 - dummy algorithm with TWO processes (1 and n instances) and one thread
-- TODO: check wtihout flag
+- with distpcal flag:
+  /\ \A self \in PROCSet : \A subprocess \in SubProcSet[self] : WF_vars(pid1(self))
 
 * MultiProcessMultiThread1C
 - dummy algorithm with TWO processes (1 and n instances), each with 2 threads
