@@ -956,7 +956,6 @@ public class PcalTLAGen
              * variable declared in the algorithm (either not declared
              * at all or is a constant, bound identifier, ...).
              */
-            
 			if (!this.vars.contains(sF.lhs.var)) {
 				throw new PcalTLAGenException("Assignment to undeclared variable " + sF.lhs.var, sF);
 			}
@@ -1024,37 +1023,45 @@ public class PcalTLAGen
                 addLeftParen(sass.getOrigin());
                 TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
-                
-                //inside the procedure extend the self exp for both pc and stack variables
-                if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
-                	sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
+
+                //For Distributed PlusCal 
+                if(PcalParams.distpcalFlag){
+                  // inside the procedure extend the self exp for both pc
+                  //   and stack variables
+                  if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                    sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
-            	}
+                  }
+                }
                 
                 if (mp
                         && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) || sass.lhs.var.equals("stack")))
                 {
-                	
-                	//if the context is not a procedure then we are handling a procedure call and we need to update
-                	// rhs to include the thread index
-                	if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
-                		
-                    	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
-                		String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
-                				sass.lhs.sub.toPlainString().indexOf("]"));
-                        TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
+
+                  //For Distributed PlusCal 
+                  if(PcalParams.distpcalFlag){                	
+                    // if the context is not a procedure then we are handling a
+                    //  procedure call and we need to update
+                    // rhs to include the thread index
+                    if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
+                      // we can't add a sub-expression here since we are not
+                      //  handling a lhs of an assignment object
+                      String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
+                                                                                     sass.lhs.sub.toPlainString().indexOf("]"));
+                      TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
                         
-                        Vector tokenVec = new Vector();
-                        tokenVec.addElement(selfToken);
-                        Vector tokens = new Vector();
-                        tokens.addElement(tokenVec);
-                        
-                        TLAExpr expr = new TLAExpr(tokens);
-                        expr.normalize();
-                        
-                    	rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
-                	}
-                	
+                      Vector tokenVec = new Vector();
+                      tokenVec.addElement(selfToken);
+                      Vector tokens = new Vector();
+                      tokens.addElement(tokenVec);
+                      
+                      TLAExpr expr = new TLAExpr(tokens);
+                      expr.normalize();
+                      
+                      rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
+                    }
+                  }
+                  
                     /* Generate single assignment to variable with self subscript */
                     sb.append(sass.lhs.var);
                     sb.append("' = [");
@@ -1120,13 +1127,23 @@ public class PcalTLAGen
 //                            sb.append((String) sv.elementAt(v));
 //                        }
                     }
-                    
-				    addOneTokenToTLA(" = ");
+                    addOneTokenToTLA(" = ");
                     addLeftParen(rhs.getOrigin());
                     addExprToTLA(rhs);
                     addRightParen(rhs.getOrigin());
                     addOneTokenToTLA("]");
-                    
+//                    sb.append(" = ");
+//                    here = sb.length();
+//                    sv = rhs.toStringVector();
+//                    sb.append((String) sv.elementAt(0));
+//                    for (int v = 1; v < sv.size(); v++)
+//                    {
+//                        lines.addElement(sb.toString());
+//                        sb = new StringBuffer(NSpaces(here));
+//                        sb.append((String) sv.elementAt(v));
+//                    }
+//                    sb.append("]");
+//                    lines.addElement(sb.toString());                    
                     sb = new StringBuffer();
                 } else if (!EmptyExpr(sass.lhs.sub))
                 {
@@ -4717,6 +4734,7 @@ public class PcalTLAGen
 			positionOfLastIf = ps.length();
 
 			ps.append(node.id.toPlainString());
+      // ps.append(node.id);
 			if(i != st.processes.size() - 1) {
 				ps.append(" THEN ");
 			}

@@ -1342,7 +1342,7 @@ public class TLAExpr
     			TLAToken tok = (TLAToken) curLine.elementAt(j) ;
 
     			if (tok.type == TLAToken.STRING){
-    				result = result + "\"\\\"\", \"" + tok.string 
+            result = result + "\"\\\"\", \"" + tok.string 
     						+ "\", \"\\\"\"" ;
     			}
     			else if (tok.string.charAt(0) == '\\'){
