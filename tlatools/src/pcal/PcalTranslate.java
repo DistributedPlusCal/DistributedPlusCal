@@ -183,11 +183,27 @@ public class PcalTranslate {
       { Vector firstLine = new Vector() ;
         int nextCol = 0 ;
         int i = 0 ;
+        //For Distributed pluscal
+        // HC: don't add a space after pc if followed by [...]
+        //   otherwise we get, for multi threads, pc[...] [...]
+        boolean justPC = false;
         while (i < vec.size())
           { TLAToken tok = ((TLAToken) vec.elementAt(i)).Clone() ;
             tok.column = nextCol ;
+            //For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+              if(tok.string.charAt(0)=='[' && justPC) tok.column -= spaces ;
+            }
             firstLine.addElement(tok) ;
             nextCol = nextCol + tok.getWidth() + spaces ;
+            //For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+              if(tok.string.equals("pc")){
+                justPC = true ;
+              } else {
+                justPC = false ;
+              }
+            }
             i = i + 1 ;
           } ;
         
@@ -306,7 +322,8 @@ public class PcalTranslate {
         //For Distributed pluscal
         if(PcalParams.distpcalFlag) {
           if(threadIndex != NO_THREAD) {
-            toks.addElement(BuiltInToken(threadIndex == null ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+            // toks.addElement(BuiltInToken(threadIndex == NO_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+            toks.addElement(BuiltInToken("[" + String.valueOf(threadIndex + 1) + "]"));
           }
         }
         toks.addElement(BuiltInToken("="));
