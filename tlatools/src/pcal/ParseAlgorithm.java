@@ -843,23 +843,22 @@ public class ParseAlgorithm
          thread.id = result.id;
 		
          //read the sub-process delimiter
-         GobbleBeginOrLeftBrace();  // HC: works for subprocess?
+         GobbleBeginOrLeftBrace();  
          thread.body = GetStmtSeq();
-         GobbleEndOrRightBrace("process");
+         GobbleEndOrRightBrace("process"); // HC: use subprocess?
 	
          if(pSyntax) {
            GobbleThis(";");
          }
 		
          threads.add(thread);	
-         if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { // HC: works for subprocess?
-           while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { // HC: works for subprocess?
+         if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { 
+           while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { 
              thread = new AST.Thread();
              thread.index = i++;
              thread.id = result.id;
 				
              //read the sub-process delimiter
-             // HC: why nor GobbleBeginOrLeftBrace();?
              GobbleBeginOrLeftBrace();
              // if(pSyntax){
                // GobbleThis("begin");

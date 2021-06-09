@@ -4,8 +4,7 @@ EXTENDS Naturals, TLC
 CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 
-(* PlusCal options (-distpcal) *)
-(* PlusCal options (-termination) *)
+(* PlusCal options (-termination -distpcal) *)
 
 (*--algorithm Dummy {
 variables 
