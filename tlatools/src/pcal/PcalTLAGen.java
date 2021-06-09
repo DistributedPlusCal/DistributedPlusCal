@@ -4697,12 +4697,13 @@ public class PcalTLAGen
 		//if there is only one node
 		if(st.processes.size() == 1) {
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(0);
-			
-			if(node.threads.size() > 1){
+
+      // HC: should always be a set
+			// if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
-			} else {
-				ps.append("1");
-			}
+			// } else {
+				// ps.append("1");
+			// }
 			
 			ps.append("]");
 			addOneLineOfTLA(ps.toString());
@@ -4744,11 +4745,12 @@ public class PcalTLAGen
 				ps.append("**) ");
 			}
 			
-			if(node.threads.size() > 1){
+      // HC: should always be a set
+			// if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
-			} else {
-				ps.append("1");
-			}
+			// } else {
+				// ps.append("1");
+			// }
 			
 			if(i == st.processes.size() - 1) {
 				ps.append("]");
