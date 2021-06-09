@@ -25,7 +25,7 @@ process ( pid1 \in PROCSet )
 process ( pid2 = 1 )
 {
     Three:
-				x := ar[0];
+				x := ar[1];
 	  Four:
 				ar[i] := 0;
 }

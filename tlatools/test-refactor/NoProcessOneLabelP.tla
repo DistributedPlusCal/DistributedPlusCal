@@ -15,7 +15,7 @@ variables
 begin
     One:
         found := TRUE;
-				x := ar[0];
+				x := ar[1];
         i := i + 1;
 				ar[i] := 0;
 end algorithm;

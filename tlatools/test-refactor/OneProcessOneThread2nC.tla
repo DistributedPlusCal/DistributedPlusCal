@@ -18,7 +18,7 @@ process ( pid \in PROCSet )
 {
     One:
         found := TRUE;
-				x := ar[0];
+				x := ar[1];
 	  Two:
 				i := i + 1;
 				ar[i] := 0;
