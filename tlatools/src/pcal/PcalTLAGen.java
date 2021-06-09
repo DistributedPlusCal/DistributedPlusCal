@@ -1029,6 +1029,7 @@ public class PcalTLAGen
                   // inside the procedure extend the self exp for both pc
                   //   and stack variables
                   if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                    
                     sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
                   }
@@ -1048,7 +1049,10 @@ public class PcalTLAGen
                       //  handling a lhs of an assignment object
                       String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
                                                                                      sass.lhs.sub.toPlainString().indexOf("]"));
-                      TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
+
+                      // HC: use the expression self instead of "self" 
+                      // TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
+                      TLAToken selfToken = new TLAToken(getStringFromExpr(self)+"][" + requiredString, 0, TLAToken.IDENT, true);
                         
                       Vector tokenVec = new Vector();
                       tokenVec.addElement(selfToken);
@@ -1059,6 +1063,7 @@ public class PcalTLAGen
                       expr.normalize();
                       
                       rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
+
                     }
                   }
                   
@@ -4807,4 +4812,35 @@ public class PcalTLAGen
 		expr.normalize();
 		decl.val = expr;
 	}
+
+ 	//For Distributed PlusCal
+ /**
+   * Extracts the string for the expression.
+   * see addExprToTLA(TLAExpr expr) {
+   * @param expr
+   */
+  private String getStringFromExpr(TLAExpr expr) {
+    String res = "";
+    Vector sv = expr.toStringVector() ;
+    int indent = res.length() ; 
+    int nextLine = 0 ; 
+    if (sv.size() > 1) {
+            String spaces = NSpaces(indent);
+            while (nextLine < sv.size()-1) {
+                nextLine++ ;
+            }
+            res = spaces + ((String) sv.elementAt(nextLine)) ;
+    }
+    else if (indent == 0){
+            /*
+             * If indent != 0, then we've already added the one-line expression.
+             */
+            res = res + ((String) sv.elementAt(0));
+    }
+    return res;
+  }
+
 }
+
+
+
