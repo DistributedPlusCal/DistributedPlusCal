@@ -17,33 +17,33 @@ procedure f(x) {
         return;
 }
 
-process (id = 1)
+process (id = 2)
 variable y;
 {
-   y := y + 1;
+   y := 1;
    Sdr:
-        call f(c);
+        call f(y);
 } 
 
 process (idm \in Nodes)
 variable z;
 {
-   z := z + 1;
+   z := 2;
    Sdrm:
         call f(c);
 } 
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-f56a5e9e9c9c6de8d5dbe7286552c7c8
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-45c314011e37aae53e7b0dec54c70d21
 CONSTANT defaultInitValue
 VARIABLES c, pc, stack, x, y, z
 
 vars == << c, pc, stack, x, y, z >>
 
-ProcSet == {1} \cup (Nodes)
+ProcSet == {2} \cup (Nodes)
 
-SubProcSet == [n \in ProcSet |-> IF n = 1 THEN 1..1
+SubProcSet == [n \in ProcSet |-> IF n = 2 THEN 1..1
                            ELSE (**Nodes**) 1..1]
 
 Init == (* Global variables *)
@@ -54,10 +54,10 @@ Init == (* Global variables *)
         /\ y = defaultInitValue
         (* Process idm *)
         /\ z = [self \in Nodes |-> defaultInitValue]
-        /\ stack = [self \in ProcSet |-> CASE self = 1 -> << <<>> >>
+        /\ stack = [self \in ProcSet |-> CASE self = 2 -> << <<>> >>
                                            [] self \in Nodes -> << <<>> >>]
                                            
-        /\ pc = [self \in ProcSet |-> CASE self = 1 -> <<"Lbl_1">>
+        /\ pc = [self \in ProcSet |-> CASE self = 2 -> <<"Lbl_1">>
                                         [] self \in Nodes -> <<"Lbl_2">>]
 
 Add(self, subprocess) == /\ pc[self][subprocess] = "Add"
@@ -73,24 +73,24 @@ Lbl_3(self, subprocess) == /\ pc[self][subprocess] = "Lbl_3"
 
 f(self, subprocess) == Add(self, subprocess) \/ Lbl_3(self, subprocess)
 
-Lbl_1 == /\ pc[1][1]  = "Lbl_1"
-         /\ y' = y + 1
-         /\ pc' = [pc EXCEPT ![1][1] = "Sdr"]
+Lbl_1 == /\ pc[2][1]  = "Lbl_1"
+         /\ y' = 1
+         /\ pc' = [pc EXCEPT ![2][1] = "Sdr"]
          /\ UNCHANGED << c, stack, x, z >>
 
-Sdr == /\ pc[1][1]  = "Sdr"
-       /\ /\ stack' = [stack EXCEPT ![1][1] = << [ procedure |->  "f",
+Sdr == /\ pc[2][1]  = "Sdr"
+       /\ /\ stack' = [stack EXCEPT ![2][1] = << [ procedure |->  "f",
                                                    pc        |->  "Done",
-                                                   x         |->  x[1][1] ] >>
-                                               \o stack[1][1]]
-          /\ x' = [x EXCEPT ![1] = c]
-       /\ pc' = [pc EXCEPT ![1][1] = "Add"]
+                                                   x         |->  x[2][1] ] >>
+                                               \o stack[2][1]]
+          /\ x' = [x EXCEPT ![2][1] = y]
+       /\ pc' = [pc EXCEPT ![2][1] = "Add"]
        /\ UNCHANGED << c, y, z >>
 
 id == Lbl_1 \/ Sdr
 
 Lbl_2(self) == /\ pc[self][1]  = "Lbl_2"
-               /\ z' = [z EXCEPT ![self] = z[self] + 1]
+               /\ z' = [z EXCEPT ![self] = 2]
                /\ pc' = [pc EXCEPT ![self][1] = "Sdrm"]
                /\ UNCHANGED << c, stack, x, y >>
 
@@ -99,7 +99,7 @@ Sdrm(self) == /\ pc[self][1]  = "Sdrm"
                                                              pc        |->  "Done",
                                                              x         |->  x[self][1] ] >>
                                                          \o stack[self][1]]
-                 /\ x' = [x EXCEPT ![self] = c]
+                 /\ x' = [x EXCEPT ![self][1] = c]
               /\ pc' = [pc EXCEPT ![self][1] = "Add"]
               /\ UNCHANGED << c, y, z >>
 
@@ -118,5 +118,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-56dfcb46c6cdf347086826f21286c391
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-01c5c6ecc3bcd4789161ae44c0ec4b0a
 =============================================================================

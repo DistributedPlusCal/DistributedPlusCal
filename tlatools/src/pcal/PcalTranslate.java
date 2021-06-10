@@ -1208,7 +1208,16 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
-            sass.lhs.sub = MakeExpr(new Vector());
+            //For Distributed pluscal
+            if(threadIndex == null) {
+              sass.lhs.sub = MakeExpr(new Vector());
+            } else {
+              TLAExpr expression = new TLAExpr();
+              expression.addLine();
+              TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+              expression.addToken(tok);
+              sass.lhs.sub = expression;
+            }
             sass.rhs = (TLAExpr) ast.args.elementAt(i);
             ass.ass.addElement(sass);
         }
@@ -1691,7 +1700,6 @@ public class PcalTranslate {
         newast.id = ast.id;
         newast.index = ast.index;
         newast.body = new Vector();
-        
         AST.LabeledStmt thisLS = (ast.body.size() > 0)
             ? (AST.LabeledStmt) ast.body.elementAt(0) : null;
         AST.LabeledStmt nextLS = (ast.body.size() > 1)
