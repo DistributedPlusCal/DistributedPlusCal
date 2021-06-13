@@ -4738,9 +4738,9 @@ public class PcalTLAGen
 			
 			if(i != st.processes.size() - 1) {
 				if (node.isEq) {
-					ps.append("IF n = ");
+					ps.append("IF " + ind + " = ");
 				} else {
-					ps.append("IF n \\in ");
+					ps.append("IF " + ind + " \\in ");
 				}
 			}
 			positionOfLastIf = ps.length();
