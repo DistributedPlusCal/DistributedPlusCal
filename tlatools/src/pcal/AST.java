@@ -1164,9 +1164,9 @@ public class AST
 		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-			PcalDebug.reportInfo("varDecl is of type Unordered Channel : " + channel.var);
-
-			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
+      // HC: is _ enough for fresh vars? is it needed?
+			// String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
+			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -1579,7 +1579,8 @@ public class AST
 			for(int i = 0; i < channel.dimensions.size(); i++) {
 				String dimension = (String) channel.dimensions.get(i);
 
-				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+        // HC: is _ enough for fresh vars? is it needed?
+				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
 
 				if(i == 0) {
 					expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -1677,7 +1678,6 @@ public class AST
 		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-			String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -2095,7 +2095,8 @@ public class AST
 			for(int i = 0; i < channel.dimensions.size(); i++) {
 				String dimension = (String) channel.dimensions.get(i);
 
-				String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+        // HC: is _ enough for fresh vars?
+				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
 
 				if(i == 0) {
 					expr.addToken(PcalTranslate.BuiltInToken("["));
