@@ -36,6 +36,11 @@ public class PcalTLAGen
        // For the time being, it is set to wrapColumn - 33.  We may want
        // to do something cleverer or else make it a user option.
 
+    //For Distributed PlusCal
+    // index for fresh variables (for SubProcSet)
+    // make it public if we want to set it as a parameter
+    private static int varIndex=42;
+  
     // Private class variables
     /** The tlacode field accumulates the translation as it is constructed.  It 
      * should be a vector of separate lines.  Keiths original implementation put
@@ -4695,7 +4700,8 @@ public class PcalTLAGen
 		StringBuffer ps = new StringBuffer();
 		if (st.processes == null || st.processes.size() == 0)
 			return;
-		ps.append("SubProcSet == [n \\in ProcSet |-> ");
+    String ind = "_n" + varIndex++;
+		ps.append("SubProcSet == ["+ind+" \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
@@ -4781,7 +4787,9 @@ public class PcalTLAGen
 		for(int i = 0; i < decl.dimensions.size(); i++) {
 			String dimension = (String) decl.dimensions.get(i);
 
-			String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+      // HC: add counter
+			// String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
+			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
 
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
