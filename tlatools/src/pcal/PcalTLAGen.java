@@ -642,8 +642,12 @@ public class PcalTLAGen
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
         	//For Distributed PlusCal
           // HC: is it consistent with all uses of selfIsSelf for distpcalFlag?
-        	if(PcalParams.distpcalFlag && context.equals("procedure")) {
-                sb.append("(self, subprocess)");
+        	if(PcalParams.distpcalFlag){
+            if( context.equals("procedure")) {
+              sb.append("(self, subprocess)");
+            } else {
+              sb.append("(self)");
+            }
         	} else {
                 sb.append("(self)");
         	}

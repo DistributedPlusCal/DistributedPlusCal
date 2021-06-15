@@ -833,11 +833,12 @@ public class ParseAlgorithm
          else
            {
              // result.decls = GetVarDecls() ;
-             // HC: add GetChannelDecls()?
+             // HC: add GetChannelDecls()
              result.decls = new Vector(2) ;
              if (PeekAtAlgToken(1).equals("variable")
                  || PeekAtAlgToken(1).equals("variables"))
                result.decls.addAll(GetVarDecls());
+             // HC BUG: parsed correctly but initialization is buggy
              if(PeekAtAlgToken(1).equals("channel")
                   || PeekAtAlgToken(1).equals("channels")
                   || PeekAtAlgToken(1).equals("fifo")
