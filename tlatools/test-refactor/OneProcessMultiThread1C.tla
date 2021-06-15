@@ -15,9 +15,11 @@ variables
 
 
 process ( pid2 = 1 )
+variable c = 1;
 {
     Three:
        x := ar[1];
+			 c := c+1;
 }
 {
     Four:

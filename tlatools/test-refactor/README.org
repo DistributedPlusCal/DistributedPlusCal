@@ -43,3 +43,28 @@
 - parsed in Toolbox
 - TLC OK
 
+
+
+* Clash 
+- dummy algorithm to check how fresh variables are generated 
+-- in SubProcSet
+-- in Init (for channels)
+-- for read/clear operations
+- should change fifo-channel to get the behaviour for both cases
+- if declare variable _n430 we get a parse error 
+  (but no problem for _c159)
+- parsed
+- TLC OK (deadlock)
+
+* Clash2D
+- originally for testing fresh variables
+- bug for bidimensional channel in write (no thread index) 
+
+
+* VarAndChannelDecls1C
+- testing channel/fifo declarations local to processes
+- parsed
+- bug (general) for the initialization -> unidimensional array generated
+- funny translation for fifos if send/receive are not atomic 
+  (without Snd2 and Rcv2); doesn't work for channels (because of cur
+  receiver twice)

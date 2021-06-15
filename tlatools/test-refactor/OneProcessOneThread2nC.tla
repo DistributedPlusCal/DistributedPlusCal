@@ -15,10 +15,12 @@ variables
     i = 1;
 
 process ( pid \in PROCSet )
+variables c = 3;
 {
     One:
         found := TRUE;
 				x := ar[1];
+				c := c+1;
 	  Two:
 				i := i + 1;
 				ar[i] := 0;

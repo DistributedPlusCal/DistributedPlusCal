@@ -1118,7 +1118,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
         
         //For Distributed pluscal
-        if(threadIndex == null) {
+        if(threadIndex == NO_THREAD) {
         	sass.lhs.sub = MakeExpr(new Vector());
         } else {
         	TLAExpr expr = new TLAExpr();
@@ -1209,7 +1209,7 @@ public class PcalTranslate {
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
             //For Distributed pluscal
-            if(threadIndex == null) {
+            if(threadIndex == NO_THREAD) {
               sass.lhs.sub = MakeExpr(new Vector());
             } else {
               TLAExpr expression = new TLAExpr();
@@ -1246,7 +1246,7 @@ public class PcalTranslate {
             //For Distributed pluscal, so that the local procedure
             // variables are also referenced using thread index when
             // the procedure is called
-            if(threadIndex == null) {
+            if(threadIndex == NO_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();
@@ -1328,7 +1328,7 @@ public class PcalTranslate {
         sass.lhs.var = "pc";
 
         //For Distributed pluscal
-        if(threadIndex == null) {
+        if(threadIndex == NO_THREAD) {
          	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();        
         } else {
@@ -1425,7 +1425,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
 
         //For Distributed pluscal        
-        if(threadIndex == null) {
+        if(threadIndex == NO_THREAD) {
          	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();
         } else {
@@ -1542,7 +1542,7 @@ public class PcalTranslate {
             sass.lhs.var = "stack";
             
             //For Distributed PlusCal
-            if(threadIndex == null) {
+            if(threadIndex == NO_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();

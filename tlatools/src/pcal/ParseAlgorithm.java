@@ -819,11 +819,10 @@ public class ParseAlgorithm
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
-
        
        //For Distributed PlusCal, when using p-syntax
        // HC: doublecheck if (with subprocess)
-       if (PcalParams.distpcalFlag) {
+       if (PcalParams.distpcalFlag)  {
          if (   PeekAtAlgToken(1).equals("begin")
                 || PeekAtAlgToken(1).equals("{")
                 // when using p-syntax
@@ -832,8 +831,20 @@ public class ParseAlgorithm
                 )
            { result.decls = new Vector(1) ; }
          else
-           { result.decls = GetVarDecls() ;
+           {
+             // result.decls = GetVarDecls() ;
              // HC: add GetChannelDecls()?
+             result.decls = new Vector(2) ;
+             if (PeekAtAlgToken(1).equals("variable")
+                 || PeekAtAlgToken(1).equals("variables"))
+               result.decls.addAll(GetVarDecls());
+             if(PeekAtAlgToken(1).equals("channel")
+                  || PeekAtAlgToken(1).equals("channels")
+                  || PeekAtAlgToken(1).equals("fifo")
+                  || PeekAtAlgToken(1).equals("fifos")){
+               PcalDebug.reportError("TOKEN = " + PeekAtAlgToken(1));
+               result.decls.addAll(GetChannelDecls());
+             }
            } ;
 
          Vector<AST.Thread> threads = new Vector<>();
