@@ -10,56 +10,78 @@ Nodes == 1 .. N
 (*
 --algorithm LamportMutex {
 
-fifo chan;
+variable cur = "none";
+channel chan[Nodes];
 
-process (x \in Nodes)
-variable i = "none";
+process ( w \in Nodes )
+lamportClock clock;
 {
-    Add:
-        send(chan, "msg");
+    rc:
+        receiveWithClock(chan[self], cur, clock);
 } {
-    Rec:
-        receive(chan, i);
+    sd:
+        sendWithClock(chan[self], "msg", clock);
+} {
+    brd:
+        broadcastWithClock(chan, "msg", clock);
+}
+
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-10cb47ac85519825af433a198b3d5cf1
-VARIABLES chan, pc, i
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-a3fd385db98eeae26ce954429fd9cf33
+VARIABLES cur, chan, pc, clock
 
-vars == << chan, pc, i >>
+vars == << cur, chan, pc, clock >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..3]
 
+(* Comparator for lamport clocks *)
+Max(c,d) == IF c > d THEN c ELSE d
 
 Init == (* Global variables *)
-        /\ chan = <<>>
-        (* Process x *)
-        /\ i = [self \in Nodes |-> "none"]
-        /\ pc = [self \in ProcSet |-> <<"Add","Rec">>]
+        /\ cur = "none"
+        /\ chan = [_n430 \in Nodes |-> {}]
+        (* Process w *)
+        /\ clock = [self \in Nodes |-> 0]
+        /\ pc = [self \in ProcSet |-> <<"rc","sd","brd">>]
 
-Add(self) == /\ pc[self] [1] = "Add"
-             /\ chan' =  Append(chan, "msg")
-             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
-             /\ i' = i
+rc(self) == /\ pc[self][1]  = "rc"
+            /\ \E _c149 \in chan[self]:
+                 /\ chan' = [chan EXCEPT ![self] = chan[self] \ {_c149}]
+                 /\ clock' = [clock EXCEPT ![self] = Max(clock[self], _c149.clock) + 1]
+                 /\ cur' = _c149
+            /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-Rec(self) == /\ pc[self] [2] = "Rec"
-             /\ Len(chan) > 0 
-             /\ i' = [i EXCEPT ![self] = Head(chan)]
-             /\ chan' =  Tail(chan)
-             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+sd(self) == /\ pc[self][2]  = "sd"
+            /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {[msg |-> "msg", clock |-> clock]}]
+            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
+            /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+            /\ cur' = cur
 
-x(self) ==  \/ Add(self) \/ Rec(self)
+brd(self) == /\ pc[self][3]  = "brd"
+             /\ chan' = [_n0 \in Nodes |-> chan[_n0] \cup {[msg |-> "msg", clock |-> clock]}]
+             /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
+             /\ pc' = [pc EXCEPT ![self][3] = "Done"]
+             /\ cur' = cur
 
-Next == (\E self \in Nodes: x(self))
+w(self) == rc(self) \/ sd(self) \/ brd(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
+
+Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-dd761a0b52be12fe5c676ddd923de47b
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f21dd23f8d256144a413b0d05d976139
 
 
 =========================================================

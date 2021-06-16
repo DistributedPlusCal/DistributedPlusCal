@@ -115,6 +115,8 @@ public class AST
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearObj;
+    public static AST.ChannelSendWithClockCall ChannelSendWithClockObj;
+    public static AST.ChannelReceiveWithClockCall ChannelReceiveWithClockObj;
     // For Distributed Pluscal. Logical clocks
     public static AST.ClockIncreaseCall ClockIncreaseObj;
     public static AST.ClockUpdateCall ClockUpdateObj;
@@ -240,6 +242,8 @@ public class AST
         ChannelSenderObj   =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
         ChannelClearObj   = new AST.ChannelClearCall();
+        ChannelSendWithClockObj = new AST.ChannelSendWithClockCall();
+        ChannelReceiveWithClockObj = new  AST.ChannelReceiveWithClockCall();
         //For Distributed Pluscal. Logical clocks
         ClockIncreaseObj   = new AST.ClockIncreaseCall();
         ClockUpdateObj     = new AST.ClockUpdateCall();
@@ -1092,13 +1096,17 @@ public class AST
    	public Channel() {};
    	List dimensions = null;
    	public abstract Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp);
-   	public abstract Vector receive(Channel channel, String channelName, String targetVarName, TLAExpr callExp, TLAExpr targetExp);
+   	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
    	// For Distributed PLuscal. Add TLAExpr msg argument to implement new broadcast
    	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
    	// For Distributed Pluscal. Add String channelName and TLAExpr callExp arguments to allow new clear functionality
    	public abstract Vector clear(Channel channel, String channelName, TLAExpr callExp) throws ParseAlgorithmException;
-
+   	
+   	// For Distributed PlusCal. Channel operations with logical clocks
+   	public abstract Vector sendWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp, TLAExpr clock);
+   	public abstract Vector receiveWithClock(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp, TLAExpr clock);
+   	public abstract Vector broadcastWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp, TLAExpr clock) throws ParseAlgorithmException;
    }
    
    public static class UnorderedChannel extends Channel{
@@ -1171,11 +1179,11 @@ public class AST
 
 
 		@Override
-		public Vector receive(Channel channel, String channelName, String targetVarName, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
 			// For Distributed PlusCal. append _ to overcome variable name clash
-			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
+			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -1210,7 +1218,7 @@ public class AST
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = targetVarName;
+			sass.lhs.var = targetVar.var;
 			
 			TLAExpr expr = new TLAExpr();
 
@@ -1639,7 +1647,7 @@ public class AST
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
 					// For Distributed PlusCal. append _ to overcome variable name clash
-					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+					String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
 					
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -1676,6 +1684,445 @@ public class AST
 			assign.ass.addElement(sass);
 
 			result.addElement(assign);
+			return result;
+		}
+
+		@Override
+		public Vector sendWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp, TLAExpr clock) {
+			Vector result = new Vector();
+			
+	   		AST.SingleAssign sass = new AST.SingleAssign();
+	   		sass.line = line;
+	   		sass.col  = col;
+	   		sass.lhs.var = channel.var;
+
+	   		TLAExpr expr = new TLAExpr();
+
+	   		if(callExp.tokens != null) {
+	   			sass.lhs.sub = callExp;
+	   		}else {
+	   			sass.lhs.sub = new TLAExpr(new Vector());
+	   		}
+
+	   		expr = new TLAExpr();
+	   		expr.addLine();
+	   		expr.addToken(PcalTranslate.IdentToken(channelName));
+
+	   		if(callExp.tokens != null) {
+	   			for(int i = 0; i < callExp.tokens.size(); i++) {
+
+	   				Vector tv = (Vector) callExp.tokens.elementAt(i);
+	   				for (int j = 0; j < tv.size(); j++) {
+	   					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+	   					expr.addToken(tok);
+	   				}
+	   			}
+	   		}
+
+	   		expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
+	   		expr.addToken(PcalTranslate.BuiltInToken("{"));
+	   		expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+	   		
+	   		for(int i = 0; i < msg.tokens.size(); i++) {
+
+	   			Vector tv = (Vector) msg.tokens.elementAt(i);
+	   			for (int j = 0; j < tv.size(); j++) {
+	   				TLAToken tok = (TLAToken) tv.elementAt(j);
+
+	   				expr.addToken(tok);
+	   			}
+	   		}
+	   		
+	   		expr.addToken(PcalTranslate.BuiltInToken(", "));
+	   		expr.addToken(PcalTranslate.BuiltInToken("clock |-> "));
+	   		expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+	   		//expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString() + " + 1"));
+	   		expr.addToken(PcalTranslate.BuiltInToken("]"));
+	   		expr.addToken(PcalTranslate.BuiltInToken("}"));
+	   		sass.rhs = expr;
+	   		
+	   		sass.setOrigin(this.getOrigin());
+
+	   		AST.Assign assign = new AST.Assign();
+	   		assign.ass = new Vector();
+	   		assign.line = line ;
+	   		assign.col  = col ;
+	   		assign.setOrigin(this.getOrigin());
+	   		
+	   		assign.ass.addElement(sass);
+
+	   		result.addElement(assign);
+	   		
+	   		///////////////////////////////
+	   		sass = new AST.SingleAssign();
+	   		sass.line = line;
+	   		sass.col  = col;
+	   		sass.lhs.var = clock.toPlainString();
+
+	   		expr = new TLAExpr();
+
+	   		//if(callExp.tokens != null)
+	   			//sass.lhs.sub = callExp;
+	   		//else
+	   			sass.lhs.sub = new TLAExpr(new Vector());
+	   		
+	   		expr = new TLAExpr();
+	   		expr.addLine();
+	   		expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+	   		
+	   		/*
+	   		if(callExp.tokens != null) {
+	   			for(int i = 0; i < callExp.tokens.size(); i++) {
+
+	   				Vector tv = (Vector) callExp.tokens.elementAt(i);
+	   				for (int j = 0; j < tv.size(); j++) {
+	   					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+	   					expr.addToken(tok);
+	   				}
+	   			}
+	   		}
+	   		*/
+	   		
+	   		expr.addToken(PcalTranslate.BuiltInToken(" + 1 "));
+	   		
+	   		sass.rhs = expr;
+
+	   		sass.setOrigin(this.getOrigin());
+
+	   		assign = new AST.Assign();
+	   		assign.ass = new Vector();
+	   		assign.line = line ;
+	   		assign.col  = col ;
+	   		assign.setOrigin(this.getOrigin());
+	   		
+	   		assign.ass.addElement(sass);
+
+	   		result.addElement(assign);
+	   		
+	   		return result;
+		}
+
+		@Override
+		public Vector receiveWithClock(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp,
+				TLAExpr targetExp, TLAExpr clock) {
+			Vector result = new Vector();
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
+
+			TLAExpr exp = new TLAExpr();
+
+			AST.With with = new AST.With();
+			with.col = line;
+			with.line = col;
+			with.var = tempVarName;
+			with.isEq = false;
+
+			exp = new TLAExpr();
+			exp.addLine();
+
+			exp.addToken(PcalTranslate.IdentToken(channelName));
+
+			if(callExp.tokens != null) {
+
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+						exp.addToken(tok);
+					}
+				}
+			}
+			
+			with.exp = exp;
+			with.setOrigin(this.getOrigin());
+
+			Vector doBody = new Vector();
+
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = targetVar.var;
+			
+			TLAExpr expr = new TLAExpr();
+
+			if(targetExp.tokens != null) {
+				for(int i = 0; i < targetExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) targetExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+						expr.addToken(tok);
+					}
+				}
+				sass.lhs.sub = expr;
+			} else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			
+			expr.addToken(PcalTranslate.IdentToken(tempVarName));
+			
+			sass.rhs = expr;
+			sass.setOrigin(this.getOrigin());
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+
+			expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.IdentToken(channelName));
+			
+			if(callExp.tokens != null) {
+
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+						expr.addToken(tok);
+					}
+				}
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
+			expr.addToken(PcalTranslate.BuiltInToken("{"));
+			expr.addToken(PcalTranslate.IdentToken(tempVarName));
+			expr.addToken(PcalTranslate.BuiltInToken("}"));
+			
+			sass.rhs = expr;
+			
+			if(callExp.tokens != null) {
+				sass.lhs.sub = callExp;
+			}else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+			
+			sass.setOrigin(this.getOrigin());
+			assign.ass.addElement(sass);
+			
+			///////////
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = clock.toPlainString();
+			
+			//if(callExp.tokens != null)
+				//sass.lhs.sub = callExp;
+			//else
+				sass.lhs.sub = new TLAExpr(new Vector());
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			
+			expr.addToken(PcalTranslate.IdentToken("Max("));
+			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+			expr.addToken(PcalTranslate.IdentToken(", "));
+			String t = tempVarName + ".clock";
+			expr.addToken(PcalTranslate.IdentToken(t));
+			expr.addToken(PcalTranslate.IdentToken(") + 1"));
+			
+			sass.rhs = expr;
+			sass.setOrigin(this.getOrigin());
+			assign.ass.addElement(sass);
+			/////////////////////////////
+			
+			doBody.addElement(assign);
+			with.Do = doBody;
+			
+			result.addElement(with);
+			
+			return result;
+		}
+
+		@Override
+		public Vector broadcastWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp,
+				TLAExpr clock) throws ParseAlgorithmException {
+			
+			int chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
+			int callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
+			// compare channel dimension with call expr. incase of mismatch throw exception
+			PcalDebug.reportInfo("chan_dim : " + chan_dim + "     callExp_dim: " + callExp_dim);
+			if ( chan_dim < callExp_dim ) {
+				throw new ParseAlgorithmException("channel dimension is less than call Expression dimension. ");
+			}
+			
+			if (chan_dim == callExp_dim ) {
+				return send(channel, channelName, msg, callExp);
+			}
+			
+			Vector result = new Vector();
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+
+			sass.lhs.sub = new TLAExpr(new Vector());
+			
+			sass.setOrigin(this.getOrigin());
+			
+			TLAExpr expr = new TLAExpr();
+			expr.addLine();    			
+			
+			ArrayList<String> temp_vars = new ArrayList<>();
+			
+			// n0 \in Nodes --- builds this part
+			for(int i = 0; i < channel.dimensions.size(); i++) {
+				String dimension = (String) channel.dimensions.get(i);
+				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
+				temp_vars.add(tempVarName);
+				if(i == 0) {
+					expr.addToken(PcalTranslate.BuiltInToken("["));
+				}
+				expr.addToken(PcalTranslate.IdentToken(tempVarName));
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(dimension));
+
+
+				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+					expr.addToken(PcalTranslate.BuiltInToken(", "));
+				}
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+			
+			if (callExp_dim == 1) {
+				expr.addToken(PcalTranslate.BuiltInToken("IF"));
+				expr.addToken(PcalTranslate.BuiltInToken(" _n0 = " + callExp.toPlainString().substring(1, callExp.toPlainString().length()-1)));
+				expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
+				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1] \\cup "));
+				
+				expr.addToken(PcalTranslate.BuiltInToken("{"));
+				expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+				
+				for(int i = 0; i < msg.tokens.size(); i++) {
+
+		   			Vector tv = (Vector) msg.tokens.elementAt(i);
+		   			for (int j = 0; j < tv.size(); j++) {
+		   				TLAToken tok = (TLAToken) tv.elementAt(j);
+
+		   				expr.addToken(tok);
+		   			}
+		   		}
+				
+				expr.addToken(PcalTranslate.BuiltInToken(", clock |-> "));
+				expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+		   		expr.addToken(PcalTranslate.BuiltInToken("]"));
+				expr.addToken(PcalTranslate.BuiltInToken("}"));
+				
+				expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
+				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1]"));
+				
+			} 
+			else {			
+				expr.addToken(PcalTranslate.BuiltInToken(channelName));
+				expr.addToken(PcalTranslate.BuiltInToken("["));
+				for(int i = 0; i < channel.dimensions.size(); i++) {
+					expr.addToken(PcalTranslate.IdentToken(temp_vars.get(i)));
+					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+						expr.addToken(PcalTranslate.BuiltInToken(", "));
+					}
+				}
+				expr.addToken(PcalTranslate.BuiltInToken("]"));		
+		
+				expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));			
+		   		expr.addToken(PcalTranslate.BuiltInToken("{"));
+		   		expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+		   		
+		   		for(int i = 0; i < msg.tokens.size(); i++) {
+		
+		   			Vector tv = (Vector) msg.tokens.elementAt(i);
+		   			for (int j = 0; j < tv.size(); j++) {
+		   				TLAToken tok = (TLAToken) tv.elementAt(j);
+		
+		   				expr.addToken(tok);
+		   			}
+		   		}
+		   		
+		   		expr.addToken(PcalTranslate.BuiltInToken(", clock |-> "));
+		   		expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+		   		expr.addToken(PcalTranslate.BuiltInToken("]"));
+		   		expr.addToken(PcalTranslate.BuiltInToken("}"));
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken("]"));
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
+			
+			///////////////////////////////
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = clock.toPlainString();
+			
+			expr = new TLAExpr();
+			
+			//if(callExp.tokens != null)
+				//sass.lhs.sub = callExp;
+			//else
+				sass.lhs.sub = new TLAExpr(new Vector());
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+			
+			/*
+			if(callExp.tokens != null) {
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+			
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+			
+						expr.addToken(tok);
+					}
+				}
+			}
+			*/
+			
+			expr.addToken(PcalTranslate.BuiltInToken(" + 1 "));
+			
+			sass.rhs = expr;
+			
+			sass.setOrigin(this.getOrigin());
+			
+			assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+			
+			assign.ass.addElement(sass);
+			
+			result.addElement(assign);
+			
 			return result;
 		}
    	
@@ -1739,11 +2186,11 @@ public class AST
 		}
 		
 		@Override
-		public Vector receive(Channel channel, String channelName,  String targetVarName, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
 			// For Distributed PlusCal. append _ to overcome variable name clash
-			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
+			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
@@ -1783,7 +2230,7 @@ public class AST
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = targetVarName;
+			sass.lhs.var = targetVar.var;
 
 			TLAExpr expr = new TLAExpr();
       // HC: fix bug FIFO (06/04/21)
@@ -2187,7 +2634,7 @@ public class AST
 					String dimension = (String) channel.dimensions.get(i);
 					
 					// For Distributed PlusCal. append _ to overcome variable name clash
-					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+					String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
 					
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -2216,7 +2663,7 @@ public class AST
 				for(int i = 0; i < channel.dimensions.size(); i++) {
 					String dimension = (String) channel.dimensions.get(i);
 					// For Distributed PlusCal. append _ to overcome variable name clash
-					String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+					String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
 					
 					if(i == 0) {
 						expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -2256,19 +2703,445 @@ public class AST
 			result.addElement(assign);
 			return result;
 		}
+		
+		@Override
+		public Vector sendWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp, TLAExpr clock) {
+			Vector result = new Vector();
+	   		
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+
+			TLAExpr expr = new TLAExpr();
+			
+			if(callExp.tokens != null) {
+				sass.lhs.sub = callExp;
+			}else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+			
+			expr.addLine();
+			// dostonbek. Append channel name fix.
+			if (! (channel.dimensions == null)) {
+				expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+			}	else {
+				expr.addToken(PcalTranslate.BuiltInToken(" Append(" + channelName + ", "));
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+			for(int i = 0; i < msg.tokens.size(); i++) {
+				
+				Vector tv = (Vector) msg.tokens.elementAt(i);
+				for (int j = 0; j < tv.size(); j++) {
+					TLAToken tok = (TLAToken) tv.elementAt(j);
+
+					expr.addToken(tok);
+				}
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken(", clock |-> "));
+			expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+			expr.addToken(PcalTranslate.BuiltInToken("]"));
+			expr.addToken(PcalTranslate.BuiltInToken(")"));
+			sass.rhs = expr;
+
+			sass.setOrigin(this.getOrigin());
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+
+			result.addElement(assign);
+			
+			///////////////////////////////
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = clock.toPlainString();
+			
+			expr = new TLAExpr();
+			
+			//if(callExp.tokens != null)
+			//sass.lhs.sub = callExp;
+			//else
+			sass.lhs.sub = new TLAExpr(new Vector());
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+			
+			/*
+			if(callExp.tokens != null) {
+			for(int i = 0; i < callExp.tokens.size(); i++) {
+			
+				Vector tv = (Vector) callExp.tokens.elementAt(i);
+				for (int j = 0; j < tv.size(); j++) {
+					TLAToken tok = (TLAToken) tv.elementAt(j);
+			
+					expr.addToken(tok);
+				}
+			}
+			}
+			*/
+			
+			expr.addToken(PcalTranslate.BuiltInToken(" + 1 "));
+			
+			sass.rhs = expr;
+			
+			sass.setOrigin(this.getOrigin());
+			
+			assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+			
+			assign.ass.addElement(sass);
+			
+			result.addElement(assign);
+			
+			return result;
+		}
+
+		@Override
+		public Vector receiveWithClock(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp,
+				TLAExpr targetExp, TLAExpr clock) {
+			Vector result = new Vector();
+			// For Distributed PlusCal. append _ to overcome variable name clash
+			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
+
+			TLAExpr exp = new TLAExpr();
+
+			AST.When when = new AST.When();
+			when.col = line;
+			when.line = col;
+
+			exp = new TLAExpr();
+			exp.addLine();
+
+			exp.addToken(PcalTranslate.BuiltInToken("Len("));
+			exp.addToken(PcalTranslate.IdentToken(channel.var));
+			
+			if(callExp.tokens != null) {
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+
+						exp.addToken(tok);
+					}
+				}
+			}
+			
+			exp.addToken(PcalTranslate.BuiltInToken(") > 0 "));
+
+			when.exp = exp;
+			when.setOrigin(this.getOrigin());
+
+			AST.Assign headAssign = new AST.Assign();
+			headAssign.ass = new Vector();
+			headAssign.line = line ;
+			headAssign.col  = col ;
+			headAssign.setOrigin(this.getOrigin());
+			
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = targetVar.var;
+
+			TLAExpr expr = new TLAExpr();
+      // HC: fix bug FIFO (06/04/21)
+			// expr.addLine(); 
+			if(targetExp.tokens != null) {
+				for(int i = 0; i < targetExp.tokens.size(); i++) {
+
+					Vector tv = (Vector) targetExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+						expr.addToken(tok);
+					}
+				}
+				sass.lhs.sub = expr;
+			} else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.BuiltInToken("Head("));
+			expr.addToken(PcalTranslate.IdentToken(channel.var));
+			
+			if(callExp.tokens != null) {
+				for(int i = 0; i < callExp.tokens.size(); i++) {
+					Vector tv = (Vector) callExp.tokens.elementAt(i);
+					for (int j = 0; j < tv.size(); j++) {
+						TLAToken tok = (TLAToken) tv.elementAt(j);
+
+						expr.addToken(tok);
+					}
+				}
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken(")"));
+
+			sass.rhs = expr;
+			sass.setOrigin(this.getOrigin());
+
+			headAssign.ass.addElement(sass);
+
+			AST.Assign tailAssign = new AST.Assign();
+			tailAssign.ass = new Vector();
+			tailAssign.line = line ;
+			tailAssign.col  = col ;
+			tailAssign.setOrigin(this.getOrigin());
+			
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+
+			if(callExp.tokens != null) {
+				sass.lhs.sub = callExp;
+			} else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			// dm. Receive channel name fix.
+			if ( callExp.tokens.size() == 0) {
+				expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + channelName + ")"));
+			} else {
+				expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
+			}
+			
+			sass.rhs = expr;
+			
+			sass.setOrigin(this.getOrigin());
+			tailAssign.ass.addElement(sass);
+			
+			///////////
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = clock.toPlainString();
+			
+			//if(callExp.tokens != null)
+				//sass.lhs.sub = callExp;
+			//else
+				sass.lhs.sub = new TLAExpr(new Vector());
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			
+			expr.addToken(PcalTranslate.IdentToken("Max("));
+			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+			expr.addToken(PcalTranslate.IdentToken(", "));
+			String t = targetVar + ".clock";
+			expr.addToken(PcalTranslate.IdentToken(t));
+			expr.addToken(PcalTranslate.IdentToken(") + 1"));
+			
+			sass.rhs = expr;
+			sass.setOrigin(this.getOrigin());
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+			/////////////////////////////
+			
+			result.addElement(when);
+			result.addElement(headAssign);
+			result.addElement(tailAssign);
+			result.addElement(assign);
+			
+			return result;
+		}
+
+		@Override
+		public Vector broadcastWithClock(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp,
+				TLAExpr clock) throws ParseAlgorithmException {
+			int chan_dim = (channel.dimensions == null) ? 0 : channel.dimensions.size();    
+			int callExp_dim =  PcalTLAGen.getCallExprValues(callExp).size();
+			
+			// compare channel dimension with call expr. incase of mismatch throw exception
+			if ( chan_dim < callExp_dim ) {
+				throw new ParseAlgorithmException("channel dimension is less than call Expression dimension. ");
+			}
+			
+			if (chan_dim == callExp_dim ) {
+				return send(channel, channelName, msg, callExp);
+			}
+			
+			Vector result = new Vector();
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = channel.var;
+
+			sass.lhs.sub = new TLAExpr(new Vector());
+			
+			sass.setOrigin(this.getOrigin());
+			
+			TLAExpr expr = new TLAExpr();
+			expr.addLine();    			
+			
+			ArrayList<String> temp_vars = new ArrayList<>();
+			
+			for(int i = 0; i < channel.dimensions.size(); i++) {
+				String dimension = (String) channel.dimensions.get(i);
+				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
+				temp_vars.add(tempVarName);
+				if(i == 0) {
+					expr.addToken(PcalTranslate.BuiltInToken("["));
+				}
+				expr.addToken(PcalTranslate.IdentToken(tempVarName));
+				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+				expr.addToken(PcalTranslate.IdentToken(dimension));
+
+
+				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+					expr.addToken(PcalTranslate.BuiltInToken(", "));
+				}
+			}
+		
+			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+			
+			if (callExp_dim == 1) {
+				expr.addToken(PcalTranslate.BuiltInToken("IF"));
+				expr.addToken(PcalTranslate.BuiltInToken(" _n0 = " + callExp.toPlainString().substring(1, callExp.toPlainString().length()-1)));
+				expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
+				expr.addToken(PcalTranslate.BuiltInToken(" Append("));
+				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1], "));
+				
+				expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+				for(int i = 0; i < msg.tokens.size(); i++) {
+
+		   			Vector tv = (Vector) msg.tokens.elementAt(i);
+		   			for (int j = 0; j < tv.size(); j++) {
+		   				TLAToken tok = (TLAToken) tv.elementAt(j);
+
+		   				expr.addToken(tok);
+		   			}
+		   		}
+				expr.addToken(PcalTranslate.BuiltInToken(", clock |-> "));
+				expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+				expr.addToken(PcalTranslate.BuiltInToken("]"));
+				expr.addToken(PcalTranslate.BuiltInToken(")"));
+				
+				expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
+				expr.addToken(PcalTranslate.BuiltInToken(channelName + "[_n0, _n1]"));
+			} 
+			else {
+				expr.addToken(PcalTranslate.BuiltInToken(" Append("));
+				expr.addToken(PcalTranslate.BuiltInToken(channelName));
+				expr.addToken(PcalTranslate.BuiltInToken("["));
+				for(int i = 0; i < channel.dimensions.size(); i++) {
+					expr.addToken(PcalTranslate.IdentToken(temp_vars.get(i)));
+					if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
+						expr.addToken(PcalTranslate.BuiltInToken(", "));
+					}
+				}
+				
+				expr.addToken(PcalTranslate.BuiltInToken("]"));
+				expr.addToken(PcalTranslate.BuiltInToken(" , "));			
+		   		
+				expr.addToken(PcalTranslate.BuiltInToken("[msg |-> "));
+		   		for(int i = 0; i < msg.tokens.size(); i++) {
+
+		   			Vector tv = (Vector) msg.tokens.elementAt(i);
+		   			for (int j = 0; j < tv.size(); j++) {
+		   				TLAToken tok = (TLAToken) tv.elementAt(j);
+
+		   				expr.addToken(tok);
+		   			}
+		   		}
+		   		
+		   		expr.addToken(PcalTranslate.BuiltInToken(", clock |-> "));
+		   		expr.addToken(PcalTranslate.BuiltInToken(clock.toPlainString()));
+		   		expr.addToken(PcalTranslate.BuiltInToken("]"));
+		   		expr.addToken(PcalTranslate.BuiltInToken(")"));
+			}
+			
+			expr.addToken(PcalTranslate.BuiltInToken("]"));
+			expr.setOrigin(this.getOrigin());
+			expr.normalize();
+
+			sass.rhs = expr;
+
+			AST.Assign assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+
+			assign.ass.addElement(sass);
+			result.addElement(assign);
+			
+			///////////////////////////////
+			sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+			sass.lhs.var = clock.toPlainString();
+			
+			expr = new TLAExpr();
+			
+			//if(callExp.tokens != null)
+			//sass.lhs.sub = callExp;
+			//else
+			sass.lhs.sub = new TLAExpr(new Vector());
+			
+			expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
+			
+			/*
+			if(callExp.tokens != null) {
+			for(int i = 0; i < callExp.tokens.size(); i++) {
+			
+			Vector tv = (Vector) callExp.tokens.elementAt(i);
+			for (int j = 0; j < tv.size(); j++) {
+				TLAToken tok = (TLAToken) tv.elementAt(j);
+			
+				expr.addToken(tok);
+			}
+			}
+			}
+			*/
+			
+			expr.addToken(PcalTranslate.BuiltInToken(" + 1 "));
+			
+			sass.rhs = expr;
+			
+			sass.setOrigin(this.getOrigin());
+			
+			assign = new AST.Assign();
+			assign.ass = new Vector();
+			assign.line = line ;
+			assign.col  = col ;
+			assign.setOrigin(this.getOrigin());
+			
+			assign.ass.addElement(sass);
+			
+			result.addElement(assign);
+			
+			return result;
+		}
    }
    
-   // For Distributed Plucal2. 
-   public static abstract class ChannelCall extends AST {
-	   public String name = "";
-	   public String channelName = "";
-	   public TLAExpr callExp = new TLAExpr(new Vector());
-	   
-	   public abstract Vector generateTemplate(Channel channel) throws ParseAlgorithmException; 
-   }
-   
-   public static class ChannelSendCall extends ChannelCall{
-   	public TLAExpr msg = null;
+   public static class ChannelSendCall extends AST{
+    public String name = "";
+   	public String channelName = "";
+    public TLAExpr callExp = new TLAExpr(new Vector());
+	public TLAExpr msg = null;
    	public Boolean isBroadcast = false;
    	public Boolean isMulticast = false;
    	
@@ -2287,25 +3160,39 @@ public class AST
    			EndIndent() ;
    	}
    	
-     	/**
-     	 * generates the body for a send call
-     	 * @param channel
-     	 * @return
-     	 * @throws ParseAlgorithmException 
-     	 */
-   	
-   	public Vector generateTemplate(Channel channel) throws ParseAlgorithmException {
-   		if (isBroadcast)
-   			return channel.broadcast(channel, channelName, msg, callExp);
-   		else if (isMulticast)
-   			return channel.multicast(channel, channelName, msg);
-   		else
-   			return channel.send(channel, channelName, msg, callExp);
-   	}
+   	/**
+ 	 * generates the body for a send call
+ 	 * @param channel
+ 	 * @return
+ 	 */
+	public Vector generateBodyTemplate(Channel channel) {
+			return channel.send(channel, channelName, msg, callExp);
+	}
+	
+	/**
+	 * 
+	 * @param channel
+	 * @return
+	 * @throws ParseAlgorithmException 
+	 */
+	public Vector generateBroadcastBodyTemplate(Channel channel) throws ParseAlgorithmException {
+		return channel.broadcast(channel, channelName, msg, callExp);
+	}
+	/**
+	 * @param channel
+	 * @return
+	 * @throws ParseAlgorithmException 
+	 */
+	public Vector generateMulticastBodyTemplate(Channel channel) throws ParseAlgorithmException {
+		return channel.multicast(channel, channelName, msg);
+	}
 
    }
   
-   public static class ChannelReceiveCall extends ChannelCall{
+   public static class ChannelReceiveCall extends AST{
+	   public String name = "";
+	   public String channelName = "";
+	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public Vector args;
 	   String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
@@ -2325,14 +3212,17 @@ public class AST
 			   EndIndent() ;
 	   }
 
-	   public Vector generateTemplate(Channel channel) {
-		   return channel.receive(channel, channelName, targetVarName, callExp, targetExp);
+	   public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
+		   return channel.receive(channel, channelName, targetVar, callExp, targetExp);
 	   }
 	   
    }
 
    
-   public static class ChannelClearCall extends ChannelCall{
+   public static class ChannelClearCall extends AST{
+	   public String name = "";
+	   public String channelName = "";
+	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public String type;
 	   public ChannelClearCall() {};
 	   
@@ -2345,12 +3235,102 @@ public class AST
 			   EndIndent() ;
 	   }
 
-	   public Vector generateTemplate(Channel channel) throws ParseAlgorithmException {
+	   public Vector generateBodyTemplate(Channel channel) throws ParseAlgorithmException {
 		   return channel.clear(channel, channelName, callExp);
 	   }
 	   
    }
+   
+   // For Distributed PlusCal. Channel operations with logical clocks
+   public static class ChannelSendWithClockCall extends AST{
+	    public String name = "";
+	   	public String channelName = "";
+	    public TLAExpr callExp = new TLAExpr(new Vector());
+		public TLAExpr msg = null;
+	   	public Boolean isBroadcast = false;
+	   	public Boolean isMulticast = false;
+	   	public TLAExpr clock = null;
+	   	
+	   	public ChannelSendWithClockCall() {};
+	   	public String toString()
+	   	{ return 
+	   			Indent(lineCol()) + 
+	   			"[type |-> \"ChannelSender\"," + NewLine() +
+	   			" name |-> \"" + name + "\"," + NewLine() +
+	   			Indent(" channel     |-> ") + channelName + "]" +
+	   			EndIndent() + NewLine() +
+	   			Indent(" msg     |-> ") + msg + "]" +
+	   			EndIndent() +
+	   			Indent(" callExp     |-> ") + callExp + "]" +
+	   			EndIndent() +
+	   			Indent(" clock     |-> ") + clock + "]" +
+	   			EndIndent() +
+	   			EndIndent() ;
+	   	}
+	   	
+	   	/**
+	 	 * generates the body for a send call
+	 	 * @param channel
+	 	 * @return
+	 	 */
+		public Vector generateBodyWithClockTemplate(Channel channel) {
+				return channel.sendWithClock(channel, channelName, msg, callExp, clock);
+		}
+		
+		/**
+		 * 
+		 * @param channel
+		 * @return
+		 * @throws ParseAlgorithmException 
+		 */
+		public Vector generateBroadcastWithClockBodyTemplate(Channel channel) throws ParseAlgorithmException {
+			return channel.broadcastWithClock(channel, channelName, msg, callExp, clock);
+		}
+		
+		/**
+		 * @param channel
+		 * @return
+		 * @throws ParseAlgorithmException 
+		 */
+		// Need to think about multicast implementation with logical clocks. QUESTION
+		public Vector generateMulticastBodyTemplate(Channel channel) throws ParseAlgorithmException {
+			return channel.multicast(channel, channelName, msg);
+		}
 
+	   }
+   
+   public static class ChannelReceiveWithClockCall extends AST{
+	   public String name = "";
+	   public String channelName = "";
+	   public TLAExpr callExp = new TLAExpr(new Vector());
+	   public Vector args;
+	   String targetVarName = "";
+	   public TLAExpr targetExp = new TLAExpr(new Vector());
+	   
+	   public TLAExpr clock = null;
+	   
+	   public ChannelReceiveWithClockCall() {};
+	   public String toString()
+	   { return 
+			   Indent(lineCol()) + 
+			   "[type |-> \"ChannelReceiver\"," + NewLine() +
+			   Indent(" channel     |-> ") + channelName + "," +
+			   EndIndent() +
+			   Indent(" targetVar     |-> ") + targetVarName + "," +
+			   EndIndent() +
+			   Indent(" callExp     |-> ") + callExp + "," +
+			   EndIndent() +
+			   Indent(" targetExp     |-> ") + targetExp + "]" +
+			   EndIndent() +
+			   EndIndent() ;
+	   }
+
+	   public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
+		   return channel.receiveWithClock(channel, channelName, targetVar, callExp, targetExp, clock);
+	   }
+	   
+   }
+   
   
   public static class Thread extends AST{
 	  public String    name  = "" ;
@@ -2391,11 +3371,7 @@ public class AST
 	   	public abstract Vector reset(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException;
   }
   
-  public static interface ClockCall {
-	  
-  }
-  
-  public static class ClockIncreaseCall extends AST implements ClockCall{
+  public static class ClockIncreaseCall extends AST{
 	   public String name = "";
 	   public Channel clock = null;
 	   public String clockName = null;
@@ -2419,7 +3395,7 @@ public class AST
 	   }
   }
   
-  public static class ClockUpdateCall extends AST implements ClockCall{
+  public static class ClockUpdateCall extends AST{
 	   public String name1 = "";
 	   public Channel clock1 = null;
 	   public String clockName1 = null;
@@ -2448,7 +3424,7 @@ public class AST
 	   }
   }
   
-  public static class ClockResetCall extends AST implements ClockCall{
+  public static class ClockResetCall extends AST{
 	   public String name = "";
 	   public Channel clock = null;
 	   public String clockName = null;

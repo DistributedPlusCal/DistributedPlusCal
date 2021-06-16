@@ -14,14 +14,13 @@ Nodes == 1 .. N
 channel chan[Nodes];
 
 macro send_to(i, msg) {
-  send(chan[i], msg);
+    send(chan[i], msg);
 }
 
 macro receive_from_channel(x, msg, i) {
     cur := cur + x;
     send_to(i, msg);
 }
-
 
 macro cl() {
     clear(chan);

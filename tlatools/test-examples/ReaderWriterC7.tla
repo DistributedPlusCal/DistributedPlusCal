@@ -14,12 +14,14 @@ variable cur = "none";
 channel chan[Nodes];
 
 process ( w \in Nodes )
+logicalClock clock;
 {
 	Write:
        	send(chan[self], "msg");
+          increase(clock);
 } {
 	Read:
-    	receive(chan[self], cur);
+    	     receive(chan[self], cur);
 }
 
 }

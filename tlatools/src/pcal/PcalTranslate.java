@@ -42,7 +42,7 @@ public class PcalTranslate {
      *  
      */
     private static String currentProcedure;  
-    public final static Integer DEFAULT_THREAD = -1;
+    public final static Integer NO_THREAD = -1;
     
     private static boolean mp; // For Distributed Pluscal. true if multiprocess spec otherwise false
     
@@ -180,11 +180,27 @@ public class PcalTranslate {
       { Vector firstLine = new Vector() ;
         int nextCol = 0 ;
         int i = 0 ;
+      //For Distributed pluscal
+        // HC: don't add a space after pc if followed by [...]
+        //   otherwise we get, for multi threads, pc[...] [...]
+        boolean justPC = false;
         while (i < vec.size())
           { TLAToken tok = ((TLAToken) vec.elementAt(i)).Clone() ;
             tok.column = nextCol ;
+            //For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+                if(tok.string.charAt(0)=='[' && justPC) tok.column -= spaces ;
+            }
             firstLine.addElement(tok) ;
             nextCol = nextCol + tok.getWidth() + spaces ;
+            //For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+              if(tok.string.equals("pc")){
+                justPC = true ;
+              } else {
+                justPC = false ;
+              }
+            }
             i = i + 1 ;
           } ;
         
@@ -247,16 +263,20 @@ public class PcalTranslate {
          *********************************************************************/
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
-        // sAss.lhs.sub = MakeExpr(new Vector()) ;
-        //For Distributed pluscal 
-        if(threadIndex == DEFAULT_THREAD) {
-        	sAss.lhs.sub = MakeExpr(new Vector());
-        } else {
-        	TLAExpr expr = new TLAExpr();
-        	expr.addLine();
+        // For Distributed pluscal
+        if(PcalParams.distpcalFlag) {
+          if(threadIndex == NO_THREAD) {
+            sAss.lhs.sub = MakeExpr(new Vector());
+          } else {
+            TLAExpr expr = new TLAExpr();
+            expr.addLine();
             TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
             expr.addToken(tok);
             sAss.lhs.sub = expr;
+          }
+        } else {
+          // HC: could rely on threadIndex when no distpcalFlag and remove the else
+          sAss.lhs.sub = MakeExpr(new Vector()) ;
         }
         sAss.rhs = exp ;
         AST.Assign result = new AST.Assign() ;
@@ -298,7 +318,9 @@ public class PcalTranslate {
         toks.addElement(AddedToken("pc"));
         //For Distributed pluscal. distpcal && mp
         if(PcalParams.distpcalFlag && mp) {
-          toks.addElement(BuiltInToken(threadIndex == DEFAULT_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+        	PcalDebug.reportInfo("threadIndex = " + threadIndex);
+          //toks.addElement(BuiltInToken(threadIndex == NO_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+        	toks.addElement(BuiltInToken("[" + String.valueOf(threadIndex + 1) + "]"));
         }
         toks.addElement(BuiltInToken("="));
         toks.addElement(StringToken(label));
@@ -323,7 +345,8 @@ public class PcalTranslate {
                                         Vector unlabThen,
                                         String nextThen,
                                         Vector unlabElse,
-                                        String nextElse) {
+                                        String nextElse,
+                                        Integer threadIndex) {
         /*********************************************************************
         * Generate  if test then unlabThen; pc := nextThen ;                 *
         *           else unlabElse; pc := nextElse ;                         *
@@ -331,9 +354,9 @@ public class PcalTranslate {
         AST.If ifForLabelIf = new AST.If();
         ifForLabelIf.test = test;
         ifForLabelIf.Then = unlabThen;
-        ifForLabelIf.Then.addElement(UpdatePC(nextThen, DEFAULT_THREAD)); 
+        ifForLabelIf.Then.addElement(UpdatePC(nextThen, threadIndex)); 
         ifForLabelIf.Else = unlabElse;
-        ifForLabelIf.Else.addElement(UpdatePC(nextElse, DEFAULT_THREAD)); 
+        ifForLabelIf.Else.addElement(UpdatePC(nextElse, threadIndex)); 
         return ifForLabelIf;
     }
 
@@ -380,7 +403,7 @@ public class PcalTranslate {
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(
                                     ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i), DEFAULT_THREAD)); // dostonbek. send null for uni-process specs
+                                                     ast.prcds.elementAt(i), NO_THREAD));
             i = i + 1;
         }
         i = 0;
@@ -397,7 +420,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, DEFAULT_THREAD)); // dostonbek. send null for uni-process specs
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, NO_THREAD)); // dostonbek. send null for uni-process specs
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -424,7 +447,7 @@ public class PcalTranslate {
         // Distributed Pluscal
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i), DEFAULT_THREAD));
+                                                     ast.prcds.elementAt(i), NO_THREAD));
             i = i + 1;
         }
         i = 0;
@@ -509,7 +532,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, DEFAULT_THREAD));
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -1099,7 +1122,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
         
         //For Distributed pluscal
-        if(threadIndex == DEFAULT_THREAD) {
+        if(threadIndex == NO_THREAD) {
         	sass.lhs.sub = MakeExpr(new Vector());
         } else {
         	TLAExpr expr = new TLAExpr();
@@ -1189,7 +1212,18 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
-            sass.lhs.sub = MakeExpr(new Vector());
+            //For Distributed pluscal, so that the local procedure
+            // variables are also referenced using thread index when
+            // the procedure is called
+            if(threadIndex == null) {
+            	sass.lhs.sub = MakeExpr(new Vector());
+            } else {
+            	TLAExpr exp = new TLAExpr();
+            	exp.addLine();
+                TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+                exp.addToken(tok);
+                sass.lhs.sub = exp;
+            }
             sass.rhs = (TLAExpr) ast.args.elementAt(i);
             ass.ass.addElement(sass);
         }
@@ -1218,7 +1252,7 @@ public class PcalTranslate {
             //For Distributed pluscal, so that the local procedure
             // variables are also referenced using thread index when
             // the procedure is called
-            if(threadIndex == DEFAULT_THREAD) {
+            if(threadIndex == NO_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();
@@ -1300,7 +1334,7 @@ public class PcalTranslate {
         sass.lhs.var = "pc";
 
         //For Distributed pluscal
-        if(threadIndex == DEFAULT_THREAD) {
+        if(threadIndex == NO_THREAD) {
           sass.lhs.sub = new TLAExpr();        
         } else {
           TLAExpr exp = new TLAExpr();
@@ -1396,7 +1430,7 @@ public class PcalTranslate {
         sass.lhs.var = "stack";
 
         //For Distributed pluscal        
-        if(threadIndex == DEFAULT_THREAD) {
+        if(threadIndex == NO_THREAD) {
          	// sass.lhs.sub = MakeExpr(new Vector());
           sass.lhs.sub = new TLAExpr();
         } else {
@@ -1513,7 +1547,7 @@ public class PcalTranslate {
             sass.lhs.var = "stack";
             
             //For Distributed PlusCal
-            if(threadIndex == DEFAULT_THREAD) {
+            if(threadIndex == NO_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
             	TLAExpr exp = new TLAExpr();

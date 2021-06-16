@@ -37,7 +37,13 @@ public class PcalTLAGen
        //    iff  the ... would begin in a column > ssWrapColumn.
        // For the time being, it is set to wrapColumn - 33.  We may want
        // to do something cleverer or else make it a user option.
-
+  
+    //For Distributed PlusCal
+    // index for fresh variables (for SubProcSet)
+    // make it public if we want to set it as a parameter
+    private static int varIndex=42;
+    
+    
     // Private class variables
     /** The tlacode field accumulates the translation as it is constructed.  It 
      * should be a vector of separate lines.  Keiths original implementation put
@@ -277,7 +283,7 @@ public class PcalTLAGen
     {
         mp = false;
         currentProcName = "Next";
-        GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs, null);
+        GenVarsAndDefs(ast.decls, ast.prcds, null, ast.defs);
         GenInit(ast.decls, ast.prcds, null);
         for (int i = 0; i < ast.prcds.size(); i++)
             GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -296,7 +302,7 @@ public class PcalTLAGen
     private void GenMultiprocess(AST.Multiprocess ast, String context) throws PcalTLAGenException
     {
         mp = true;
-        GenVarsAndDefs(ast.decls, ast.prcds, ast.procs, ast.defs, null);
+        GenVarsAndDefs(ast.decls, ast.prcds, ast.procs, ast.defs);
         GenProcSet();
         if ( PcalParams.distpcalFlag )
     		GenSubProcSet();
@@ -472,9 +478,9 @@ public class PcalTLAGen
         	// For Distributed Pluscal. 
         	if ( PcalParams.distpcalFlag ) {
         		for(AST.Thread thread : ast.threads) {
-                	for (int i = 0; i < thread.body.size(); i++) {
-                		AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(i);
-                		GenLabeledStmt(stmt, "thread");
+                	for (int j = 0; j < thread.body.size(); j++) {
+                		AST.LabeledStmt tstmt = (AST.LabeledStmt) thread.body.elementAt(j);
+                		GenLabeledStmt(tstmt, "thread");
                 	}
         		}
         	} else {
@@ -510,14 +516,16 @@ public class PcalTLAGen
         	for (int j = 0; j < ast.threads.size(); j++) {
 				//iterate the threads of each node
 				AST.Thread thread = ast.threads.elementAt(j);
-				for (int k = 0; k < thread.body.size(); k++) {
-					AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(k);
+				for (int i = 0; i < thread.body.size(); i++) {
+					AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(i);
 					String disjunct = stmt.label + argument;
 					if (j != 0 && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
 							+ disjunct.length() > wrapColumn) {
 						endCurrentLineOfTLA();
 					}
-					addOneTokenToTLA(((tlacodeNextLine.length() == 0) ? indentSpaces : "") + " \\/ ");
+					if (i != 0 || j != 0) { //HC: not first thread or not first label
+						 addOneTokenToTLA(((tlacodeNextLine.length() == 0) ? indentSpaces : "") + " \\/ ");
+					}
 					addLeftParen(stmt.getOrigin());
 					addOneTokenToTLA(disjunct);
 					addRightParen(stmt.getOrigin());
@@ -633,10 +641,11 @@ public class PcalTLAGen
         StringBuffer sb = new StringBuffer(actionName);
         /* c is used to determine which vars are in UNCHANGED. */
         Changed c = new Changed(vars);
+        //PcalDebug.reportInfo("selfIsSelf test :: " + selfIsSelf);
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
-        	
+        	//PcalDebug.reportInfo("selfIsSelf test ############################## ::::: " + selfIsSelf);
         	if(PcalParams.distpcalFlag && context.equals("procedure")) {
-        		PcalDebug.reportInfo("distpcal and context=procedure");
+        		//PcalDebug.reportInfo("!!!!!!!!!!!!!! distpcal and context=procedure");
                 sb.append("(self, subprocess)");
         	} else {
                 sb.append("(self)");
@@ -1025,12 +1034,14 @@ public class PcalTLAGen
                 TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
                 
-                //inside the procedure extend the self exp for both pc and stack variables
-                // dm. iff distpcal and mp then for stack and pc 2 dimensional
-                if(PcalParams.distpcalFlag && mp && context.equals("procedure") &&
-                		(sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc"))) {
+                ///For Distributed PlusCal 
+                if(PcalParams.distpcalFlag){
+                  // inside the procedure extend the self exp for both pc
+                  //   and stack variables
+                  if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
                 	sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
+                  }
             	}
                 
                 if (mp
@@ -1038,15 +1049,21 @@ public class PcalTLAGen
                         		|| sass.lhs.var.equals("stack")))
                 {
                 	
-                	//if the context is not a procedure then we are handling a procedure call and we need to update
-                	// rhs to include the thread index
-                	if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
-                		
-                    	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
-                		String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
-                				sass.lhs.sub.toPlainString().indexOf("]"));
-                        TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
-                        
+                	//For Distributed PlusCal 
+                    if(PcalParams.distpcalFlag){                	
+                      // if the context is not a procedure then we are handling a
+                      //  procedure call and we need to update
+                      // rhs to include the thread index
+                      if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
+                        // we can't add a sub-expression here since we are not
+                        //  handling a lhs of an assignment object
+                        String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
+                                                                                       sass.lhs.sub.toPlainString().indexOf("]"));
+
+                        // HC: use the expression self instead of "self" 
+                        // TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
+                        TLAToken selfToken = new TLAToken(getStringFromExpr(self)+"][" + requiredString, 0, TLAToken.IDENT, true);
+                          
                         Vector tokenVec = new Vector();
                         tokenVec.addElement(selfToken);
                         Vector tokens = new Vector();
@@ -1055,8 +1072,10 @@ public class PcalTLAGen
                         TLAExpr expr = new TLAExpr(tokens);
                         expr.normalize();
                         
-                    	rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
-                	}
+                        rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
+
+                      }
+                    }
                 	
                     /* Generate single assignment to variable with self subscript */
                     sb.append(sass.lhs.var);
@@ -1233,7 +1252,7 @@ public class PcalTLAGen
                 if (i == 0) {
                     cc = cc + prefix.length();
                 }
-                boolean subscript = (mp && (IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) /*|| IsNodeSetVar(sass.lhs.var)*/));
+                boolean subscript = (mp && (IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var)));
                 while (iFirst <= iLast)
                 {
                     sass = (AST.SingleAssign) ast.ass.elementAt(iFirst);
@@ -1895,7 +1914,7 @@ public class PcalTLAGen
     * Method renamed from GenVars and given the defs argument by LL on     *
     * 25 Jan 2006 to handle the `define' statement.                        *
     ***********************************************************************/
-    private void GenVarsAndDefs(Vector globals, Vector procs, Vector processes, TLAExpr defs, Vector nodes)
+    private void GenVarsAndDefs(Vector globals, Vector procs, Vector processes, TLAExpr defs)
       throws PcalTLAGenException
     {
         /*******************************************************************
@@ -2232,6 +2251,7 @@ public class PcalTLAGen
                 is = new StringBuffer(NSpaces(col));
             }
         }
+        
         if (procs != null && procs.size() > 0)
         {
             /* Procedure variables and parameters */
@@ -2300,7 +2320,7 @@ public class PcalTLAGen
                                               new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
-                        
+                      //For Distributed PlusCal
                         if(PcalParams.distpcalFlag) {
                         	addOneTokenToTLA("]");
                         }
@@ -2380,7 +2400,7 @@ public class PcalTLAGen
                                         new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
-                        
+                        // For Distributed PlusCal
                         if(PcalParams.distpcalFlag) {
                         	addOneTokenToTLA("]");
                         }
@@ -3376,7 +3396,7 @@ public class PcalTLAGen
         		   
         		   String pName = p.name;
                    if (!p.isEq) {
-                       pName = p.name + "(self)"; // question. Why is that self, but not self, subprocess for distpcal?
+                       pName = p.name + "(self)";
                    }
                    wfSB.append(pName);
         		   wfSB.append(")");
@@ -3452,7 +3472,7 @@ public class PcalTLAGen
                                }
                                sfPrcSB.append("SF_vars(");
                                sfPrcSB.append(prcAst.plusLabels.elementAt(j));
-                               sfPrcSB.append("(" + qSelf + ")") ; // question. why not self, subprocess for distpcal?
+                               sfPrcSB.append("(" + qSelf + ")") ;
                                sfPrcSB.append(")");
                            }
                        }
@@ -4683,21 +4703,21 @@ public class PcalTLAGen
 		StringBuffer ps = new StringBuffer();
 		if (st.processes == null || st.processes.size() == 0)
 			return;
-		// For Distributed Pluscal. _n instead of n to overcome variable name clash
-		ps.append("SubProcSet == [_n \\in ProcSet |-> ");
+		// For Distributed Pluscal
+		String ind = "_n" + varIndex++;
+		ps.append("SubProcSet == ["+ind+" \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
 		
 		//if there is only one proce
 		if(st.processes.size() == 1) {
-			PcalDebug.reportInfo("class type : " + st.processes.elementAt(0).getClass());
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(0);
 			
-			if(node.threads.size() > 1){
+			//if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
-			} else {
-				ps.append("1");
-			}
+			//} else {
+			//	ps.append("1");
+			//}
 			
 			ps.append("]");
 			addOneLineOfTLA(ps.toString());
@@ -4730,9 +4750,9 @@ public class PcalTLAGen
 			
 			if(i != st.processes.size() - 1) {
 				if (node.isEq) {
-					ps.append("IF n = ");
+					ps.append("IF " + ind + " = ");
 				} else {
-					ps.append("IF n \\in ");
+					ps.append("IF " + ind + " \\in ");
 				}
 			}
 			positionOfLastIf = ps.length();
@@ -4747,11 +4767,11 @@ public class PcalTLAGen
 				ps.append("**) ");
 			}
 			
-			if(node.threads.size() > 1){
+			//if(node.threads.size() > 1){
 				ps.append("1.." + (node.threads.size()));
-			} else {
-				ps.append("1");
-			}
+			//} else {
+				//ps.append("1");
+			//}
 			
 			if(i == st.processes.size() - 1) {
 				ps.append("]");
@@ -4761,9 +4781,7 @@ public class PcalTLAGen
 			
 		}
 		endCurrentLineOfTLA();
-		addOneLineOfTLA("");
-		
-		endCurrentLineOfTLA();
+
 		addOneLineOfTLA("");
 	}
 	
@@ -4778,9 +4796,9 @@ public class PcalTLAGen
 		
 		for(int i = 0; i < decl.dimensions.size(); i++) {
 			String dimension = (String) decl.dimensions.get(i);
-			// For Distributed PlusCal. append _ to overcome variable name clash
-			String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
-
+			// For Distributed Pluscal. HC: add counter
+			//String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
 			}
@@ -4818,7 +4836,7 @@ public class PcalTLAGen
 		for(int i = 0; i < decl.dimensions.size(); i++) {
 			String dimension = (String) decl.dimensions.get(i);
 			// For Distributed PlusCal. append _ to overcome variable name clash
-			String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
+			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
 
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -4862,5 +4880,32 @@ public class PcalTLAGen
         	dm.add(temp.toString());
         return dm;
 	}
+	
+	//For Distributed PlusCal
+	 /**
+	   * Extracts the string for the expression.
+	   * see addExprToTLA(TLAExpr expr) {
+	   * @param expr
+	   */
+	  private String getStringFromExpr(TLAExpr expr) {
+	    String res = "";
+	    Vector sv = expr.toStringVector() ;
+	    int indent = res.length() ; 
+	    int nextLine = 0 ; 
+	    if (sv.size() > 1) {
+	            String spaces = NSpaces(indent);
+	            while (nextLine < sv.size()-1) {
+	                nextLine++ ;
+	            }
+	            res = spaces + ((String) sv.elementAt(nextLine)) ;
+	    }
+	    else if (indent == 0){
+	            /*
+	             * If indent != 0, then we've already added the one-line expression.
+	             */
+	            res = res + ((String) sv.elementAt(0));
+	    }
+	    return res;
+	  }
 	
 }

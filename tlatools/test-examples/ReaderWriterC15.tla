@@ -31,10 +31,10 @@ vars == << chan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [mnk15 \in ProcSet |-> 1]
+SubProcSet == [n \in ProcSet |-> 1]
 
 Init == (* Global variables *)
-        /\ chan = [wem13 \in Nodes, xbf23 \in Nodes |-> <<>>]
+        /\ chan = [n0 \in Nodes, n1 \in Nodes |-> <<>>]
         /\ pc = [self \in ProcSet |-> <<"Write">>]
 
 Write(self) == /\ pc[self] [1] = "Write"
