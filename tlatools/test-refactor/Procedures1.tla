@@ -7,8 +7,8 @@ EXTENDS TLC, Integers, Sequences
 N == 2
 \* CONSTANT MAXINT      (* Size of arrays *)
 MAXINT == 3
-\* CONSTANT PROCSet     (* Set of process indexes *)
-PROCSet == 1 .. 2
+\* CONSTANT Nodes     (* Set of process indexes *)
+Nodes == 1 .. 3
  
 (*
 --algorithm LamportMutex {
