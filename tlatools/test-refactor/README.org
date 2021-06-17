@@ -85,8 +85,6 @@
 
 * Procedures
 - 1p1s -> one process / one thread
-- 1p2t -> one process / one thread
+- 1p2t -> one process / two threads
 - both use the same procedure
-
-* Procedures2t
-- one process with two threads
+- Rec -> recursive procedure, no channels
