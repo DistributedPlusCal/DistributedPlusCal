@@ -120,6 +120,9 @@ public class PcalTLAGen
      */
     private String currentProcName ;
     
+ // // For Distributed PlusCal. dm. To store variables local to processes.
+    private ArrayList<String> process_local_vars = new ArrayList<>();;
+    
     /**
      * Generates the translation.
      * 
@@ -199,8 +202,12 @@ public class PcalTLAGen
 //System.out.println((String) tlacode.elementAt(i)) ;
 //}
 //MappingObject.printMappingVector(mappingVector);
-
-        return tlacode;
+        
+        for (int i = 0; i < tlacode.size(); i++) {
+        	PcalDebug.reportInfo("tlacode at i : " + tlacode.get(i));
+        }
+        
+        return normalizeTlacode(tlacode);
     }
 
     /****************************************************************/
@@ -304,9 +311,29 @@ public class PcalTLAGen
         mp = true;
         GenVarsAndDefs(ast.decls, ast.prcds, ast.procs, ast.defs);
         GenProcSet();
-        if ( PcalParams.distpcalFlag )
+        if ( PcalParams.distpcalFlag ) {
     		GenSubProcSet();
-        	
+    		
+    		String temp_s = ast.toString();
+			
+			int w1 = temp_s.indexOf("procs");
+			int w2 = temp_s.indexOf("decls", w1);
+			int w3 = temp_s.indexOf(">>,", w2);
+			String res_s = temp_s.substring(w2, w3);
+			
+			int var_index = 0, t = 0;
+			// procedure_vars = new ArrayList<>(); dostonbek. needs to be initialized not inside local function.
+			// because for uni process specs this methods does not run. Thus, need to initialize it upon calling this class
+	        while ( true ) {
+	            var_index = res_s.indexOf("var |-> ", t);
+	            if (var_index == -1) {
+	                break;
+	            }
+	            t = res_s.indexOf(",", var_index);
+	            process_local_vars.add(res_s.substring(var_index+9, t-1));
+	        }
+        }
+        
         GenInit(ast.decls, ast.prcds, ast.procs);
         for (int i = 0; i < ast.prcds.size(); i++)
             GenProcedure((AST.Procedure) ast.prcds.elementAt(i), "");
@@ -935,7 +962,7 @@ public class PcalTLAGen
     private void GenAssign(AST.Assign ast, Changed c, String context, String prefix, int col)
             throws PcalTLAGenException
     {
-        Changed cThis = new Changed(c);
+    	Changed cThis = new Changed(c);
         StringBuffer sb = new StringBuffer();
 //        Vector vlines = new Vector();
         /*
@@ -943,7 +970,6 @@ public class PcalTLAGen
          * follow one another.
          */
         ast.ass = SortSass(ast.ass);
-
         addOneTokenToTLA(prefix);
         addLeftParen(ast.getOrigin());
         
@@ -1034,6 +1060,16 @@ public class PcalTLAGen
                 TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
                 
+                // For Distributed PlusCal. dm. change rhs expression for process local vars.
+                //int w1 = ast.toString().indexOf("var |-> ");
+                //int w2 = ast.toString().indexOf(",", w1);
+                //String ws = ast.toString().substring(w1+9, w2-1);
+                //if ( PcalParams.distpcalFlag && process_local_vars.contains(ws) ) {                			
+                	//rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(PcalTLAGen.selfAsExpr()), c);
+                	//PcalDebug.reportInfo("000. rhs : " + rhs.toPlainString());
+                //}
+                
+                
                 ///For Distributed PlusCal 
                 if(PcalParams.distpcalFlag){
                   // inside the procedure extend the self exp for both pc
@@ -1064,7 +1100,6 @@ public class PcalTLAGen
                         // HC: use the expression self instead of "self" 
                         // TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
                         TLAToken selfToken = new TLAToken(getStringFromExpr(self)+"][" + requiredString, 0, TLAToken.IDENT, true);
-                          
                         Vector tokenVec = new Vector();
                         tokenVec.addElement(selfToken);
                         Vector tokens = new Vector();
@@ -1074,7 +1109,7 @@ public class PcalTLAGen
                         expr.normalize();
                         
                         rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
-
+                        //PcalDebug.reportInfo("111. rhs: " + rhs);
                       }
                     }
                 	
@@ -1084,7 +1119,30 @@ public class PcalTLAGen
                     int wrapCol = sb.length() + 2;
                     sb.append(sass.lhs.var);
                     sb.append(" EXCEPT ");
-                    
+                    //PcalDebug.reportInfo("22.     sass.lhs.var :" + sass.lhs.var);
+                    /* dostonbek. start
+                    if ( PcalParams.distpcalFlag && process_local_vars.contains(ws) ) {
+                    	TLAExpr my_self = PcalTLAGen.selfAsExpr();
+                    	Vector selfAsSV = my_self.toStringVector();
+                    	
+                        // The test for selfAsSV size added by LL on 22 Jan 2011
+                        // because wrapping screws up the kludgeToFixPCHandlingBug
+                        // hack.
+                        if ( (sb.length() + prefix.length() > ssWrapColumn)
+                             && (selfAsSV.size() == 0))
+                        {
+//                                lines.addElement(sb.toString());
+                            addOneLineOfTLA(sb.toString());
+                            sb = new StringBuffer(NSpaces(wrapCol));
+                        }
+                        sb.append("![");
+                        addOneTokenToTLA(sb.toString());
+                        addLeftParen(my_self.getOrigin());
+                        addExprToTLA(my_self);
+                        addRightParen(my_self.getOrigin());
+                    }
+                    else {
+                    */
                     Vector selfAsSV = self.toStringVector();
                     
                     // The test for selfAsSV size added by LL on 22 Jan 2011
@@ -1102,7 +1160,8 @@ public class PcalTLAGen
                     addLeftParen(self.getOrigin());
                     addExprToTLA(self);
                     addRightParen(self.getOrigin());
-                    
+                    //}
+                    // dostonbek end.
 //                    
 //                    // following code was modified by LL on 22 Jan 2011 as part of
 //                    // fixing bug 11_01_13, which required modifications to handle
@@ -1149,10 +1208,11 @@ public class PcalTLAGen
                     addExprToTLA(rhs);
                     addRightParen(rhs.getOrigin());
                     addOneTokenToTLA("]");
-                    
+                    //PcalDebug.reportInfo("33 .    rhs:  " + rhs);
                     sb = new StringBuffer();
                 } else if (!EmptyExpr(sass.lhs.sub))
                 {
+                	PcalDebug.reportInfo("else if (!EmptyExpr(sass.lhs.sub))   ");
                     /* 
                      * Generate single assignment to variable with no [self] subscript
                      * but with an explicit subscript. 
@@ -1160,6 +1220,7 @@ public class PcalTLAGen
                     sb.append(sass.lhs.var);
                     sb.append("' = [");
                     sb.append(sass.lhs.var);
+                    PcalDebug.reportInfo("sass.lhs.var : " + sass.lhs.var);
                     sb.append(" EXCEPT !");
                     addOneTokenToTLA(sb.toString());
                     addLeftParen(sub.getOrigin());
@@ -1170,6 +1231,8 @@ public class PcalTLAGen
                     addExprToTLA(rhs);
                     addRightParen(rhs.getOrigin());
                     addOneTokenToTLA("]");
+                    PcalDebug.reportInfo("rhs : " + rhs);
+                    PcalDebug.reportInfo("sub : " + sub);
 //                    
 //                    int here = sb.length();
 //                    Vector sv = sub.toStringVector();
@@ -1195,6 +1258,7 @@ public class PcalTLAGen
                     sb = new StringBuffer();
                 } else
                 {
+                	PcalDebug.reportInfo("ELSE branch");
                     /* 
                      * Generate assignment to a variable with no subscript at all.
                      */
@@ -1235,6 +1299,7 @@ public class PcalTLAGen
                 addRightParen(sass.getOrigin());
             } else
             {
+            	PcalDebug.reportInfo("ELSE branch new single assignment object");
                 /*
                  * Multiple assignments to the same variable, which must therefore
                  * each have a user-specified subscript.
@@ -3590,7 +3655,7 @@ public class PcalTLAGen
          * mapping vectors are not properly matching in the returned expression
          */
 //        int[] depths = new int[1000];
-        
+
         int parenDepth = 0;
         for (int i = 0; i < exprn.tokens.size(); i++) {
             Vector line = (Vector) exprn.tokens.elementAt(i);
@@ -4907,6 +4972,32 @@ public class PcalTLAGen
 	            res = res + ((String) sv.elementAt(0));
 	    }
 	    return res;
+	  }
+	  
+	  private Vector<String> normalizeTlacode(Vector<String> tlacode) {
+		  Vector<String> my_tlacode = new Vector<>();
+		  for (int i = 0; i < tlacode.size(); i++) {
+			  String line = tlacode.get(i);
+			  for (int j = 0; j < process_local_vars.size(); j++) {
+				  String t = process_local_vars.get(j);
+				  if (line.contains(t) && line.contains("[self][subprocess]")) {
+					  int d1 = line.indexOf("[");
+					  int d2 = line.indexOf(" E", d1);
+					  String p_var = line.substring(d1+1, d2);
+					  if (t.equals(p_var)) {
+						  line = line.replace("![self][subprocess]", "![self]");
+					  }
+				  }
+				  if (line.contains(t+"[self][subprocess]")) {
+					  line = line.replace(t+"[self][subprocess]", t+"[self]");
+				  }
+				  if (line.contains(t+"'[self][subprocess]")) {
+					  line = line.replace(t+"'[self][subprocess]", t+"'[self]");
+				  }
+			  }
+			  my_tlacode.add(line);
+		  }
+		  return my_tlacode;
 	  }
 	
 }

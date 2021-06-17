@@ -43,7 +43,7 @@ vars == << chan, pc, stack, msg >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
 
 
 Init == (* Global variables *)
@@ -70,15 +70,15 @@ Clear(self, subprocess) == /\ pc[self][subprocess] = "Clear"
 
 g(self, subprocess) == Clear(self, subprocess)
 
-Act1(self) == /\ pc[self] = "Act1"
+Act1(self) == /\ pc[self][1]  = "Act1"
               /\ stack' = [stack EXCEPT ![self][1] = << [ procedure |->  "g",
                                                           pc        |->  "Done" ] >>
                                                       \o stack[self][1]]
               /\ pc' = [pc EXCEPT ![self][1] = "Clear"]
               /\ UNCHANGED << chan, msg >>
 
-Act2(self) == /\ pc[self] = "Act2"
-              /\ /\ msg' = [msg EXCEPT ![self] = "msg"]
+Act2(self) == /\ pc[self][2]  = "Act2"
+              /\ /\ msg' = [msg EXCEPT ![self][2] = "msg"]
                  /\ stack' = [stack EXCEPT ![self][2] = << [ procedure |->  "f",
                                                              pc        |->  "Done",
                                                              msg       |->  msg[self][2] ] >>
@@ -86,14 +86,21 @@ Act2(self) == /\ pc[self] = "Act2"
               /\ pc' = [pc EXCEPT ![self][2] = "Send"]
               /\ chan' = chan
 
-q(self) ==  \/ Act1(self) \/ Act2(self)
+q(self) == Act1(self) \/ Act2(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess) \/ g(self, subprocess))
            \/ (\E self \in Nodes: q(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-5293331d56c4082e954320d0b3c5854b
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-51e35ce913548fccaa90cbc8be43e052
 
 
 =========================================================

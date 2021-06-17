@@ -47,11 +47,11 @@ vars == << chan, pc, stack, i, n, f0, f1, val >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
 
 Init == (* Global variables *)
-        /\ chan = [_n0 \in Nodes |-> {}]
+        /\ chan = [_n430 \in Nodes |-> {}]
         (* Procedure fib *)
         /\ i = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
         /\ n = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
@@ -65,21 +65,21 @@ Init == (* Global variables *)
 
 Start(self, subprocess) == /\ pc[self][subprocess] = "Start"
                            /\ IF n[self][subprocess] = 0
-                                 THEN /\ chan' = [chan EXCEPT ![i[self][subprocess]] = chan[i[self][subprocess]] \cup {f1[self][subprocess]}]
+                                 THEN /\ chan' = [chan EXCEPT ![i[self][subprocess]] = chan[i[self][subprocess]] \cup {f1[self]}]
                                       /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
                                       /\ i' = [i EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).i]
                                       /\ n' = [n EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).n]
                                       /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
                                       /\ UNCHANGED << f0, f1 >>
                                  ELSE /\ IF n[self][subprocess] = 1
-                                            THEN /\ chan' = [chan EXCEPT ![i[self][subprocess]] = chan[i[self][subprocess]] \cup {f1[self][subprocess]}]
+                                            THEN /\ chan' = [chan EXCEPT ![i[self][subprocess]] = chan[i[self][subprocess]] \cup {f1[self]}]
                                                  /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
                                                  /\ i' = [i EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).i]
                                                  /\ n' = [n EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).n]
                                                  /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
                                                  /\ UNCHANGED << f0, f1 >>
-                                            ELSE /\ f0' = [f0 EXCEPT ![self][subprocess] = f1[self][subprocess]]
-                                                 /\ f1' = [f1 EXCEPT ![self][subprocess] = f0'[self][subprocess] + f1[self][subprocess]]
+                                            ELSE /\ f0' = [f0 EXCEPT ![self] = f1[self]]
+                                                 /\ f1' = [f1 EXCEPT ![self] = f0'[self] + f1[self]]
                                                  /\ /\ i' = [i EXCEPT ![self][subprocess] = i[self][subprocess]]
                                                     /\ n' = [n EXCEPT ![self][subprocess] = n[self][subprocess]-1]
                                                     /\ stack' = [stack EXCEPT ![self][subprocess] = << [ procedure |->  "fib",
@@ -93,9 +93,9 @@ Start(self, subprocess) == /\ pc[self][subprocess] = "Start"
 
 fib(self, subprocess) == Start(self, subprocess)
 
-Read(self) == /\ pc[self] = "Read"
-              /\ /\ i' = [i EXCEPT ![self] = self]
-                 /\ n' = [n EXCEPT ![self] = val[self]]
+Read(self) == /\ pc[self][1]  = "Read"
+              /\ /\ i' = [i EXCEPT ![self][1] = self]
+                 /\ n' = [n EXCEPT ![self][1] = val[self]]
                  /\ stack' = [stack EXCEPT ![self][1] = << [ procedure |->  "fib",
                                                              pc        |->  "Result",
                                                              i         |->  i[self][1],
@@ -104,19 +104,26 @@ Read(self) == /\ pc[self] = "Read"
               /\ pc' = [pc EXCEPT ![self][1] = "Start"]
               /\ UNCHANGED << chan, f0, f1, val >>
 
-Result(self) == /\ pc[self] = "Result"
+Result(self) == /\ pc[self][1]  = "Result"
                 /\ PrintT(f1[self])
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                 /\ UNCHANGED << chan, stack, i, n, f0, f1, val >>
 
-w(self) ==  \/ Read(self) \/ Result(self)
+w(self) == Read(self) \/ Result(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  fib(self, subprocess))
            \/ (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ffbff6476f2b01d66162093b98d6e0f7
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f31a559544c2ff45f51a0d8f5e330b72
 
 
 =============================================================================

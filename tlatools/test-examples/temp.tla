@@ -8,81 +8,83 @@ Nodes == 1 .. N
 (* PlusCal options (-distpcal) *)
 
 (*
---algorithm LamportMutex {
+--algorithm example {
 
-variable cur = "none";
-channel chan[Nodes];
-fifo f_chan;
+variables chan = <<>>;
+
+procedure f(x) {
+    Add:
+        chan := Append(chan, x);
+        return;
+}
 
 process ( w \in Nodes )
-lamportClock clock;
+variable cur = "none";
 {
     rc:
-        receiveWithClock(chan[self], cur, clock);
-} {
-    sd:
-        sendWithClock(chan[self], "msg", clock);
-} {
-    brd:
-        broadcastWithClock(chan, "msg", clock);
-}
+        while (TRUE) {
+            call f(cur);
+        }
+} 
 
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-a3fd385db98eeae26ce954429fd9cf33
-VARIABLES cur, chan, pc, clock
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3118737da0f78fe2ad0dd64baca882b8
+CONSTANT defaultInitValue
+VARIABLES chan, pc, stack, x, cur
 
-vars == << cur, chan, pc, clock >>
+vars == << chan, pc, stack, x, cur >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n42 \in ProcSet |-> 1..3]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
-(* Comparator for lamport clocks *)
-Max(c,d) == IF c > d THEN c ELSE d
 
 Init == (* Global variables *)
-        /\ cur = "none"
-        /\ chan = [_n430 \in Nodes |-> {}]
+        /\ chan = <<>>
+        (* Procedure f *)
+        /\ x = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
         (* Process w *)
-        /\ clock = [self \in Nodes |-> 0]
-        /\ pc = [self \in ProcSet |-> <<"rc","sd","brd">>]
+        /\ cur = [self \in Nodes |-> "none"]
+        /\ stack = [self \in ProcSet |-> << <<>> >>]
+                                      
+        /\ pc = [self \in ProcSet |-> <<"rc">>]
+
+Add(self, subprocess) == /\ pc[self][subprocess] = "Add"
+                         /\ chan' = Append(chan, x[self][subprocess])
+                         /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
+                         /\ x' = [x EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).x]
+                         /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
+                         /\ cur' = cur
+
+f(self, subprocess) == Add(self, subprocess)
 
 rc(self) == /\ pc[self][1]  = "rc"
-            /\ \E _c149 \in chan[self]:
-                 /\ chan' = [chan EXCEPT ![self] = chan[self] \ {_c149}]
-                 /\ clock' = [clock EXCEPT ![self] = Max(clock[self], _c149.clock) + 1]
-                 /\ cur' = _c149
-            /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+            /\ /\ stack' = [stack EXCEPT ![self][1] = << [ procedure |->  "f",
+                                                           pc        |->  "rc",
+                                                           x         |->  x[self][1] ] >>
+                                                       \o stack[self][1]]
+               /\ x' = [x EXCEPT ![self][1] = cur[self]]
+            /\ pc' = [pc EXCEPT ![self][1] = "Add"]
+            /\ UNCHANGED << chan, cur >>
 
-sd(self) == /\ pc[self][2]  = "sd"
-            /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {[msg |-> "msg", clock |-> clock]}]
-            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
-            /\ pc' = [pc EXCEPT ![self][2] = "Done"]
-            /\ cur' = cur
-
-brd(self) == /\ pc[self][3]  = "brd"
-             /\ chan' = [_n0 \in Nodes |-> chan[_n0] \cup {[msg |-> "msg", clock |-> clock]}]
-             /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
-             /\ pc' = [pc EXCEPT ![self][3] = "Done"]
-             /\ cur' = cur
-
-w(self) == rc(self) \/ sd(self) \/ brd(self)
+w(self) == rc(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
                /\ UNCHANGED vars
 
-Next == (\E self \in Nodes: w(self))
+Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
+           \/ (\E self \in Nodes: w(self))
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f21dd23f8d256144a413b0d05d976139
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-05397bad3b3936cd529e65162f0efb7b
 
 
 =========================================================

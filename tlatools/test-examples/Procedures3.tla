@@ -37,7 +37,7 @@ vars == << chan, pc, stack, msg >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
 
 
 Init == (* Global variables *)
@@ -56,13 +56,13 @@ Send(self, subprocess) == /\ pc[self][subprocess] = "Send"
 
 f(self, subprocess) == Send(self, subprocess)
 
-Clear(self) == /\ pc[self] = "Clear"
+Clear(self) == /\ pc[self][1]  = "Clear"
                /\ chan' = {}
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                /\ UNCHANGED << stack, msg >>
 
-Sdr(self) == /\ pc[self] = "Sdr"
-             /\ /\ msg' = [msg EXCEPT ![self] = "msg"]
+Sdr(self) == /\ pc[self][2]  = "Sdr"
+             /\ /\ msg' = [msg EXCEPT ![self][2] = "msg"]
                 /\ stack' = [stack EXCEPT ![self][2] = << [ procedure |->  "f",
                                                             pc        |->  "Done",
                                                             msg       |->  msg[self][2] ] >>
@@ -70,14 +70,21 @@ Sdr(self) == /\ pc[self] = "Sdr"
              /\ pc' = [pc EXCEPT ![self][2] = "Send"]
              /\ chan' = chan
 
-q(self) ==  \/ Clear(self) \/ Sdr(self)
+q(self) == Clear(self) \/ Sdr(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
            \/ (\E self \in Nodes: q(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-9b32fa7b23b697a568f359ab34da58a3
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-39e0f4bba4a6f1b1f13a138e0b0e9e46
 
 
 =========================================================
