@@ -344,22 +344,23 @@ public class ParseAlgorithm
 	   Vector vdecls = new Vector();
 	   
 	   // For Distributed Pluscal.
-       if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
+       if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables") ) {
     	   vdecls = GetVarDecls();
        }
        
        //For Distributed PlusCal, could be surrounded by an if statement
        //to read channels and fifo channels
-       if (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
     		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos"))) {
     	   vdecls.addAll(GetChannelDecls());
        }
        
        // to read logical clocks
-       if (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
+       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
     		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks"))) {
     	   vdecls.addAll(GetClockDecls());
        }
+       
        
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
@@ -846,22 +847,24 @@ public class ParseAlgorithm
              { 
         	   
         	   	if(result.decls == null) {
-   					PcalDebug.reportInfo("initilize result.delcs ");
         	   		result.decls = new Vector();
 	   			}
-	   			if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
-	   				PcalDebug.reportInfo("Get process: " + PeekAtAlgToken(1));
-	   				result.decls.addAll(GetVarDecls());
-	   			}
-	   			if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")) {
-	   				PcalDebug.reportInfo("Get process 2: " + PeekAtAlgToken(1));
-	   				result.decls.addAll(GetChannelDecls());
-	   			}
-	   			if (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock")) {
-	   				result.decls.addAll(GetClockDecls());
-	   				PcalDebug.reportInfo("Get process3: " + PeekAtAlgToken(1));
-	            }
-        	   
+        	   	if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables") ) {
+        	    	   result.decls = GetVarDecls();
+        	       }
+        	       
+        	       //For Distributed PlusCal, could be surrounded by an if statement
+        	       //to read channels and fifo channels
+        	       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+        	    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos"))) {
+        	    	   result.decls.addAll(GetChannelDecls());
+        	       }
+        	       
+        	       // to read logical clocks
+        	       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
+        	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks"))) {
+        	    	   result.decls.addAll(GetClockDecls());
+        	       }
              } 
            
            Vector<AST.Thread> threads = new Vector<>();
@@ -984,7 +987,7 @@ public class ParseAlgorithm
      **********************************************************************/
      { 
 	   String tok = PeekAtAlgToken(1) ;
-	   
+	   PcalDebug.reportInfo("tok : " + tok);
        if ( tok.equals("variables")) 
          { MustGobbleThis("variables") ; } 
        else 
@@ -1008,6 +1011,7 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("define")  
                  || PeekAtAlgToken(1).equals("macro")  
                  //For Distributed PlusCal
+                 
                  || PeekAtAlgToken(1).equals("channel") 
  				 || PeekAtAlgToken(1).equals("channels") 
  				 || PeekAtAlgToken(1).equals("fifos") 
@@ -1016,9 +1020,10 @@ public class ParseAlgorithm
  				 || PeekAtAlgToken(1).equals("vectorClock")
  				 || PeekAtAlgToken(1).equals("lamportClocks")
 				 || PeekAtAlgToken(1).equals("vectorClocks")
+				 
  				 || PeekAtAlgToken(1).equals("subprocess")))
-         { 
-    	   result.addElement(GetVarDecl());
+         {
+    		   result.addElement(GetVarDecl());
           }
         return result ;
      }
@@ -3538,6 +3543,7 @@ public class ParseAlgorithm
         	  
         	  result.channelName = chanstmt.channelName;
         	  result.name = chanstmt.name;
+     
         	  result.isBroadcast = chanstmt.isBroadcast;
         	  result.isMulticast = chanstmt.isBroadcast;
         	  
@@ -5436,9 +5442,9 @@ public class ParseAlgorithm
 		return chanVar;
 	}
 	   
-	//For Distributed PlusCal	
+	   // For Distributed PlusCal	
 	   public static Vector GetClockDecls() throws ParseAlgorithmException {
-		   logicalClocks = true;
+		    logicalClocks = true;
 			String tok = PeekAtAlgToken(1);
 			String clockType = "";
 
@@ -5458,33 +5464,44 @@ public class ParseAlgorithm
 			}
 
 			Vector result = new Vector();
-
-			while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
-					|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
-					|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-					|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("variable") 
-					|| PeekAtAlgToken(1).equals("variables") || PeekAtAlgToken(1).equals("subprocess"))) {
-				// change here if we want to prevent variable declaration between threads
+			
+			while (!(PeekAtAlgToken(1).equals("begin")
+	                 || PeekAtAlgToken(1).equals("{")
+	                 || PeekAtAlgToken(1).equals("procedure")
+	                 || PeekAtAlgToken(1).equals("process")  
+	                 || PeekAtAlgToken(1).equals("fair")  
+	                 || PeekAtAlgToken(1).equals("define")  
+	                 || PeekAtAlgToken(1).equals("macro")  
+	                 //For Distributed PlusCal
+	 				 || PeekAtAlgToken(1).equals("subprocess")))
+	         { 
 				result.addElement(GetClockDecl(clockType));
-			}
+	          }
+
 			return result;
 		}
 	
 	
 	   public static VarDecl GetClockDecl(String clockType) throws ParseAlgorithmException {
-
+		   	logicalClocks = true;
 			AST.Clock pv;
 			//TODO is this default definition given here overridden at some point?
-			if (clockType.equals("Lamport")) {
+			if (clockType.equals("lamportClock")) {
 				pv = new AST.LamportClock();
 				pv.val = PcalParams.DefaultLamportClockInit();
-			} else if (clockType.equals("VECTOR")) {
+			} else if (clockType.equals("vectorClock")) {
 				pv = new AST.VectorClock();
 				pv.val = PcalParams.DefaultVectorClockInit();
 			} else {
 				// specify a default type
 				pv = null;
 				hasDefaultInitialization = true;
+			}
+			
+			if (clockType.contains("lamportClock") || clockType.contains("vectorClock")) {
+				MustGobbleThis(clockType);
+			} else {
+				GobbleThis(clockType);
 			}
 
 			pv.var = GetAlgToken();
@@ -5536,45 +5553,72 @@ public class ParseAlgorithm
 	   public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 			String tok = PeekAtAlgToken(1);
-			String channelType = "";
-
-			if (tok.contains("channel")) {
-				channelType = "Unordered";
-			} else if (tok.contains("fifo")) {
-				channelType = "FIFO";
-			} else {
-				//no channels to read
-				return new Vector();
-			}
 			
-			if (tok.contains("channel") || tok.contains("fifo")) {
+			if (tok.contains("channels") || tok.contains("fifos")) {
 				MustGobbleThis(tok);
 			} else {
 				GobbleThis(tok);
 			}
-
+			
 			Vector result = new Vector();
-
-			while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
-					|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
-					|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-					|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("variable") 
-					|| PeekAtAlgToken(1).equals("variables") || PeekAtAlgToken(1).equals("subprocess"))) {
-				// change here if we want to prevent variable declaration between threads
-				result.addElement(GetChannelDecl(channelType));
+			
+			if (tok.contains("channel") || tok.contains("channels")) {
+				PcalDebug.reportInfo("if branch for channel");
+				while (!(PeekAtAlgToken(1).equals("begin")
+		                 || PeekAtAlgToken(1).equals("{")
+		                 || PeekAtAlgToken(1).equals("procedure")
+		                 || PeekAtAlgToken(1).equals("process")  
+		                 || PeekAtAlgToken(1).equals("fair")  
+		                 || PeekAtAlgToken(1).equals("define")  
+		                 || PeekAtAlgToken(1).equals("macro")  
+		                 //For Distributed PlusCal
+		                 || PeekAtAlgToken(1).equals("fifo")
+		                 || PeekAtAlgToken(1).equals("fifos")
+		                 // 
+		                 || PeekAtAlgToken(1).equals("lamportClock")
+		                 || PeekAtAlgToken(1).equals("lamportClocks")
+		                 || PeekAtAlgToken(1).equals("vectorClock")
+		                 || PeekAtAlgToken(1).equals("vectorClocks")
+		 				 || PeekAtAlgToken(1).equals("subprocess")))
+		         {
+					PcalDebug.reportInfo("tok : " + tok);
+					result.addElement(GetChannelDecl(tok));
+		          }
+			} else {
+				PcalDebug.reportInfo("else branch for fifo");
+				while (!(PeekAtAlgToken(1).equals("begin")
+		                 || PeekAtAlgToken(1).equals("{")
+		                 || PeekAtAlgToken(1).equals("procedure")
+		                 || PeekAtAlgToken(1).equals("process")  
+		                 || PeekAtAlgToken(1).equals("fair")  
+		                 || PeekAtAlgToken(1).equals("define")  
+		                 || PeekAtAlgToken(1).equals("macro")  
+		                 //For Distributed PlusCal
+		                 || PeekAtAlgToken(1).equals("channel")
+		                 || PeekAtAlgToken(1).equals("channels")
+		                 // 
+		                 || PeekAtAlgToken(1).equals("lamportClock")
+		                 || PeekAtAlgToken(1).equals("lamportClocks")
+		                 || PeekAtAlgToken(1).equals("vectorClock")
+		                 || PeekAtAlgToken(1).equals("vectorClocks")
+		 				 || PeekAtAlgToken(1).equals("subprocess")))
+		         {
+					PcalDebug.reportInfo("tok : " + tok);
+					result.addElement(GetChannelDecl(tok));
+		          }
 			}
+
 			return result;
 		}
 	   
-	 //For Distributed PlusCal	
+	    //	For Distributed PlusCal	
 		public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
-
+			
 			AST.Channel pv;
-			//TODO is this default definition given here overridden at some point?
-			if (channelType.equals("Unordered")) {
+			if (channelType.equals("channel") || channelType.equals("channels")) {
 				pv = new AST.UnorderedChannel();
 				pv.val = PcalParams.DefaultChannelInit();
-			} else if (channelType.equals("FIFO")) {
+			} else if (channelType.equals("fifo") || channelType.equals("fifos")) {
 				pv = new AST.FIFOChannel();
 				pv.val = PcalParams.DefaultFifoInit();
 			} else {
@@ -5582,7 +5626,7 @@ public class ParseAlgorithm
 				pv = null;
 				hasDefaultInitialization = true;
 			}
-
+			
 			pv.var = GetAlgToken();
 			pv.isEq = true;		
 			

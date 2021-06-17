@@ -12,6 +12,7 @@ Nodes == 1 .. N
 
 variable cur = "none";
 channel chan[Nodes];
+fifo f_chan;
 
 process ( w \in Nodes )
 lamportClock clock;
