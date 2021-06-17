@@ -5446,16 +5446,6 @@ public class ParseAlgorithm
 	   public static Vector GetClockDecls() throws ParseAlgorithmException {
 		    logicalClocks = true;
 			String tok = PeekAtAlgToken(1);
-			String clockType = "";
-
-			if (tok.contains("lamportClock")) {
-				clockType = "Lamport";
-			} else if (tok.contains("vectorClock")) {
-				clockType = "VECTOR";
-			} else {
-				//no channels to read
-				return new Vector();
-			}
 			
 			if (tok.contains("lamportClock") || tok.contains("vectorClock")) {
 				MustGobbleThis(tok);
@@ -5465,18 +5455,43 @@ public class ParseAlgorithm
 
 			Vector result = new Vector();
 			
-			while (!(PeekAtAlgToken(1).equals("begin")
-	                 || PeekAtAlgToken(1).equals("{")
-	                 || PeekAtAlgToken(1).equals("procedure")
-	                 || PeekAtAlgToken(1).equals("process")  
-	                 || PeekAtAlgToken(1).equals("fair")  
-	                 || PeekAtAlgToken(1).equals("define")  
-	                 || PeekAtAlgToken(1).equals("macro")  
-	                 //For Distributed PlusCal
-	 				 || PeekAtAlgToken(1).equals("subprocess")))
-	         { 
-				result.addElement(GetClockDecl(clockType));
-	          }
+			if (tok.contains("lamportClock") || tok.contains("lamportClocks")) {
+				while (!(PeekAtAlgToken(1).equals("begin")
+		                 || PeekAtAlgToken(1).equals("{")
+		                 || PeekAtAlgToken(1).equals("procedure")
+		                 || PeekAtAlgToken(1).equals("process")  
+		                 || PeekAtAlgToken(1).equals("fair")  
+		                 || PeekAtAlgToken(1).equals("define")  
+		                 || PeekAtAlgToken(1).equals("macro")  
+		                 //For Distributed PlusCal
+		 				 || PeekAtAlgToken(1).equals("subprocess"))
+						//For Distributed PlusCal
+		                 || PeekAtAlgToken(1).equals("vectorClock")
+		                 || PeekAtAlgToken(1).equals("vectorClocks")
+						)
+		         { 
+					result.addElement(GetClockDecl(tok));
+		          }
+			} else {
+				while (!(PeekAtAlgToken(1).equals("begin")
+		                 || PeekAtAlgToken(1).equals("{")
+		                 || PeekAtAlgToken(1).equals("procedure")
+		                 || PeekAtAlgToken(1).equals("process")  
+		                 || PeekAtAlgToken(1).equals("fair")  
+		                 || PeekAtAlgToken(1).equals("define")  
+		                 || PeekAtAlgToken(1).equals("macro")  
+		                 //For Distributed PlusCal
+		 				 || PeekAtAlgToken(1).equals("subprocess"))
+						//For Distributed PlusCal
+		                 || PeekAtAlgToken(1).equals("lamportClock")
+		                 || PeekAtAlgToken(1).equals("lamportClocks")
+						)
+		         { 
+					result.addElement(GetClockDecl(tok));
+		          }
+			}
+			
+			
 
 			return result;
 		}
@@ -5496,12 +5511,6 @@ public class ParseAlgorithm
 				// specify a default type
 				pv = null;
 				hasDefaultInitialization = true;
-			}
-			
-			if (clockType.contains("lamportClock") || clockType.contains("vectorClock")) {
-				MustGobbleThis(clockType);
-			} else {
-				GobbleThis(clockType);
 			}
 
 			pv.var = GetAlgToken();
