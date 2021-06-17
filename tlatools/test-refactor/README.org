@@ -65,7 +65,7 @@
   (but no problem for _c159)
 - parsed
 - TLC OK (deadlock)
-
+	
 * ClashNoChannel
 - same as Clash but no channels
 
@@ -82,3 +82,11 @@
 - funny translation for fifos if send/receive are not atomic 
   (without Snd2 and Rcv2); doesn't work for channels (because of cur
   receiver twice)
+
+* Procedures
+- 1p1s -> one process / one thread
+- 1p2t -> one process / one thread
+- both use the same procedure
+
+* Procedures2t
+- one process with two threads
