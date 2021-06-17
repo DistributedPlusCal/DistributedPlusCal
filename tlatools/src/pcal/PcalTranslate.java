@@ -312,20 +312,21 @@ public class PcalTranslate {
         /*********************************************************************
         * Generate when pc = label ;                                         *
         *********************************************************************/
-        AST.When checkPC = new AST.When();
-        Vector toks = new Vector();
+	  AST.When checkPC = new AST.When();
+      Vector toks = new Vector();
 
-        toks.addElement(AddedToken("pc"));
-        //For Distributed pluscal. distpcal && mp
-        if(PcalParams.distpcalFlag && mp) {
-        	PcalDebug.reportInfo("threadIndex = " + threadIndex);
-          //toks.addElement(BuiltInToken(threadIndex == NO_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
-        	toks.addElement(BuiltInToken("[" + String.valueOf(threadIndex + 1) + "]"));
+      toks.addElement(AddedToken("pc"));
+      //For Distributed pluscal
+      if(PcalParams.distpcalFlag) {
+        if(threadIndex != NO_THREAD) {
+          // toks.addElement(BuiltInToken(threadIndex == NO_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
+          toks.addElement(BuiltInToken("[" + String.valueOf(threadIndex + 1) + "]"));
         }
-        toks.addElement(BuiltInToken("="));
-        toks.addElement(StringToken(label));
-        checkPC.exp = TokVectorToExpr(toks, 1);
-        return checkPC;
+      }
+      toks.addElement(BuiltInToken("="));
+      toks.addElement(StringToken(label));
+      checkPC.exp = TokVectorToExpr(toks, 1);
+      return checkPC;
     }
 
   //For Distributed pluscal (add threadIndex)
@@ -377,7 +378,7 @@ public class PcalTranslate {
             return ExplodeUniprocess((AST.Uniprocess) ast);
         else if (ast.getClass().equals(AST.MultiprocessObj.getClass())) {
         	// For Distributed Pluscal set mp to true
-            mp = true;
+            // mp = true;
         	return ExplodeMultiprocess((AST.Multiprocess) ast);
         }
         else {
@@ -420,7 +421,7 @@ public class PcalTranslate {
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
                 ? "Done"
                 : nextLS.label;
-            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, NO_THREAD)); // dostonbek. send null for uni-process specs
+            newast.body.addAll(ExplodeLabeledStmt(thisLS, next, NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
@@ -738,7 +739,8 @@ public class PcalTranslate {
       Vector res = CopyAndExplodeLastStmt(stmts, next, threadIndex) ;
         if (((BoolObj) res.elementAt(2)).val) {
           //For Distributed pluscal (add threadIndex)
-          ((Vector) res.elementAt(0)).addElement(UpdatePC(next, threadIndex)); } ;    
+          ((Vector) res.elementAt(0)).addElement(UpdatePC(next, threadIndex)); } ; 
+          
       return Pair(res.elementAt(0), res.elementAt(1)) ;
     }
 
@@ -1215,14 +1217,14 @@ public class PcalTranslate {
             //For Distributed pluscal, so that the local procedure
             // variables are also referenced using thread index when
             // the procedure is called
-            if(threadIndex == null) {
+            if(threadIndex == NO_THREAD) {
             	sass.lhs.sub = MakeExpr(new Vector());
             } else {
-            	TLAExpr exp = new TLAExpr();
-            	exp.addLine();
+            	TLAExpr expression = new TLAExpr();
+                expression.addLine();
                 TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
-                exp.addToken(tok);
-                sass.lhs.sub = exp;
+                expression.addToken(tok);
+                sass.lhs.sub = expression;
             }
             sass.rhs = (TLAExpr) ast.args.elementAt(i);
             ass.ass.addElement(sass);
@@ -1232,8 +1234,8 @@ public class PcalTranslate {
         }
         result.addElement(ass);
         /*******************************************************************
-        * Add a sequence of assignment statements to initialize each       *
         * procedure variable v of ast.to with                              *
+        * Add a sequence of assignment statements to initialize each       *
         *   v := initial value                                             *
         *******************************************************************/
         for (int i = 0; i < pe.decls.size(); i++) {

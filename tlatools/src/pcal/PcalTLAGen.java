@@ -1038,7 +1038,8 @@ public class PcalTLAGen
                 if(PcalParams.distpcalFlag){
                   // inside the procedure extend the self exp for both pc
                   //   and stack variables
-                  if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                  // dm. check for mp as well so that for uni-process algorithms we don't get stack[self][subprocess]
+                  if(mp && (sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
                 	sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
                   }

@@ -18,7 +18,7 @@ procedure f(x) {
         return;
 }
 
-process (x = 1)
+process (d = 1)
 {
     Sdr:
         call f(c);
@@ -26,8 +26,7 @@ process (x = 1)
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c2e52613b2f41d1a88612896d2de7950
-\* Process x at line 21 col 1 changed to x_
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-eebc6372eb6bc6922c1f9af067b1e62d
 CONSTANT defaultInitValue
 VARIABLES c, pc, stack, x
 
@@ -35,7 +34,7 @@ vars == << c, pc, stack, x >>
 
 ProcSet == {1}
 
-SubProcSet == [_n \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
 
 Init == (* Global variables *)
@@ -59,23 +58,30 @@ Lbl_1(self, subprocess) == /\ pc[self][subprocess] = "Lbl_1"
 
 f(self, subprocess) == Add(self, subprocess) \/ Lbl_1(self, subprocess)
 
-Sdr == /\ pc[1] = "Sdr"
+Sdr == /\ pc[1][1]  = "Sdr"
        /\ /\ stack' = [stack EXCEPT ![1][1] = << [ procedure |->  "f",
                                                    pc        |->  "Done",
-                                                   x         |->  x[self][1] ] >>
-                                               \o stack[self][1]]
-          /\ x' = [x EXCEPT ![1] = c]
+                                                   x         |->  x[1][1] ] >>
+                                               \o stack[1][1]]
+          /\ x' = [x EXCEPT ![1][1] = c]
        /\ pc' = [pc EXCEPT ![1][1] = "Add"]
        /\ c' = c
 
-x_ ==  \/ Sdr
+d == Sdr
 
-Next == x_
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
+
+Next == d
            \/ (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-9dcbd78663457d6bda7c5231809d5fb0
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-575fe38411e70bc9589bc0bb79ad5947
 
 
 =========================================================
