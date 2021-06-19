@@ -1676,12 +1676,12 @@ public class ParseAlgorithm
          ******************************************************************/
        result.ass = new Vector() ;
        result.ass.addElement(GetSingleAssign()) ;
-       PcalDebug.reportInfo("result.ass :: " + result.ass);
+       //PcalDebug.reportInfo("result.ass :: " + result.ass);
        while (PeekAtAlgToken(1).equals("||"))
          { String throwAway = GetAlgToken() ;
            try {
            result.ass.addElement(GetSingleAssign()) ;
-           PcalDebug.reportInfo("22.  result.ass :: " + result.ass);
+           //PcalDebug.reportInfo("22.  result.ass :: " + result.ass);
            } catch (ParseAlgorithmException e) {
            ParsingError("Bad assignment statement at ") ;
         }
@@ -4427,6 +4427,7 @@ public class ParseAlgorithm
     public static int ProcessOptions(Vector untabInputVec, IntPair curLoc)
     {
         String curLine = GotoNextNonSpace(untabInputVec, curLoc);
+        
         if (curLine.substring(curLoc.two).startsWith("options"))
         {
             // Process the options and move curLoc and curLine

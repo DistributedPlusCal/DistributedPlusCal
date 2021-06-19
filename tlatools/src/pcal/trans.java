@@ -366,7 +366,7 @@ class trans {
             PcalDebug.reportError(e);
             return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
         }
-
+        
         /*********************************************************************
         * outputVec is an alias for inputVec if the input is a .tla file,    *
         * which was not always the case in the aborted version 1.31.         *
@@ -608,6 +608,7 @@ class trans {
          *  where <options> has the same format as options on the command
          *  line.
          */
+        
         IntPair searchLoc = new IntPair(0, 0);
         boolean notDone = true;
         while (notDone)
@@ -616,9 +617,9 @@ class trans {
             {
                 ParseAlgorithm.FindToken("PlusCal", untabInputVec, searchLoc, "");
                 String line = ParseAlgorithm.GotoNextNonSpace(untabInputVec, searchLoc);
-
+                
                 String restOfLine = line.substring(searchLoc.two);
-
+                
                 if (restOfLine.startsWith("options"))
                 {
 
@@ -702,7 +703,8 @@ class trans {
                 endTranslationLine--;
             }
         }
-
+        
+        
         // Search for "--algorithm" or "--fair".
         // If found set algLine and algCol right after the last char,
         // set foundBegin true, and set foundFairBegin true iff it
@@ -925,6 +927,7 @@ class trans {
 //            return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
             return null ; // added for testing
         }
+        
         PcalDebug.reportInfo("Parsing completed.");
         
         final String pcalMD5 = Validator.calculateMD5(ast.toString());

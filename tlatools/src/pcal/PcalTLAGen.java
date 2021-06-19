@@ -205,10 +205,6 @@ public class PcalTLAGen
 //}
 //MappingObject.printMappingVector(mappingVector);
         
-        for (int i = 0; i < tlacode.size(); i++) {
-        	PcalDebug.reportInfo("tlacode at i : " + tlacode.get(i));
-        }
-        
         if (PcalParams.distpcalFlag)
         	return normalizeTlacode(tlacode);
         else
@@ -4798,7 +4794,7 @@ public class PcalTLAGen
 			// For Distributed Pluscal. for logical clocks
 			if (ParseAlgorithm.logicalClocks) {
 				addOneLineOfTLA("(* Comparator for lamport clocks *)");
-				addOneLineOfTLA("Max(c,d) == IF c > d THEN c ELSE d");
+				addOneLineOfTLA("Max(_c, _d) == IF _c > _d THEN _c ELSE _d");
 			}
 			
 			endCurrentLineOfTLA();
@@ -5003,19 +4999,51 @@ public class PcalTLAGen
 			  my_tlacode.add(line);
 		  }
 		  
-		  ArrayList<Integer> indexes = new ArrayList<>();
+		  // For logical clocks
+		  PcalDebug.reportInfo(" =========== ");
+		  PcalDebug.reportInfo(" =========== ");
+		  PcalDebug.reportInfo(" =========== ");
 		  
-		  // For adding logical clocks
-		  /*
 		  if (ParseAlgorithm.logicalClocks) {
 			  for (String label: labels) {
+				  PcalDebug.reportInfo("At label: " + label);
 				  for (int i = 0; i < my_tlacode.size(); i++) {
 					  if (my_tlacode.get(i).contains(label)) {
 						  for (int j = i + 1; j < my_tlacode.size(); j++) {
+							  PcalDebug.reportInfo("at tlacode : " + my_tlacode.get(j));
 							  if (my_tlacode.get(j).contains(ParseAlgorithm.clockName + "' = " + ParseAlgorithm.clockName)) {
-								  String s = ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
+								  String s = "";
+								  for (int k = 0; k < my_tlacode.get(j).length(); k++) {
+									  if (my_tlacode.get(j).charAt(k) == ' ') {
+										  s += " ";
+									  } else {
+										  break;
+									  }
+								  }
+								  s += "/\\ " + ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
 										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
-								  my_tlacode.get(j).replace(ParseAlgorithm.clockName + "' = " + ParseAlgorithm.clockName, s);
+								  my_tlacode.insertElementAt(s, j);
+								  my_tlacode.get(j).replace(my_tlacode.get(j), s);
+								  my_tlacode.remove(j+1);
+								  break;
+							  }
+							  if (my_tlacode.get(j).contains("UNCHANGED") && my_tlacode.get(j).contains(ParseAlgorithm.clockName)) {
+								  String s = "";
+								  for (int k = 0; k < my_tlacode.get(j).length(); k++) {
+									  if (my_tlacode.get(j).charAt(k) == ' ') {
+										  s += " ";
+									  } else {
+										  break;
+									  }
+									  
+								  }
+								  
+								  s += "/\\ " + ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
+										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
+								  my_tlacode.insertElementAt(my_tlacode.get(j).replace(", " + ParseAlgorithm.clockName, ""), j);
+								  my_tlacode.remove(j+1);
+								  my_tlacode.insertElementAt(s, j);
+								  // count spaces in the proceeding line. TASK TO DO
 								  break;
 							  }
 						  }
@@ -5024,7 +5052,6 @@ public class PcalTLAGen
 			  }
 
 		  }
-			  */		  
 		  
 		  
 		  return my_tlacode;

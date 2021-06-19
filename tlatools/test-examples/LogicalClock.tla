@@ -1,15 +1,18 @@
 ------------------------ MODULE LogicalClock -------------------------
 EXTENDS Naturals, Sequences, TLC
+
 CONSTANT N
 ASSUME N \in Nat 
 Nodes == 1 .. N
+
 (* PlusCal options (-distpcal) *)
-(**--algorithm LamportMutex {
+
+(*
+--algorithm LamportMutex {
 
    fifos network[Nodes, Nodes];
 
    define {
-     Max(c,d) == IF c > d THEN c ELSE d
      beats(a,b) == \/ req[b] = 0
                    \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
      \* messages used in the algorithm
@@ -38,7 +41,7 @@ Nodes == 1 .. N
         rcv:   
             while (TRUE) { 
                 with (n \in Nodes) {
-                   receive(network[n,self], msg); sndr := n;
+                   receiveWithClock(network[n,self], msg, clock); sndr := n;
                 };
                 handle: 
                     if (msg.type = "request") {
@@ -53,14 +56,13 @@ Nodes == 1 .. N
                     }
              }  \* end while
    } \* end message handling thread
-}  **)
-
-\* THE TRANSLATION. LOGICAL CLOCKS
+}  
+*)
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-a4cecd991a6e503f409550e8c278a2d2
 CONSTANT defaultInitValue
 VARIABLES network, pc
 
 (* define statement *)
-Max(c,d) == IF c > d THEN c ELSE d
 beats(a,b) == \/ req[b] = 0
               \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
 
@@ -68,89 +70,74 @@ Request(c) == [type |-> "request", clock |-> c]
 Release(c) == [type |-> "release", clock |-> c]
 Acknowledge(c) == [type |-> "ack", clock |-> c]
 
-VARIABLES clock, req, ack, sndr, msg, _previous_clockValue \* for accessing the clock value in the message received
+VARIABLES req, ack, sndr, msg, clock
 
-vars == << network, pc, clock, req, ack, sndr, msg, _previous_clockValue >>
+vars == << network, pc, req, ack, sndr, msg, clock >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
+
+(* Comparator for lamport clocks *)
+Max(_c, _d) == IF _c > _d THEN _c ELSE _d
 
 Init == (* Global variables *)
-        /\ network = [_n0 \in Nodes, _n1 \in Nodes |-> <<>>]
+        /\ network = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
         (* Process n *)
-        /\ clock = [self \in Nodes |-> 0]
         /\ req = [self \in Nodes |-> [n \in Nodes |-> 0]]
         /\ ack = [self \in Nodes |-> {}]
         /\ sndr = [self \in Nodes |-> defaultInitValue]
         /\ msg = [self \in Nodes |-> defaultInitValue]
+        /\ clock = [self \in Nodes |-> 0]
         /\ pc = [self \in ProcSet |-> <<"ncs","rcv">>]
-        (* The global variables appended for logical clocks *)
-        /\ _previous_clockValue = 0
 
-ncs(self) == /\ pc[self] [1] = "ncs"
+ncs(self) == /\ pc[self][1]  = "ncs"
              /\ TRUE
              /\ pc' = [pc EXCEPT ![self][1] = "try"]
-             /\ UNCHANGED << network, clock, req, ack, sndr, msg, _previous_clockValue >>
-
-try(self) == /\ pc[self] [1] = "try"
-                (* clock' is appended by the translator for all action labels once logical clocks are declared *)
              /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-             /\ req' = [req EXCEPT ![self][self] = clock'[self]]
-             /\ ack' = [ack EXCEPT ![self] = {self}]
-             (* broadcastWithCLock *)
-             /\ network' = [network EXCEPT ![self] =
-                               [dst \in Nodes |->
-                                   IF dst = self THEN network[self][self]
-                                         ELSE Append(network[self][dst], [type |-> "request", clock |-> clock'[self]])]]
-             /\ pc' = [pc EXCEPT ![self][1] = "enter"]
-             /\ UNCHANGED << sndr, msg, _previous_clockValue >>
+             /\ UNCHANGED << network, req, ack, sndr, msg >>
 
-enter(self) == /\ pc[self] [1] = "enter"
+try(self) == /\ pc[self][1]  = "try"
+             /\ req' = [req EXCEPT ![self][self] = clock[self]]
+             /\ ack' = [ack EXCEPT ![self] = {self}]
+             /\ network' = [_n0 \in Nodes, _n1 \in Nodes |->  Append(network[_n0, _n1] , [msg |-> "request", clock |-> clock])]
+             /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
+             /\ pc' = [pc EXCEPT ![self][1] = "enter"]
+             /\ UNCHANGED << sndr, msg >>
+
+enter(self) == /\ pc[self][1]  = "enter"
                /\ (ack[self] = Nodes /\ \A n \in Nodes \ {self} : beats(self, n))
                /\ pc' = [pc EXCEPT ![self][1] = "cs"]
-                (* clock' is appended by the translator for all action labels once logical clocks are declared *)
                /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-               /\ UNCHANGED << network, req, ack, sndr, msg, _previous_clockValue >>
-\* clock increase call is appened to "enter" label because for all action labels we add clock increase calls.
+               /\ UNCHANGED << network, req, ack, sndr, msg >>
 
-cs(self) == /\ pc[self] [1] = "cs"
+cs(self) == /\ pc[self][1]  = "cs"
             /\ TRUE
             /\ pc' = [pc EXCEPT ![self][1] = "exit"]
-            /\ UNCHANGED << network, clock, req, ack, sndr, msg, _previous_clockValue >>
+            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+            /\ UNCHANGED << network, req, ack, sndr, msg >>
 
-exit(self) == /\ pc[self] [1] = "exit"
-                (* clock' is appended by the translator for all action labels once logical clocks are declared *)
-              /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-              /\ network' = [<<slf, n>> \in DOMAIN network |->  IF slf = self 
-                             /\ n \in Nodes \ { self } THEN 
-                             Append(network[slf, n], [type |-> "release", clock |-> clock'[self]]) ELSE network[slf, n]]
+exit(self) == /\ pc[self][1]  = "exit"
+              /\ network' = [_n0 \in Nodes, _n1 \in Nodes |->  Append(network[_n0, _n1] , [msg |-> "release", clock |-> clock])]
+              /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
               /\ pc' = [pc EXCEPT ![self][1] = "ncs"]
-              /\ UNCHANGED << req, ack, sndr, msg, _previous_clockValue >>
+              /\ UNCHANGED << req, ack, sndr, msg >>
 
-rcv(self) == /\ pc[self] [2] = "rcv"
+rcv(self) == /\ pc[self][2]  = "rcv"
              /\ \E n \in Nodes:
                   /\ Len(network[n,self]) > 0 
                   /\ msg' = [msg EXCEPT ![self] = Head(network[n,self])]
                   /\ network' = [network EXCEPT ![n,self] =  Tail(@) ]
+                  /\ clock' = [clock EXCEPT ![self] = Max(clock[self], msg.clock) + 1]
                   /\ sndr' = [sndr EXCEPT ![self] = n]
-                  (* clock' is appended by the translator for all action labels once logical clocks are declared *)
-                  /\ clock' = [clock EXCEPT ![self] = Max(clock[self], msg'[self].clock) + 1]
-                  /\ _previous_clockValue' = msg'[self].clock;
              /\ pc' = [pc EXCEPT ![self][2] = "handle"]
-             /\ UNCHANGED << req, ack>>
+             /\ UNCHANGED << req, ack >>
 
-\*
-*   Alternatively, clock' we can rewrite as follows
-*   rcv(self) ==
-*               /\ _previous_clockValue' = msg'[self].clock;
-*               /\ clock' = [clock EXCEPT ![self] = Max(clock[self], _previous_clockValue) + 1]
-*/
-
-handle(self) == /\ pc[self] [2] = "handle"
+handle(self) == /\ pc[self][2]  = "handle"
                 /\ IF msg[self].type = "request"
                       THEN /\ req' = [req EXCEPT ![self][sndr[self]] = msg[self].clock]
-                           /\ network' = [network EXCEPT ![self, sndr[self]] =  Append(@, [type |-> "ack", clock |-> clock])]
+                           /\ network' = [network EXCEPT ![self, sndr[self]] =  Append(@, [msg |-> "ack", clock |-> clock])]
+                           /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
                            /\ ack' = ack
                       ELSE /\ IF msg[self].type = "ack"
                                  THEN /\ ack' = [ack EXCEPT ![self] = ack[self] \cup {sndr[self]}]
@@ -160,19 +147,27 @@ handle(self) == /\ pc[self] [2] = "handle"
                                             ELSE /\ TRUE
                                                  /\ req' = req
                                       /\ ack' = ack
-                           /\ UNCHANGED network
+                           /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+                           /\ UNCHANGED << network >>
                 /\ pc' = [pc EXCEPT ![self][2] = "rcv"]
-                (* clock' is appended by the translator for all action labels once logical clocks are declared *)
-                /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-                /\ UNCHANGED << clock, sndr, msg, _previous_clockValue >>
+                /\ UNCHANGED << sndr, msg >>
 
-n(self) ==  \/ ncs(self) \/ try(self) \/ enter(self) \/ cs(self) \/ exit(self)
+n(self) == ncs(self) \/ try(self) \/ enter(self) \/ cs(self) \/ exit(self)
               \/ rcv(self) \/ handle(self)
 
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
+
 Next == (\E self \in Nodes: n(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION 
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-=======================
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-2d3503b9e447e6ef4d10acc732c46c58
+
+
+
+============================================================================================

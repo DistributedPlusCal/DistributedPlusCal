@@ -1809,6 +1809,7 @@ public class AST
 		@Override
 		public Vector receiveWithClock(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp,
 				TLAExpr targetExp, TLAExpr clock) {
+			
 			Vector result = new Vector();
 			// For Distributed PlusCal. append _ to overcome variable name clash
 			String tempVarName = String.valueOf("_" + channelName.toLowerCase().charAt(0)) + line + col;
@@ -2814,6 +2815,7 @@ public class AST
 		@Override
 		public Vector receiveWithClock(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp,
 				TLAExpr targetExp, TLAExpr clock) {
+			
 			Vector result = new Vector();
 			// For Distributed PlusCal. append _ to overcome variable name clash
 			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
@@ -2946,7 +2948,7 @@ public class AST
 			expr.addToken(PcalTranslate.IdentToken("Max("));
 			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
 			expr.addToken(PcalTranslate.IdentToken(", "));
-			String t = targetVar + ".clock";
+			String t = targetVar.var + ".clock";
 			expr.addToken(PcalTranslate.IdentToken(t));
 			expr.addToken(PcalTranslate.IdentToken(") + 1"));
 			
