@@ -39,36 +39,43 @@ vars == << cur, f_chan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..3]
+SubProcSet == [_n42 \in ProcSet |-> 1..3]
 
 
 Init == (* Global variables *)
         /\ cur = "none"
-        /\ f_chan = [_n0 \in Nodes |-> {}]
+        /\ f_chan = [_n430 \in Nodes |-> {}]
         /\ pc = [self \in ProcSet |-> <<"Write","Read","Clear">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
+Write(self) == /\ pc[self][1]  = "Write"
                /\ f_chan' = [f_chan EXCEPT ![self] = f_chan[self] \cup {"msg"}]
                /\ pc' = [pc EXCEPT ![self][1] = "Write"]
                /\ cur' = cur
 
-Read(self) == /\ pc[self] [2] = "Read"
+Read(self) == /\ pc[self][2]  = "Read"
               /\ \E _f149 \in f_chan[self]:
                    /\ cur' = _f149
                    /\ f_chan' = [f_chan EXCEPT ![self] = f_chan[self] \ {_f149}]
               /\ pc' = [pc EXCEPT ![self][2] = "Read"]
 
-Clear(self) == /\ pc[self] [3] = "Clear"
+Clear(self) == /\ pc[self][3]  = "Clear"
                /\ f_chan' = [_n0 \in Nodes |-> {}]
                /\ pc' = [pc EXCEPT ![self][3] = "Done"]
                /\ cur' = cur
 
-w(self) ==  \/ Write(self) \/ Read(self) \/ Clear(self)
+w(self) == Write(self) \/ Read(self) \/ Clear(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-d5b9df1aa98ffdfe3f5332f48bf2d4c1
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-45b9cefb6565f268a21107dfadb20557
 
 ==========================================================

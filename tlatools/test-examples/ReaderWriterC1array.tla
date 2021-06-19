@@ -30,31 +30,48 @@ variable current_message = "none";
 
 }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-715f0ddde6c0681a6f058e963b271ccd
-VARIABLES queue, current_message
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-0832c3ff6c14cd5a4c4b922c97f55700
+VARIABLES queue, pc, current_message
 
-vars == << queue, current_message >>
+vars == << queue, pc, current_message >>
 
 ProcSet == {Writer} \cup {Reader}
 
-SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
-                           ELSE (**Reader**) 1]
+SubProcSet == [_n42 \in ProcSet |-> IF _n42 = Writer THEN 1..1
+                                 ELSE (**Reader**) 1..1]
 
 Init == (* Global variables *)
-        /\ queue = [n0 \in Nat |-> <<>>]
-        (* Node r *)
+        /\ queue = [_n430 \in Nat |-> <<>>]
+        (* Process r *)
         /\ current_message = "none"
+        /\ pc = [self \in ProcSet |-> CASE self = Writer -> <<"Write">>
+                                        [] self = Reader -> <<"Read">>]
 
-w == /\ queue' = [queue EXCEPT ![1] =  Append(@, "msg")]
-     /\ UNCHANGED current_message
+Write == /\ pc[Writer][1]  = "Write"
+         /\ queue' = [queue EXCEPT ![1] =  Append(@, "msg")]
+         /\ pc' = [pc EXCEPT ![Writer][1] = "Write"]
+         /\ UNCHANGED current_message
 
-r == /\ Len(queue[1]) > 0 
-     /\ current_message' = Head(queue[1])
-     /\ queue' = [queue EXCEPT ![1] =  Tail(@) ]
+w == Write
+
+Read == /\ pc[Reader][1]  = "Read"
+        /\ Len(queue[1]) > 0 
+        /\ current_message' = Head(queue[1])
+        /\ queue' = [queue EXCEPT ![1] =  Tail(@) ]
+        /\ pc' = [pc EXCEPT ![Reader][1] = "Read"]
+
+r == Read
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == w \/ r
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-30d3eab07b118dd3cc4535ab5c274f3a
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-eee4ec19f0fe469bf3665657a64d9021
 =============================================================================

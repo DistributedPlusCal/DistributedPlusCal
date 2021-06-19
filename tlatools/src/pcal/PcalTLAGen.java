@@ -120,9 +120,11 @@ public class PcalTLAGen
      */
     private String currentProcName ;
     
- // // For Distributed PlusCal. dm. To store variables local to processes.
+    // For Distributed PlusCal. dm. To store variables local to processes.
     private ArrayList<String> process_local_vars = new ArrayList<>();;
     
+    // For Distributed PlusCal. to store label names.
+    private ArrayList<String> labels = new ArrayList<>();
     /**
      * Generates the translation.
      * 
@@ -207,7 +209,10 @@ public class PcalTLAGen
         	PcalDebug.reportInfo("tlacode at i : " + tlacode.get(i));
         }
         
-        return normalizeTlacode(tlacode);
+        if (PcalParams.distpcalFlag)
+        	return normalizeTlacode(tlacode);
+        else
+        	return tlacode;
     }
 
     /****************************************************************/
@@ -668,16 +673,16 @@ public class PcalTLAGen
         StringBuffer sb = new StringBuffer(actionName);
         /* c is used to determine which vars are in UNCHANGED. */
         Changed c = new Changed(vars);
-        //PcalDebug.reportInfo("selfIsSelf test :: " + selfIsSelf);
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
-        	//PcalDebug.reportInfo("selfIsSelf test ############################## ::::: " + selfIsSelf);
         	if(PcalParams.distpcalFlag && context.equals("procedure")) {
-        		//PcalDebug.reportInfo("!!!!!!!!!!!!!! distpcal and context=procedure");
                 sb.append("(self, subprocess)");
         	} else {
                 sb.append("(self)");
         	}
-        }   
+        }
+        // For Distributed PlusCal. to store label names and add clock increase call for logical clocks
+        labels.add(sb.toString());
+        
         sb.append(" == ");
         int col = sb.length();
         kludgeToFixPCHandlingBug = col;
@@ -4997,6 +5002,31 @@ public class PcalTLAGen
 			  }
 			  my_tlacode.add(line);
 		  }
+		  
+		  ArrayList<Integer> indexes = new ArrayList<>();
+		  
+		  // For adding logical clocks
+		  /*
+		  if (ParseAlgorithm.logicalClocks) {
+			  for (String label: labels) {
+				  for (int i = 0; i < my_tlacode.size(); i++) {
+					  if (my_tlacode.get(i).contains(label)) {
+						  for (int j = i + 1; j < my_tlacode.size(); j++) {
+							  if (my_tlacode.get(j).contains(ParseAlgorithm.clockName + "' = " + ParseAlgorithm.clockName)) {
+								  String s = ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
+										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
+								  my_tlacode.get(j).replace(ParseAlgorithm.clockName + "' = " + ParseAlgorithm.clockName, s);
+								  break;
+							  }
+						  }
+					  }
+				  }
+			  }
+
+		  }
+			  */		  
+		  
+		  
 		  return my_tlacode;
 	  }
 	

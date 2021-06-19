@@ -21,60 +21,66 @@ variable cur = "none", count = 0;
 } {
 	Read:
   	while ( TRUE ) {
-    	 receive(chan[self], cur);
+    	 receive(chan[self, self], cur);
     	 count := count + 1;
   	}
 } {
 	Clear:
 	await ( count = 5 );
 	clear(chan);
-	count := 0;
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7beab015a712e3dee5efe5b3db0839d8
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-b6dba7d5bcdba5442286b37f6e86080a
 VARIABLES chan, pc, cur, count
 
 vars == << chan, pc, cur, count >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_sub \in ProcSet |-> 1..3]
+SubProcSet == [_n42 \in ProcSet |-> 1..3]
+
 
 Init == (* Global variables *)
-        /\ chan = [n0 \in Nodes, n1 \in Nodes |-> {}]
-        (* Node w *)
+        /\ chan = [_n430 \in Nodes, _n441 \in Nodes |-> {}]
+        (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
         /\ count = [self \in Nodes |-> 0]
         /\ pc = [self \in ProcSet |-> <<"Write","Read","Clear">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
+Write(self) == /\ pc[self][1]  = "Write"
                /\ chan' = [chan EXCEPT ![self, self] = chan[self, self] \cup {"msg"}]
                /\ count' = [count EXCEPT ![self] = count[self] + 1]
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                /\ cur' = cur
 
-Read(self) == /\ pc[self] [2] = "Read"
-              /\ \E c139 \in chan[self]:
-                   /\ chan' = [chan EXCEPT ![self] = chan[self] \ {c139}]
-                   /\ cur' = [cur EXCEPT ![self] = c139]
+Read(self) == /\ pc[self][2]  = "Read"
+              /\ \E _c139 \in chan[self, self]:
+                   /\ chan' = [chan EXCEPT ![self, self] = chan[self, self] \ {_c139}]
+                   /\ cur' = [cur EXCEPT ![self] = _c139]
               /\ count' = [count EXCEPT ![self] = count[self] + 1]
               /\ pc' = [pc EXCEPT ![self][2] = "Read"]
 
-Clear(self) == /\ pc[self] [3] = "Clear"
+Clear(self) == /\ pc[self][3]  = "Clear"
                /\ ( count[self] = 5 )
-               /\ chan' = [n0 \in Nodes, n1 \in Nodes |-> {}]
-               /\ count' = [count EXCEPT ![self] = 0]
+               /\ chan' = [_n0, _n1 \in Nodes |-> {}]
                /\ pc' = [pc EXCEPT ![self][3] = "Done"]
-               /\ cur' = cur
+               /\ UNCHANGED << cur, count >>
 
-w(self) ==  \/ Write(self) \/ Read(self) \/ Clear(self)
+w(self) == Write(self) \/ Read(self) \/ Clear(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a960dcf4e9e61ef26a7a0b648fc53b0b
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e3e24394277882114903aabcacb10f12
 
 ==========================================================

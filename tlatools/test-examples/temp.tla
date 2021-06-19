@@ -2,7 +2,7 @@
 EXTENDS TLC, Integers, Sequences
 
 CONSTANT N
-ASSUME N \in Nat 
+ASSUME N \in Nat Read
 Nodes == 1 .. N
 
 (* PlusCal options (-distpcal) *)
@@ -10,81 +10,79 @@ Nodes == 1 .. N
 (*
 --algorithm example {
 
-variables chan = <<>>;
+variables c = 11, w = 2;
 
-procedure f(x) {
-    Add:
-        chan := Append(chan, x);
-        return;
-}
 
-process ( w \in Nodes )
-variable cur = "none";
+process (q \in Nodes)
+variables x = 3;
+lamportClock clock;
 {
     rc:
-        while (TRUE) {
-            call f(cur);
-        }
-} 
+        c := c + 1;
+        w := w + 99;
+    dd:
+        skip;
+} {
+    cv:
+        c := c + 2;
+}
+
+ 
 
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3118737da0f78fe2ad0dd64baca882b8
-CONSTANT defaultInitValue
-VARIABLES chan, pc, stack, x, cur
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-463d419688023fa28f0d8273cd7ff836
+VARIABLES c, w, pc, x, clock
 
-vars == << chan, pc, stack, x, cur >>
+vars == << c, w, pc, x, clock >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n42 \in ProcSet |-> 1..1]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
 
+(* Comparator for lamport clocks *)
+Max(c,d) == IF c > d THEN c ELSE d
 
 Init == (* Global variables *)
-        /\ chan = <<>>
-        (* Procedure f *)
-        /\ x = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
-        (* Process w *)
-        /\ cur = [self \in Nodes |-> "none"]
-        /\ stack = [self \in ProcSet |-> << <<>> >>]
-                                      
-        /\ pc = [self \in ProcSet |-> <<"rc">>]
-
-Add(self, subprocess) == /\ pc[self][subprocess] = "Add"
-                         /\ chan' = Append(chan, x[self][subprocess])
-                         /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
-                         /\ x' = [x EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).x]
-                         /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
-                         /\ cur' = cur
-
-f(self, subprocess) == Add(self, subprocess)
+        /\ c = 11
+        /\ w = 2
+        (* Process q *)
+        /\ x = [self \in Nodes |-> 3]
+        /\ clock = [self \in Nodes |-> 0]
+        /\ pc = [self \in ProcSet |-> <<"rc","cv">>]
 
 rc(self) == /\ pc[self][1]  = "rc"
-            /\ /\ stack' = [stack EXCEPT ![self][1] = << [ procedure |->  "f",
-                                                           pc        |->  "rc",
-                                                           x         |->  x[self][1] ] >>
-                                                       \o stack[self][1]]
-               /\ x' = [x EXCEPT ![self][1] = cur[self]]
-            /\ pc' = [pc EXCEPT ![self][1] = "Add"]
-            /\ UNCHANGED << chan, cur >>
+            /\ c' = c + 1
+            /\ w' = w + 99
+            /\ pc' = [pc EXCEPT ![self][1] = "dd"]
+            /\ UNCHANGED << x, clock >>
 
-w(self) == rc(self)
+dd(self) == /\ pc[self][1]  = "dd"
+            /\ TRUE
+            /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+            /\ UNCHANGED << c, w, x, clock >>
+
+cv(self) == /\ pc[self][2]  = "cv"
+            /\ c' = c + 2
+            /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+            /\ UNCHANGED << w, x, clock >>
+
+q(self) == rc(self) \/ dd(self) \/ cv(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
                /\ UNCHANGED vars
 
-Next == (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
-           \/ (\E self \in Nodes: w(self))
+Next == (\E self \in Nodes: q(self))
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-05397bad3b3936cd529e65162f0efb7b
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6b96cab882459af595e92e5ee633e70f
 
 
 =========================================================

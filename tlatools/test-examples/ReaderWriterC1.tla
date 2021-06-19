@@ -37,8 +37,8 @@ vars == << queue, pc, current_message >>
 
 ProcSet == {Writer} \cup {Reader}
 
-SubProcSet == [n \in ProcSet |-> IF n = Writer THEN 1
-                           ELSE (**Reader**) 1]
+SubProcSet == [_n42 \in ProcSet |-> IF _n42 = Writer THEN 1..1
+                                 ELSE (**Reader**) 1..1]
 
 Init == (* Global variables *)
         /\ queue = {}
@@ -47,24 +47,31 @@ Init == (* Global variables *)
         /\ pc = [self \in ProcSet |-> CASE self = Writer -> <<"Write">>
                                         [] self = Reader -> <<"Read">>]
 
-Write == /\ pc[Writer] [1] = "Write"
+Write == /\ pc[Writer][1]  = "Write"
          /\ queue' = (queue \cup {"msg"})
          /\ pc' = [pc EXCEPT ![Writer][1] = "Write"]
          /\ UNCHANGED current_message
 
-w ==  \/ Write
+w == Write
 
-Read == /\ pc[Reader] [1] = "Read"
+Read == /\ pc[Reader][1]  = "Read"
         /\ \E _q119 \in queue:
              /\ current_message' = _q119
              /\ queue' = queue \ {_q119}
         /\ pc' = [pc EXCEPT ![Reader][1] = "Read"]
 
-r ==  \/ Read
+r == Read
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == w \/ r
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1650c879608dbef1576121324a04c332
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f7dddc8ff458cabafc47b5976a02c97c
 =============================================================================

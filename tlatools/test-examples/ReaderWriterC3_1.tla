@@ -30,38 +30,46 @@ variable cur = "none";
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-92cd1fb3e58ca87699305e23e8729589
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-4d9cc57ccbb7bfb7848f45c910654519
 VARIABLES chan, pc, cur
 
 vars == << chan, pc, cur >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_dm_23 \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
+
 
 Init == (* Global variables *)
-        /\ chan = [n0 \in Nodes |-> {}]
-        (* Node w *)
+        /\ chan = [_n430 \in Nodes |-> {}]
+        (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
         /\ pc = [self \in ProcSet |-> <<"Write">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
+Write(self) == /\ pc[self][1]  = "Write"
                /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {"msg"}]
                /\ pc' = [pc EXCEPT ![self][1] = "Write"]
                /\ cur' = cur
 
-Read(self) == /\ pc[self] [1] = "Read"
-              /\ \E c149 \in chan[self]:
-                   /\ chan' = [chan EXCEPT ![self] = chan[self] \ {c149}]
-                   /\ cur' = [cur EXCEPT ![self] = c149]
+Read(self) == /\ pc[self][1]  = "Read"
+              /\ \E _c149 \in chan[self]:
+                   /\ chan' = [chan EXCEPT ![self] = chan[self] \ {_c149}]
+                   /\ cur' = [cur EXCEPT ![self] = _c149]
               /\ pc' = [pc EXCEPT ![self][1] = "Read"]
 
-w(self) ==  \/ Write(self) \/ Read(self)
+w(self) == Write(self) \/ Read(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a98979ecf5648619ae72c445f1f2c4bc
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f21b29728e4fcd258be0a3aa14597baf
 
 ===========================================================

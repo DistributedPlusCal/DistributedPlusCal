@@ -10,7 +10,7 @@ Nodes == 1 .. N
 (*
 --algorithm message_queue {
 
-fifo chan[Nodes];
+fifo chan[Nodes, Nodes];
 
 macro broadcast_channel(expr) {
 	broadcast(chan, expr);
@@ -23,41 +23,50 @@ macro multicast_channel(expr2) {
 process ( w \in Nodes )
 {
 	Write1:
-        broadcast_channel([a \in chan |-> "msg"]);
+        broadcast_channel("msg");
     Write2:
-    	multicast_channel([a \in chan |-> "abc"])
+    	multicast(chan, [self, a \in Nodes |-> "abc"])
 } 
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-1edc908f1311e302833cb77b77c49d9c
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-1718926736aa1a7914b7276507bd6ab1
 VARIABLES chan, pc
 
 vars == << chan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [ybv14 \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
+
 
 Init == (* Global variables *)
-        /\ chan = [cnc20 \in Nodes |-> <<>>]
+        /\ chan = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
         /\ pc = [self \in ProcSet |-> <<"Write1">>]
 
-Write1(self) == /\ pc[self] [1] = "Write1"
-                /\ chan' = [a \in DOMAIN chan |->  IF a \in chan THEN 
-                            Append(chan[a], "msg") ELSE chan[a]]
+Write1(self) == /\ pc[self][1]  = "Write1"
+                /\ chan' = [_n0 \in Nodes, _n1 \in Nodes |->  Append(chan[_n0, _n1] , "msg")]
                 /\ pc' = [pc EXCEPT ![self][1] = "Write2"]
 
-Write2(self) == /\ pc[self] [1] = "Write2"
-                /\ chan' =  Append(chan, [a \in chan |-> "abc"])
+Write2(self) == /\ pc[self][1]  = "Write2"
+                /\ chan' = [<<slf, a>> \in DOMAIN chan |->  IF slf = self 
+                            /\ a \in Nodes THEN 
+                            Append(chan[slf, a], "abc") ELSE chan[slf, a]]
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-w(self) ==  \/ Write1(self) \/ Write2(self)
+w(self) == Write1(self) \/ Write2(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-324475b882f642668ea36a291603665c
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-cc2cf0721a7d8450dcac37a78ae28a8c
 
 ===========================================================================

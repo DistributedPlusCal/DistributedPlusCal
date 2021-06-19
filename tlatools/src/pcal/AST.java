@@ -1478,7 +1478,9 @@ public class AST
 					}
 				}
 			}
-
+			
+			PcalDebug.reportInfo("channel.dimensions.size() : " + channel.dimensions.size());
+			PcalDebug.reportInfo("dimensions.size() : " + dimensions.size());
 			//compare with dimensions within a channel and throw an error if we find a length mismatch
 			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
 				throw new ParseAlgorithmException("multicast function expected " + channel.dimensions.size() +" dimentions ");
@@ -2447,7 +2449,7 @@ public class AST
 
 			TLAExpr elseExp = new TLAExpr();
 			elseExp.addLine();
-
+			
 			for(int i = 0; i < msg.tokens.size(); i++) {
 
 				Vector tv = (Vector) msg.tokens.elementAt(i);
@@ -2456,7 +2458,7 @@ public class AST
 					TLAToken tok = (TLAToken) tv.elementAt(j);
 					
 					if(tok.type == TLAToken.IDENT) {
-						
+
 						if(tok.string.equals("self")) {
 							dimensions.add(SELF);
 							//add to types just to maintain order between the 2 lists
@@ -2492,6 +2494,7 @@ public class AST
 			}
 
 			//compare with dimensions within a channel and throw an error if we find a length mismatch
+
 			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
 				throw new ParseAlgorithmException("multicast function expected " + channel.dimensions.size() +" dimentions ");
 			}

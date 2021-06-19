@@ -31,27 +31,35 @@ vars == << fchan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
+
 
 Init == (* Global variables *)
-        /\ fchan = [_n0 \in Nodes |-> <<>>]
+        /\ fchan = [_n430 \in Nodes |-> <<>>]
         /\ pc = [self \in ProcSet |-> <<"broad2","broad">>]
 
-broad2(self) == /\ pc[self] [1] = "broad2"
+broad2(self) == /\ pc[self][1]  = "broad2"
                 /\ fchan' = [fchan EXCEPT ![self] =  Append(@, "msg")]
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-broad(self) == /\ pc[self] [2] = "broad"
+broad(self) == /\ pc[self][2]  = "broad"
                /\ fchan' = [_n0 \in Nodes |->  Append(fchan[_n0] , "msg")]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
 
-w(self) ==  \/ broad2(self) \/ broad(self)
+w(self) == broad2(self) \/ broad(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-986c4c61af7cb7ab7e264e6cad58f50f
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f348ac23e33a030b5bfd33637ee875ea
 
 
 ==========================================================

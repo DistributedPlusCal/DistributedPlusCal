@@ -25,7 +25,7 @@ begin
   	end while;
 end process;
 
-process r = "r"
+process r = 99
 begin
   Clear:
       clear(queue);
@@ -33,48 +33,55 @@ end process;
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-e5068514998b485c2036ee705b991ab7
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-b208293c66b6a73ade13e3e89b3c6fc5
 VARIABLES queue, pc, cur
 
 vars == << queue, pc, cur >>
 
-ProcSet == (Nodes) \cup {"r"}
+ProcSet == (Nodes) \cup {99}
 
-SubProcSet == [n \in ProcSet |-> IF n \in Nodes THEN 1
-                             ELSE (**"\"", "r", "\""**) 1]
+SubProcSet == [_n42 \in ProcSet |-> IF _n42 \in Nodes THEN 1..1
+                                   ELSE (**99**) 1..1]
 
 Init == (* Global variables *)
-        /\ queue = [n0 \in Nodes |-> {}]
-        (* Node w *)
+        /\ queue = [_n430 \in Nodes |-> {}]
+        (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> <<"Write">>
-                                        [] self = "r" -> <<"Clear">>]
+                                        [] self = 99 -> <<"Clear">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
+Write(self) == /\ pc[self][1]  = "Write"
                /\ queue' = [queue EXCEPT ![self] = queue[self] \cup {"msg"}]
                /\ pc' = [pc EXCEPT ![self][1] = "Write"]
                /\ cur' = cur
 
-Read(self) == /\ pc[self] [1] = "Read"
-              /\ \E q139 \in queue[self]:
-                   /\ cur' = [cur EXCEPT ![self] = q139]
-                   /\ queue' = [queue EXCEPT ![self] = queue[self] \ {q139}]
+Read(self) == /\ pc[self][1]  = "Read"
+              /\ \E _q139 \in queue[self]:
+                   /\ cur' = [cur EXCEPT ![self] = _q139]
+                   /\ queue' = [queue EXCEPT ![self] = queue[self] \ {_q139}]
               /\ pc' = [pc EXCEPT ![self][1] = "Read"]
 
-w(self) ==  \/ Write(self) \/ Read(self)
+w(self) == Write(self) \/ Read(self)
 
-Clear == /\ pc["r"] [1] = "Clear"
-         /\ queue' = [n0 \in Nodes |-> {}]
-         /\ pc' = [pc EXCEPT !["r"][1] = "Done"]
+Clear == /\ pc[99][1]  = "Clear"
+         /\ queue' = [_n0 \in Nodes |-> {}]
+         /\ pc' = [pc EXCEPT ![99][1] = "Done"]
          /\ cur' = cur
 
-r ==  \/ Clear
+r == Clear
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == r
            \/ (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-40cd5b536980344639449a0e56b5dad2
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-68327a049abb036b4af49f122cca0f23
 
 ========================================================

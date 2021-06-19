@@ -32,9 +32,18 @@ vars == << queue, pc, stack, msg >>
 
 ProcSet == {Writer}
 
-SubProcSet == [n \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
-Sending(self, subprocess) == /\ pc[self][subprocess] [1] = "Sending"
+
+Init == (* Global variables *)
+        /\ queue = {}
+        (* Procedure send_to *)
+        /\ msg = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
+        /\ stack = [self \in ProcSet |-> << <<>> >>]
+                                      
+        /\ pc = [self \in ProcSet |-> <<"Write">>]
+
+Sending(self, subprocess) == /\ pc[self][subprocess] = "Sending"
                              /\ queue' = (queue \cup {msg[self][subprocess]})
                              /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
                              /\ msg' = [msg EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).msg]
@@ -42,23 +51,30 @@ Sending(self, subprocess) == /\ pc[self][subprocess] [1] = "Sending"
 
 send_to(self, subprocess) == Sending(self, subprocess)
 
-Write == /\ pc[Writer] [1] = "Write"
-         /\ /\ msg' = [msg EXCEPT ![Writer] = "msg"]
+Write == /\ pc[Writer][1]  = "Write"
+         /\ /\ msg' = [msg EXCEPT ![Writer][1] = "msg"]
             /\ stack' = [stack EXCEPT ![Writer][1] = << [ procedure |->  "send_to",
                                                           pc        |->  "Done",
-                                                          msg       |->  msg[self][1] ] >>
-                                                      \o stack[self][1]]
+                                                          msg       |->  msg[Writer][1] ] >>
+                                                      \o stack[Writer][1]]
          /\ pc' = [pc EXCEPT ![Writer][1] = "Sending"]
          /\ queue' = queue
 
-w ==  \/ Write
+w == Write
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == w
            \/ (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  send_to(self, subprocess))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-fdfaf86ce901fe1b5d177d0fb3dded58
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3b0065f88572c2db517d4ce34a5b9b28
 
 
 =============================================================================

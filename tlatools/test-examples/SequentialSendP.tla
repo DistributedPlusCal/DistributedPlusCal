@@ -29,18 +29,18 @@ Init == (* Global variables *)
         /\ c = <<>>
         /\ pc = "A"
 
-A == /\ pc [1] = "A"
+A == /\ pc = "A"
      /\ c' =  Append(c, 2)
      /\ Len(c') > 0 
      /\ x' = Head(c')
      /\ pc' = "Lbl_1"
 
-Lbl_1 == /\ pc [1] = "Lbl_1"
+Lbl_1 == /\ pc = "Lbl_1"
          /\ c' =  Tail(c)
          /\ pc' = "Lbl_2"
          /\ x' = x
 
-Lbl_2 == /\ pc [1] = "Lbl_2"
+Lbl_2 == /\ pc = "Lbl_2"
          /\ c' = <<>>
          /\ pc' = "Done"
          /\ x' = x
@@ -55,6 +55,6 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7a9fc67de8f7ed2f4166e4812bfc590d
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ca34dff578d6299b59ef526094dc5532
 
 ==========================================================

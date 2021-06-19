@@ -34,48 +34,55 @@ process ( r = 100 )
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-647da9cd11969b42018cf72b26dd540e
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-882360ca71ca8b2483f64c1d7686f943
 VARIABLES queue, pc, cur
 
 vars == << queue, pc, cur >>
 
 ProcSet == (Nodes) \cup {100}
 
-SubProcSet == [_sub \in ProcSet |-> IF _sub \in Nodes THEN 1
-                                   ELSE (**100**) 1]
+SubProcSet == [_n42 \in ProcSet |-> IF _n42 \in Nodes THEN 1..1
+                                   ELSE (**100**) 1..1]
 
 Init == (* Global variables *)
-        /\ queue = [n0 \in Nodes |-> {}]
-        (* Node w *)
+        /\ queue = [_n430 \in Nodes |-> {}]
+        (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> <<"Write">>
                                         [] self = 100 -> <<"Clear">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
+Write(self) == /\ pc[self][1]  = "Write"
                /\ queue' = [queue EXCEPT ![self] = queue[self] \cup {"msg"}]
                /\ pc' = [pc EXCEPT ![self][1] = "Write"]
                /\ cur' = cur
 
-Read(self) == /\ pc[self] [1] = "Read"
-              /\ \E q139 \in queue[self]:
-                   /\ cur' = [cur EXCEPT ![self] = q139]
-                   /\ queue' = [queue EXCEPT ![self] = queue[self] \ {q139}]
+Read(self) == /\ pc[self][1]  = "Read"
+              /\ \E _q139 \in queue[self]:
+                   /\ cur' = [cur EXCEPT ![self] = _q139]
+                   /\ queue' = [queue EXCEPT ![self] = queue[self] \ {_q139}]
               /\ pc' = [pc EXCEPT ![self][1] = "Read"]
 
-w(self) ==  \/ Write(self) \/ Read(self)
+w(self) == Write(self) \/ Read(self)
 
-Clear == /\ pc[100] [1] = "Clear"
-         /\ queue' = [n0 \in Nodes |-> {}]
+Clear == /\ pc[100][1]  = "Clear"
+         /\ queue' = [_n0 \in Nodes |-> {}]
          /\ pc' = [pc EXCEPT ![100][1] = "Done"]
          /\ cur' = cur
 
-r ==  \/ Clear
+r == Clear
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == r
            \/ (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3391e3c87e0e5f801b7d4a0f6c504aad
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a19b2209d5f346de36b28e78893c29dd
 
 ==========================================================

@@ -28,38 +28,46 @@ variable cur = "none", counter = 0;
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-23b9e6d1108b5dfa97c6ec0f0a07fd69
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7b751bd73d18bb16f9196da0a4f21785
 VARIABLES c, chan, pc, cur, counter
 
 vars == << c, chan, pc, cur, counter >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [qtu21 \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
+
 
 Init == (* Global variables *)
         /\ c = 2
-        /\ chan = [snt25 \in Nodes, yzc28 \in Nodes |-> <<>>]
-        (* Node w *)
+        /\ chan = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
+        (* Process w *)
         /\ cur = [self \in Nodes |-> "none"]
         /\ counter = [self \in Nodes |-> 0]
         /\ pc = [self \in ProcSet |-> <<"Read">>]
 
-Read(self) == /\ pc[self] [1] = "Read"
+Read(self) == /\ pc[self][1]  = "Read"
               /\ counter' = [counter EXCEPT ![self] = counter[self] + 2]
               /\ c' = c - 5
               /\ Len(chan[self, self]) > 0 
               /\ cur' = [cur EXCEPT ![self] = Head(chan[self, self])]
-              /\ chan' = [chan EXCEPT ![self, self] =  Tail(chan[self, self]) ]
+              /\ chan' = [chan EXCEPT ![self, self] =  Tail(@) ]
               /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-w(self) ==  \/ Read(self)
+w(self) == Read(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7d21abbfb2237d7e39362e2c5bf973ea
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bbdd3ca02b9ae48710aee99963200183
 
 
 ========================================================

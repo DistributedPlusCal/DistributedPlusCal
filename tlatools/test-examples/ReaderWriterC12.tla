@@ -24,29 +24,37 @@ process ( w \in Nodes )
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-bead33fa6708b91612058bc6c48d755f
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9727aadbd612229e5944c1b2785f7c49
 VARIABLES chan, pc
 
 vars == << chan, pc >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [rly27 \in ProcSet |-> 1]
+SubProcSet == [_n42 \in ProcSet |-> 1..1]
+
 
 Init == (* Global variables *)
-        /\ chan = [voj17 \in Nodes |-> <<>>]
+        /\ chan = [_n430 \in Nodes |-> <<>>]
         /\ pc = [self \in ProcSet |-> <<"Write">>]
 
-Write(self) == /\ pc[self] [1] = "Write"
-               /\ chan' = [sfa18 \in Nodes |-> <<>>]
+Write(self) == /\ pc[self][1]  = "Write"
+               /\ chan' = [_n0 \in Nodes |-> <<>>]
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-w(self) ==  \/ Write(self)
+w(self) == Write(self)
+
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
 
 Next == (\E self \in Nodes: w(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-adfba5e0d5d5f5643057998e52418791
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c4d2655031c66433a8ee6f84114c9de7
 
 ===========================================================================

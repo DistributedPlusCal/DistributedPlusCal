@@ -460,12 +460,13 @@ public class ParseAlgorithm
             while (j < proc.threads.size()) {
               AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
               
+              ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
+              
               ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
               
-              ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
-              AddLabelsToStmtSeq(thread.body);
+              AddLabelsToStmtSeq(thread.body);              
               thread.body = MakeLabeledStmtSeq(thread.body);
-              
+
               checkBody(thread.body);
               omitStutteringWhenDoneValue =
                 omitStutteringWhenDoneValue || omitStutteringWhenDone;
@@ -855,14 +856,14 @@ public class ParseAlgorithm
         	       
         	       //For Distributed PlusCal, could be surrounded by an if statement
         	       //to read channels and fifo channels
-        	       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
-        	    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos"))) {
+        	       while (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
+        	    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
         	    	   result.decls.addAll(GetChannelDecls());
         	       }
-        	       
+        	       PcalDebug.reportInfo("after channel declarations");
         	       // to read logical clocks
-        	       while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
-        	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks"))) {
+        	       while (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
+        	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")) {
         	    	   result.decls.addAll(GetClockDecls());
         	       }
              } 
@@ -1246,6 +1247,7 @@ public class ParseAlgorithm
                           || tok.equals("or")     ))
                   || ( cSyntax && tok.equals("}")) ))
          { String nextLabel = GetLabel() ;
+         	PcalDebug.reportInfo("nextLabel : " + nextLabel);
            PCalLocation labelLoc = getLabelLocation ;
            if (cSyntax && PeekAtAlgToken(1).equals("{"))
              { /************************************************************
@@ -1259,6 +1261,7 @@ public class ParseAlgorithm
                * This is an ordinary statement.                            *
                ************************************************************/
                AST stmt = GetStmt() ;
+               PcalDebug.reportInfo("stmt : " + stmt);
                stmt.lbl = nextLabel ;
                stmt.lblLocation = labelLoc ;
                result.addElement(stmt) ;
@@ -1272,6 +1275,7 @@ public class ParseAlgorithm
           * (I think).                                                     *
           *****************************************************************/
           { ParsingError("Empty statement list") ; }
+        PcalDebug.reportInfo("GetStmtSeq : " + result);
         return result ;
       }
 
@@ -1672,19 +1676,24 @@ public class ParseAlgorithm
          ******************************************************************/
        result.ass = new Vector() ;
        result.ass.addElement(GetSingleAssign()) ;
+       PcalDebug.reportInfo("result.ass :: " + result.ass);
        while (PeekAtAlgToken(1).equals("||"))
          { String throwAway = GetAlgToken() ;
            try {
            result.ass.addElement(GetSingleAssign()) ;
+           PcalDebug.reportInfo("22.  result.ass :: " + result.ass);
            } catch (ParseAlgorithmException e) {
            ParsingError("Bad assignment statement at ") ;
         }
          } ;
        GobbleThis(";") ; 
        AST firstAssign = (AST) result.ass.elementAt(0) ;
+       PcalDebug.reportInfo("firstAssign : " + firstAssign);
        AST lastAssign = (AST) result.ass.elementAt(result.ass.size()-1) ;
+       PcalDebug.reportInfo("lastAssign : " + lastAssign);
        result.setOrigin(new Region(firstAssign.getOrigin().getBegin(), 
                                    lastAssign.getOrigin().getEnd()));
+       PcalDebug.reportInfo("GetAssign : " + result);
        return result ;
      }
 
@@ -2803,7 +2812,8 @@ public class ParseAlgorithm
                          || node.getClass().equals(
                                AST.SkipObj.getClass())  
                          || node.getClass().equals(
-                               AST.MacroCallObj.getClass())  )
+                               AST.MacroCallObj.getClass())
+            		 	)
                      )
                { PcalDebug.ReportBug(
                   "ParseAlgorithm.ClassifyStmtSeq encountered the unexpected" +
@@ -3511,12 +3521,9 @@ public class ParseAlgorithm
         		  // no arguments. chan or fifo without dimension
             	  result.callExp = chanstmt.callExp;
         	  } 
-        	  else {
-        		  result.callExp = chanstmt.callExp;
-        		  
+        	  else {        		 
         		  // with one or more arguments. chan or fifo with one or more arguments.         		  
         		  ArrayList<String> dm = PcalTLAGen.getCallExprValues(chanstmt.callExp);
-        		  
     	          // get the corresponding index by comparing args with params
     	          ArrayList<Integer> param_indexes = new ArrayList<>();
     	          for ( int i = 0; i < dm.size(); i++ ) {
@@ -3528,17 +3535,22 @@ public class ParseAlgorithm
     	        	  }
     	          }
     	          
-    	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
-    	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
-    	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
+    	          result.callExp = chanstmt.callExp;
     	          
-    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
-    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
-    	          for ( int i = 0; i < dm.size(); i++ ) {
-    	        	  int k = param_indexes.get(i);
-    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
-    	        	  token_index += 2;
-    	          }
+    	          if (param_indexes.size() > 0) {
+    	        	//PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
+        	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
+        	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
+        	          
+        	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+        	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+        	          for ( int i = 0; i < dm.size(); i++ ) {
+        	        	  int k = param_indexes.get(i);
+        	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+        	        	  token_index += 2;
+        	          }
+    	          } 
+    	          
         	  }
         	  
         	  result.channelName = chanstmt.channelName;
@@ -3555,12 +3567,18 @@ public class ParseAlgorithm
 	        	  }
 	          }
 	          
-	          result.msg = (TLAExpr) args.elementAt(msg_index);
+	          if (msg_index == - 1) {
+	        	  result.msg = chanstmt.msg;
+	          } else {
+	        	  result.msg = (TLAExpr) args.elementAt(msg_index);
+	          }
+	          
         	  return result;
           }
           
           if ( stmt.getClass().equals( AST.ChannelReceiverObj.getClass()) )
           {
+        	  
         	  AST.ChannelReceiveCall chanstmt = (AST.ChannelReceiveCall) stmt;
         	  AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
 	          result.col = chanstmt.col;
@@ -3581,7 +3599,7 @@ public class ParseAlgorithm
         	  else {
         		  // with one or more arguments. chan or fifo with one or more arguments.         		  
         		  ArrayList<String> dm = PcalTLAGen.getCallExprValues(chanstmt.callExp);
-
+        		  
     	          // get the corresponding index by comparing args with params
     	          ArrayList<Integer> param_indexes = new ArrayList<>();
     	          for ( int i = 0; i < dm.size(); i++ ) {
@@ -3593,18 +3611,22 @@ public class ParseAlgorithm
     	        	  }
     	          }
     	          
+    	          
     	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
     	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
     	          //PcalDebug.reportInfo("tokenAt3: " + chanstmt.callExp.tokenAt(new IntPair(0, 3)));
     	          
     	          result.callExp = chanstmt.callExp;
     	          
-    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
-    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
-    	          for ( int i = 0; i < dm.size(); i++ ) {
-    	        	  int k = param_indexes.get(i);
-    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
-    	        	  token_index += 2;
+    	          if (param_indexes.size() > 0) {
+	    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+	    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+	    	          for ( int i = 0; i < dm.size(); i++ ) {
+	    	        	  int k = param_indexes.get(i);
+	    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+	    	        	  token_index += 2;
+	    	          }
+    	          
     	          }
         	  }
         	  
@@ -3622,8 +3644,12 @@ public class ParseAlgorithm
         		  }
         	  }
         	  
-        	  Vector<TLAExpr> cp = args;
-        	  result.targetVarName = cp.get(rec_var_index).toPlainString();
+        	  if (rec_var_index == -1) { 
+        		  result.targetVarName = chanstmt.targetVarName;
+        	  } else {
+            	  Vector<TLAExpr> cp = args;
+            	  result.targetVarName = cp.get(rec_var_index).toPlainString();
+        	  }
         	  
         	  return result;
           }
@@ -3668,13 +3694,15 @@ public class ParseAlgorithm
     	          
     	          result.callExp = chanstmt.callExp;
     	          
-    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
-    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
-    	          for ( int i = 0; i < dm.size(); i++ ) {
-    	        	  int k = param_indexes.get(i);
-    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
-    	        	  token_index += 2;
-    	          }    	          
+    	          if (param_indexes.size() > 0) {
+	    	          int token_index = 1; // increase by 2 at every step to match the parameter of chan.
+	    	          Vector<TLAExpr> cp = args; // to get elements as plain string. easier to work with plain strings
+	    	          for ( int i = 0; i < dm.size(); i++ ) {
+	    	        	  int k = param_indexes.get(i);
+	    	        	  result.callExp.tokenAt(new IntPair(0, token_index)).string = cp.get(k).toPlainString();
+	    	        	  token_index += 2;
+	    	          }    	          
+    	          }
         	  }
 
         	  result.channelName = chanstmt.channelName;
@@ -3683,18 +3711,27 @@ public class ParseAlgorithm
         	  return result;
           }
           
-       // For Distributed Pluscal. Handling Logical clock objects inside macro
-       if ( stmt.getClass().equals( AST.ClockIncreaseObj.getClass() ) ) {
-    	   // TODO. Implement clock calls expansion inside macro
-       }
-       
-       if (stmt.getClass().equals( AST.ClockResetObj.getClass() )) {
-    	   // TODO. Implement clock calls expansion inside macro    	   
-       }
-       
-       if (stmt.getClass().equals( AST.ClockUpdateObj.getClass() ) ) {
-    	   // TODO. Implement clock calls expansion inside macro
-       }
+          // For Distributed PlusCal. Channel operations with clocks.
+          if (stmt.getClass().equals( AST.ChannelSendWithClockObj.getClass() )) {
+        	  
+          }
+          
+          if (stmt.getClass().equals( AST.ChannelReceiveWithClockObj.getClass() )) {
+        	  
+          }
+          
+	       // For Distributed Pluscal. Handling Logical clock objects inside macro
+	       if ( stmt.getClass().equals( AST.ClockIncreaseObj.getClass() ) ) {
+	    	   // TODO. Implement clock calls expansion inside macro
+	       }
+	       
+	       if (stmt.getClass().equals( AST.ClockResetObj.getClass() )) {
+	    	   // TODO. Implement clock calls expansion inside macro    	   
+	       }
+	       
+	       if (stmt.getClass().equals( AST.ClockUpdateObj.getClass() ) ) {
+	    	   // TODO. Implement clock calls expansion inside macro
+	       }
           
         PcalDebug.ReportBug(
            "Found unexpected statement type in macro at" +
@@ -4922,9 +4959,9 @@ public class ParseAlgorithm
 			result.isBroadcast = true;
 		} else if(nextTok.equals("multicast")) {
 			result.isMulticast = true;
-		} else {
-			result.callExp = GetExpr();
-		}
+		} 
+		
+		result.callExp = GetExpr();
 
 		GobbleThis(",");
 		result.msg = GetExpr();
@@ -5182,13 +5219,13 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
 		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
-		
+
 		Vector result = null;
+		
 		if(call.isBroadcast) {
 			result = call.generateBroadcastBodyTemplate((AST.Channel) varDecl);
-		} if(call.isMulticast){
+		} else if(call.isMulticast){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
-
 		} else if(!call.isBroadcast && !call.isMulticast){
 			//construct body based on type 
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
@@ -5447,7 +5484,7 @@ public class ParseAlgorithm
 		    logicalClocks = true;
 			String tok = PeekAtAlgToken(1);
 			
-			if (tok.contains("lamportClock") || tok.contains("vectorClock")) {
+			if (tok.contains("lamportClocks") || tok.contains("vectorClocks")) {
 				MustGobbleThis(tok);
 			} else {
 				GobbleThis(tok);
@@ -5463,9 +5500,9 @@ public class ParseAlgorithm
 		                 || PeekAtAlgToken(1).equals("fair")  
 		                 || PeekAtAlgToken(1).equals("define")  
 		                 || PeekAtAlgToken(1).equals("macro")  
-		                 //For Distributed PlusCal
+		                 // For Distributed PlusCal
 		 				 || PeekAtAlgToken(1).equals("subprocess"))
-						//For Distributed PlusCal
+						 // For Distributed PlusCal
 		                 || PeekAtAlgToken(1).equals("vectorClock")
 		                 || PeekAtAlgToken(1).equals("vectorClocks")
 						)
@@ -5496,6 +5533,8 @@ public class ParseAlgorithm
 			return result;
 		}
 	
+	   // For Distributed PlusCal. store clock name for increment purpose.
+	   public static String clockName;
 	
 	   public static VarDecl GetClockDecl(String clockType) throws ParseAlgorithmException {
 		   	logicalClocks = true;
@@ -5514,7 +5553,9 @@ public class ParseAlgorithm
 			}
 
 			pv.var = GetAlgToken();
-			pv.isEq = true;		
+			pv.isEq = true;	
+			// to store clockName in a global variable
+			clockName = pv.var;
 			
 			PCalLocation beginLoc = GetLastLocationStart();
 			PCalLocation endLoc = GetLastLocationEnd();

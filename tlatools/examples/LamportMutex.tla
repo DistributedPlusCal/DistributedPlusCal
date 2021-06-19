@@ -61,10 +61,11 @@ vars == << network, pc, clock, req, ack, sndr, msg >>
 
 ProcSet == (Nodes)
 
-SubProcSet == [_n \in ProcSet |-> 1..2]
+SubProcSet == [_n42 \in ProcSet |-> 1..2]
+
 
 Init == (* Global variables *)
-        /\ network = [_n0 \in Nodes, _n1 \in Nodes |-> <<>>]
+        /\ network = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
         (* Process n *)
         /\ clock = [self \in Nodes |-> 0]
         /\ req = [self \in Nodes |-> [n \in Nodes |-> 0]]
@@ -73,12 +74,12 @@ Init == (* Global variables *)
         /\ msg = [self \in Nodes |-> defaultInitValue]
         /\ pc = [self \in ProcSet |-> <<"ncs","rcv">>]
 
-ncs(self) == /\ pc[self] [1] = "ncs"
+ncs(self) == /\ pc[self][1]  = "ncs"
              /\ TRUE
              /\ pc' = [pc EXCEPT ![self][1] = "try"]
              /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
-try(self) == /\ pc[self] [1] = "try"
+try(self) == /\ pc[self][1]  = "try"
              /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
              /\ req' = [req EXCEPT ![self][self] = clock'[self]]
              /\ ack' = [ack EXCEPT ![self] = {self}]
@@ -88,17 +89,17 @@ try(self) == /\ pc[self] [1] = "try"
              /\ pc' = [pc EXCEPT ![self][1] = "enter"]
              /\ UNCHANGED << sndr, msg >>
 
-enter(self) == /\ pc[self] [1] = "enter"
+enter(self) == /\ pc[self][1]  = "enter"
                /\ (ack[self] = Nodes /\ \A n \in Nodes \ {self} : beats(self, n))
                /\ pc' = [pc EXCEPT ![self][1] = "cs"]
                /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
-cs(self) == /\ pc[self] [1] = "cs"
+cs(self) == /\ pc[self][1]  = "cs"
             /\ TRUE
             /\ pc' = [pc EXCEPT ![self][1] = "exit"]
             /\ UNCHANGED << network, clock, req, ack, sndr, msg >>
 
-exit(self) == /\ pc[self] [1] = "exit"
+exit(self) == /\ pc[self][1]  = "exit"
               /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
               /\ network' = [<<slf, n>> \in DOMAIN network |->  IF slf = self 
                              /\ n \in Nodes \ { self } THEN 
@@ -106,7 +107,7 @@ exit(self) == /\ pc[self] [1] = "exit"
               /\ pc' = [pc EXCEPT ![self][1] = "ncs"]
               /\ UNCHANGED << req, ack, sndr, msg >>
 
-rcv(self) == /\ pc[self] [2] = "rcv"
+rcv(self) == /\ pc[self][2]  = "rcv"
              /\ \E n \in Nodes:
                   /\ Len(network[n,self]) > 0 
                   /\ msg' = [msg EXCEPT ![self] = Head(network[n,self])]
@@ -116,7 +117,7 @@ rcv(self) == /\ pc[self] [2] = "rcv"
              /\ pc' = [pc EXCEPT ![self][2] = "handle"]
              /\ UNCHANGED << req, ack >>
 
-handle(self) == /\ pc[self] [2] = "handle"
+handle(self) == /\ pc[self][2]  = "handle"
                 /\ IF msg[self].type = "request"
                       THEN /\ req' = [req EXCEPT ![self][sndr[self]] = msg[self].clock]
                            /\ network' = [network EXCEPT ![self, sndr[self]] =  Append(@, Acknowledge(clock[self]))]
@@ -133,12 +134,19 @@ handle(self) == /\ pc[self] [2] = "handle"
                 /\ pc' = [pc EXCEPT ![self][2] = "rcv"]
                 /\ UNCHANGED << clock, sndr, msg >>
 
-n(self) ==  \/ ncs(self) \/ try(self) \/ enter(self) \/ cs(self) \/ exit(self)
+n(self) == ncs(self) \/ try(self) \/ enter(self) \/ cs(self) \/ exit(self)
               \/ rcv(self) \/ handle(self)
 
+(* Allow infinite stuttering to prevent deadlock on termination. *)
+Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+               /\ UNCHANGED vars
+
 Next == (\E self \in Nodes: n(self))
+           \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0b6844160ed23140b3ac7f89fb9bb041
+Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e067166f5fcd02e0ba1daeca8d324312
 =======================
