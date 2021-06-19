@@ -58,7 +58,7 @@ Nodes == 1 .. N
    } \* end message handling thread
 }  
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-a4cecd991a6e503f409550e8c278a2d2
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-1685c1133e98e3fcfee53491322e7a2e
 CONSTANT defaultInitValue
 VARIABLES network, pc
 
@@ -128,7 +128,7 @@ rcv(self) == /\ pc[self][2]  = "rcv"
                   /\ Len(network[n,self]) > 0 
                   /\ msg' = [msg EXCEPT ![self] = Head(network[n,self])]
                   /\ network' = [network EXCEPT ![n,self] =  Tail(@) ]
-                  /\ clock' = [clock EXCEPT ![self] = Max(clock[self], msg.clock) + 1]
+                  /\ clock' = [clock EXCEPT ![self] = Max(clock[self], msg'.clock) + 1]
                   /\ sndr' = [sndr EXCEPT ![self] = n]
              /\ pc' = [pc EXCEPT ![self][2] = "handle"]
              /\ UNCHANGED << req, ack >>
@@ -166,7 +166,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-2d3503b9e447e6ef4d10acc732c46c58
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3f93d73f752086b8446fc3b9e3d9431d
 
 
 

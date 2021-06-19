@@ -2948,7 +2948,7 @@ public class AST
 			expr.addToken(PcalTranslate.IdentToken("Max("));
 			expr.addToken(PcalTranslate.IdentToken(clock.toPlainString()));
 			expr.addToken(PcalTranslate.IdentToken(", "));
-			String t = targetVar.var + ".clock";
+			String t = targetVar.var + "'.clock";
 			expr.addToken(PcalTranslate.IdentToken(t));
 			expr.addToken(PcalTranslate.IdentToken(") + 1"));
 			
