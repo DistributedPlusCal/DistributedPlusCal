@@ -4865,7 +4865,7 @@ public class PcalTLAGen
 			String dimension = (String) decl.dimensions.get(i);
 			// For Distributed Pluscal. HC: add counter
 			//String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
-			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
+			String tempVarName = "_m" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
 			}
@@ -4903,7 +4903,7 @@ public class PcalTLAGen
 		for(int i = 0; i < decl.dimensions.size(); i++) {
 			String dimension = (String) decl.dimensions.get(i);
 			// For Distributed PlusCal. append _ to overcome variable name clash
-			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
+			String tempVarName = "_m" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
 
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -4975,7 +4975,9 @@ public class PcalTLAGen
 	    return res;
 	  }
 	  
+	  // For Distributed PlusCal.
 	  private Vector<String> normalizeTlacode(Vector<String> tlacode) {
+		  // to handle process local vars translation called inside procedures
 		  Vector<String> my_tlacode = new Vector<>();
 		  for (int i = 0; i < tlacode.size(); i++) {
 			  String line = tlacode.get(i);
@@ -4999,10 +5001,7 @@ public class PcalTLAGen
 			  my_tlacode.add(line);
 		  }
 		  
-		  // For logical clocks
-		  PcalDebug.reportInfo(" =========== ");
-		  PcalDebug.reportInfo(" =========== ");
-		  PcalDebug.reportInfo(" =========== ");
+		  // For logical clocks auto-incrementing for each labels
 		  
 		  if (ParseAlgorithm.logicalClocks) {
 			  for (String label: labels) {

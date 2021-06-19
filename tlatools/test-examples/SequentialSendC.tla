@@ -23,7 +23,7 @@ vars == << x, c, pc >>
 
 Init == (* Global variables *)
         /\ x = 2
-        /\ c = [_2420 \in 2 |-> {}]
+        /\ c = [_m2420 \in 2 |-> {}]
         /\ pc = "A"
 
 A == /\ pc = "A"
@@ -41,6 +41,6 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c08d3c1c06b09837e599be6ecc537d95
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-077a5dc5b198e3756ecd8f2183f4eda3
 
 ==========================================================
