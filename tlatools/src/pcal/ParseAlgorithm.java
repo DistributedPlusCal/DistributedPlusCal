@@ -3561,10 +3561,6 @@ public class ParseAlgorithm
         	  else if (result.name.equals("broadcast"))
         		  result.isBroadcast = true;
         	  
-        	  PcalDebug.reportInfo("args name: " + args);
-        	  PcalDebug.reportInfo("is broadcast : " + result.isBroadcast);
-        	  PcalDebug.reportInfo("is multicast : " + result.isMulticast);
-        	  
         	  int msg_index = -1;
 	          for ( int i = 0; i < params.size(); i++ ) {
 	        	  if ( params.get(i).equals(chanstmt.msg.toPlainString()) ) {
@@ -3616,7 +3612,6 @@ public class ParseAlgorithm
     	        		  }
     	        	  }
     	          }
-    	          
     	          
     	          //PcalDebug.reportInfo("TOKENS : " + chanstmt.callExp.tokens);
     	          //PcalDebug.reportInfo("tokenAt1: " + chanstmt.callExp.tokenAt(new IntPair(0, 1)));
