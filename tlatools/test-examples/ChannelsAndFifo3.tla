@@ -11,7 +11,7 @@ Nodes == 1 .. N
 --algorithm example {
 
 
-process (c = 1)
+process (c \in Nodes)
 variables x;
 channel chan[Nodes]; \* the problem is about declaring consecutively channels and fifos.
 fifo f_chan;
@@ -24,42 +24,42 @@ fifo f_chan;
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-4a35ca0cd73c341b8103e0e27f990d9e
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-bdc2441e7fca7df99bb37479a515e185
 CONSTANT defaultInitValue
 VARIABLES pc, x, chan, f_chan
 
 vars == << pc, x, chan, f_chan >>
 
-ProcSet == {1}
+ProcSet == (Nodes)
 
 SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
 
 Init == (* Process c *)
-        /\ x = defaultInitValue
-        /\ chan = {}
-        /\ f_chan = <<>>
+        /\ x = [self \in Nodes |-> defaultInitValue]
+        /\ chan = [self \in Nodes |-> {}]
+        /\ f_chan = [self \in Nodes |-> <<>>]
         /\ pc = [self \in ProcSet |-> <<"Add">>]
 
-Add == /\ pc[1][1]  = "Add"
-       /\ f_chan' =  Append(f_chan, "msg")
-       /\ pc' = [pc EXCEPT ![1][1] = "Done"]
-       /\ UNCHANGED << x, chan >>
+Add(self) == /\ pc[self][1]  = "Add"
+             /\ f_chan' = [f_chan EXCEPT ![self] =  Append(f_chan, "msg")]
+             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+             /\ UNCHANGED << x, chan >>
 
-c == Add
+c(self) == Add(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
                /\ UNCHANGED vars
 
-Next == c
+Next == (\E self \in Nodes: c(self))
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3f92cd70370d77df08cd827f25acfb1d
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7b2d7004426b029a06b92ce098c9fbb7
 
 
 =========================================================

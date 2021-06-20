@@ -1247,7 +1247,7 @@ public class ParseAlgorithm
                           || tok.equals("or")     ))
                   || ( cSyntax && tok.equals("}")) ))
          { String nextLabel = GetLabel() ;
-         	PcalDebug.reportInfo("nextLabel : " + nextLabel);
+         	
            PCalLocation labelLoc = getLabelLocation ;
            if (cSyntax && PeekAtAlgToken(1).equals("{"))
              { /************************************************************
@@ -1261,7 +1261,6 @@ public class ParseAlgorithm
                * This is an ordinary statement.                            *
                ************************************************************/
                AST stmt = GetStmt() ;
-               PcalDebug.reportInfo("stmt : " + stmt);
                stmt.lbl = nextLabel ;
                stmt.lblLocation = labelLoc ;
                result.addElement(stmt) ;
@@ -1275,7 +1274,7 @@ public class ParseAlgorithm
           * (I think).                                                     *
           *****************************************************************/
           { ParsingError("Empty statement list") ; }
-        PcalDebug.reportInfo("GetStmtSeq : " + result);
+        
         return result ;
       }
 
@@ -3504,6 +3503,7 @@ public class ParseAlgorithm
           // For Distributed Pluscal. Handling Channel objects inside macro
           if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
           {
+        	  PcalDebug.reportInfo("stmt : " + stmt);
         	  AST.ChannelSendCall chanstmt = (AST.ChannelSendCall) stmt;
         	  AST.ChannelSendCall result = new AST.ChannelSendCall();
         	  result.col = chanstmt.col;
@@ -3555,9 +3555,15 @@ public class ParseAlgorithm
         	  
         	  result.channelName = chanstmt.channelName;
         	  result.name = chanstmt.name;
-     
-        	  result.isBroadcast = chanstmt.isBroadcast;
-        	  result.isMulticast = chanstmt.isBroadcast;
+        	  
+        	  if (result.name.equals("multicast"))
+        		  result.isMulticast = true;
+        	  else if (result.name.equals("broadcast"))
+        		  result.isBroadcast = true;
+        	  
+        	  PcalDebug.reportInfo("args name: " + args);
+        	  PcalDebug.reportInfo("is broadcast : " + result.isBroadcast);
+        	  PcalDebug.reportInfo("is multicast : " + result.isMulticast);
         	  
         	  int msg_index = -1;
 	          for ( int i = 0; i < params.size(); i++ ) {
@@ -4970,7 +4976,9 @@ public class ParseAlgorithm
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
-
+		
+		PcalDebug.reportInfo("result getSendTo : " + result);
+		
 		return result;
 	}
 

@@ -13,24 +13,25 @@ Nodes == 1 .. N
 fifo chan[Nodes, Nodes];
 
 macro broadcast_channel(expr) {
-	broadcast(chan, expr);
+	send(chan, expr);
 }
 
-macro multicast_channel(expr2) {
+macro f2(expr2) {
 	multicast(chan, expr2);
 }
 
 process ( w \in Nodes )
 {
+    Write2:
+        f2([self, a \in Nodes |-> "abc"]);
 	Write1:
         broadcast_channel("msg");
-    Write2:
-    	multicast(chan, [self, a \in Nodes |-> "abc"])
+
 } 
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-1718926736aa1a7914b7276507bd6ab1
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-43fe2aa0e9c0270bc38b84057f03cdf6
 VARIABLES chan, pc
 
 vars == << chan, pc >>
@@ -41,20 +42,20 @@ SubProcSet == [_n42 \in ProcSet |-> 1..1]
 
 
 Init == (* Global variables *)
-        /\ chan = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
-        /\ pc = [self \in ProcSet |-> <<"Write1">>]
-
-Write1(self) == /\ pc[self][1]  = "Write1"
-                /\ chan' = [_n0 \in Nodes, _n1 \in Nodes |->  Append(chan[_n0, _n1] , "msg")]
-                /\ pc' = [pc EXCEPT ![self][1] = "Write2"]
+        /\ chan = [_mn430 \in Nodes, _mn441 \in Nodes |-> <<>>]
+        /\ pc = [self \in ProcSet |-> <<"Write2">>]
 
 Write2(self) == /\ pc[self][1]  = "Write2"
                 /\ chan' = [<<slf, a>> \in DOMAIN chan |->  IF slf = self 
                             /\ a \in Nodes THEN 
                             Append(chan[slf, a], "abc") ELSE chan[slf, a]]
+                /\ pc' = [pc EXCEPT ![self][1] = "Write1"]
+
+Write1(self) == /\ pc[self][1]  = "Write1"
+                /\ chan' =  Append(@, "msg")
                 /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-w(self) == Write1(self) \/ Write2(self)
+w(self) == Write2(self) \/ Write1(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
@@ -67,6 +68,6 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-cc2cf0721a7d8450dcac37a78ae28a8c
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4dae12d3c40bb0e6d6e1cb38a0407e76
 
 ===========================================================================
