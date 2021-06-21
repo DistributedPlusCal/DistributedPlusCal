@@ -88,3 +88,9 @@
 - 1p2t -> one process / two threads
 - both use the same procedure
 - Rec -> recursive procedure, no channels
+
+* ProceduresWithLV
+- procedures using process local variables
+- parses but error in TLC (with or without distpcal)
+- ProceduresWithLVprocId: use local variables from unique process
+- ProceduresWithLVprocSet: use local variables from process set

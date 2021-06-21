@@ -1032,6 +1032,13 @@ public class PcalTLAGen
                 addLeftParen(sass.getOrigin());
                 TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
+                //For Distributed PlusCal
+                // HC: just to handle process local variables in procedures
+                if(PcalParams.distpcalFlag){
+                  if(context.equals("procedure")){
+                    rhs = AddSubscriptsToExprInProcedure(sass.rhs, SubExpr(Self(context)), c);
+                  }
+                }
 
                 //For Distributed PlusCal 
                 if(PcalParams.distpcalFlag){
@@ -1047,7 +1054,6 @@ public class PcalTLAGen
                 if (mp
                         && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) || sass.lhs.var.equals("stack")))
                 {
-
                   //For Distributed PlusCal 
                   if(PcalParams.distpcalFlag){                	
                     // if the context is not a procedure then we are handling a
@@ -1097,8 +1103,18 @@ public class PcalTLAGen
                     }
                     sb.append("![");
                     addOneTokenToTLA(sb.toString());
-                    addLeftParen(self.getOrigin());
-                    addExprToTLA(self);
+                    addLeftParen(self.getOrigin());                    
+                    //For Distributed PlusCal
+                    // HC: just to handle process local variables in procedures
+                    if(PcalParams.distpcalFlag){
+                      if(context.equals("procedure") && IsProcessSetVar(sass.lhs.var)){
+                        addExprToTLA(selfAsExpr());
+                      } else {
+                        addExprToTLA(self);
+                      }
+                    } else {
+                      addExprToTLA(self);
+                    }
                     addRightParen(self.getOrigin());
                     
 //                    
@@ -3683,7 +3699,6 @@ public class PcalTLAGen
                     if (subr)
                     {
                         TLAExpr subexp = sub.cloneAndNormalize();
-                        
                         /*
                          * We now add the end of the origin of tok to beginSubst
                          * of the first token of subexp and to endSubst of the
@@ -3839,6 +3854,7 @@ public class PcalTLAGen
         }
         return s;
     }
+  
     //For Distributed PlusCals
     private static TLAExpr  procedureSelfAsExpr() {
     	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
@@ -4851,6 +4867,205 @@ public class PcalTLAGen
     }
     return res;
   }
+
+  
+    /**********************************************************/
+    /* Same as AddSubscriptsToExpr but in DitPcal process local variables */
+    /* should be handled a bit differently than the other variables in the */
+    /* procedure: [self][subprocess] --> [self]  */
+    /* to be eventually merged into AddSubscriptsToExpr  */
+    /**********************************************************/
+    private TLAExpr AddSubscriptsToExprInProcedure(TLAExpr exprn, TLAExpr sub, Changed c) throws PcalTLAGenException
+    {
+        /*
+         * For testing, throw a null pointer exception if the begin/end substitution
+         * mapping vectors are not properly matching in the returned expression
+         */
+//        int[] depths = new int[1000];
+        
+        int parenDepth = 0;
+        for (int i = 0; i < exprn.tokens.size(); i++) {
+            Vector line = (Vector) exprn.tokens.elementAt(i);
+            for (int j = 0; j < line.size(); j++) {
+                TLAToken tok = (TLAToken) line.elementAt(j);
+                parenDepth = parenDepth + tok.getBeginSubst().size() - tok.getEndSubst().size();
+                if (parenDepth < 0) {
+                        throw new NullPointerException("argument: begin/end Subst depth negative");
+                }
+            }
+//            depths[i] = parenDepth;
+        }
+        if (parenDepth != 0) {
+            throw new NullPointerException("argument: Unmatched begin Subst");
+        }
+        /*   ------------------ end testing --------------------------*/
+
+        /*
+         * We now set stringVec to the sequence of identifiers that occur in exprn
+         * for which we need to add a subscript or a prime.
+         */
+        Vector exprVec = new Vector(); // the substituting exprs
+        Vector stringVec = new Vector(); // the substituted ids
+        TLAExpr expr = exprn.cloneAndNormalize();  // the expression to be returned
+
+       for (int i = 0; i < expr.tokens.size(); i++)
+        {
+            Vector tv = (Vector) expr.tokens.elementAt(i);
+            for (int j = 0; j < tv.size(); j++)
+            {
+                TLAToken tok = (TLAToken) tv.elementAt(j);
+                boolean prime = ((tok.type == TLAToken.IDENT) && c.IsChanged(tok.string));
+                boolean subr = (sub != null && (tok.type == TLAToken.ADDED || (mp && (tok.type == TLAToken.IDENT) && (IsProcedureVar(tok.string) 
+                		|| IsProcessSetVar(tok.string)))));
+                if ((subr || prime) && !InVector(tok.string, stringVec))
+                {
+                    stringVec.addElement(tok.string);
+                    TLAExpr exp = new TLAExpr();
+                    exp.addLine();
+                    /*
+                     * 15 Dec 2011:  The following code added to replace the
+                     *    
+                     *    exp.addToken(new TLAToken(tok.string, 0, TLAToken.IDENT));
+                     *    
+                     * that is commented out.  Note that this change can add a token with
+                     * type ADDED rather than IDENT.  I don't think this matters.
+                     */
+                    TLAToken newTok = tok.Clone() ;
+                    /*
+                     * The new token should inherit nothing from the baggage of tok, whose
+                     * only function is to provide the name
+                     */
+                    newTok.setBeginSubst(new Vector(2));
+                    newTok.setEndSubst(new Vector(2));
+                    newTok.source = null;
+                    newTok.column = 0;
+                    exp.addToken(newTok) ;
+
+                    //For Distributed PlusCal 
+                    boolean isProcessSetVar = IsProcessSetVar(tok.string);
+                    // end Distributed PlusCal 
+
+                    
+                    // exp.addToken(new TLAToken(tok.string, 0, TLAToken.IDENT));
+                    if (prime) {
+                        /*****************************************************
+                        * Modified by LL on 30 Aug 2007.  The following      *
+                        * call to addTokenOffset was originally a call to    *
+                        * addToken.  See the comments for                    *
+                        * TLAExpr.addTokenOffset().                          *
+                        *****************************************************/
+                        TLAToken primeTok = new TLAToken("'", 0, TLAToken.BUILTIN, true);
+                        // The following stuff added by LL in Dec 2011 is bogus.  The
+                        // token tok is just the first one of many in the exprn with
+                        // the same name for which we want to substitute.  The only
+                        // useful data in the token tok is its string.
+                        //
+                        // if (tok.source != null) {
+                        //   primeTok.source = 
+                        //           new Region(tok.source.getEnd(), tok.source.getEnd());
+                        // }
+                        // if (!subr) {
+                        //    primeTok.setEndSubst(tok.getEndSubst());
+                        //   newTok.setEndSubst(new Vector(2));
+                        // }
+                        exp.addTokenOffset(primeTok, 0);
+                    }
+                    if (subr)
+                    {
+                        TLAExpr subexp = sub.cloneAndNormalize();
+
+                        //For Distributed PlusCal 
+                        if(PcalParams.distpcalFlag){
+                          if(isProcessSetVar){
+                            subexp = (SubExpr(selfAsExpr())).cloneAndNormalize();
+                          }
+                        }                        
+                        /*
+                         * We now add the end of the origin of tok to beginSubst
+                         * of the first token of subexp and to endSubst of the
+                         * last token of subexp.  This indicates that PCal code
+                         * corresponding to a region of the TLA+ translation that
+                         * includes part of the added subscript and part of the
+                         * original expression is a portion of the source of
+                         * exprn.
+                         */
+                        // This is bogus, because we are adding the location of where
+                        // the identifier first occurs in exprn to the substitution
+                        // vectors of the expression that's going to be substituted in
+                        // all instances.
+                        //
+                        // if (tok.source != null) {
+                        //   PCalLocation endOfTok = tok.source.getEnd();
+                        //  subexp.firstToken().getBeginSubst().add(endOfTok);
+                        //  subexp.lastToken().getEndSubst().add(endOfTok);
+                        // }
+                        /*
+                         * However, we do have to move the token's beginSubst and endSubst vectors
+                         * to the first and lasts token of the subscript.  Since the
+                         * resulting Parens that they generate should be outside
+                         * the ones generated by the endSubst vectors of the expression,
+                         * we have to add them before that expression's Subst vectors.
+                         * 
+                         * No, no!  This tok is just giving us the name of the tok that
+                         * we're going to be substituting for in the expression.  It is not
+                         * necessarily the one that we're going to substitute for.
+                         */
+                        // newTok.getEndSubst().addAll(subexp.lastToken().getEndSubst());
+                        // subexp.lastToken().setEndSubst(newTok.getEndSubst());
+                        // newTok.setEndSubst(new Vector(2));
+                        exp.normalize();
+                        try
+                        {
+                            subexp.prepend(exp, 0);
+                        } catch (TLAExprException e)
+                        {
+                            throw new PcalTLAGenException(e.getMessage());
+                        }
+                        exp = subexp;
+                    }
+                    /**********************************************************
+                    * Modified by LL on 31 Jan 2006 to comment out the call   *
+                    * of MakeExprPretty, since it totally screwed up the      *
+                    * formatting when substituting any string containing      *
+                    * spaces or multiple lines for a variable.                *
+                    **********************************************************/
+                    // MakeExprPretty(exp);
+                    exprVec.addElement(exp);
+                }
+            }
+        }
+        if (exprVec.size() > 0)
+            try
+            {
+                expr.substituteForAll(exprVec, stringVec, false);
+            } catch (TLAExprException e)
+            {
+                throw new PcalTLAGenException(e.getMessage());
+            }
+        /*
+         * For testing, throw a null pointer exception if the begin/end substitution
+         * mapping vectors are not properly matching in the returned expression
+         */
+//        depths = new int[1000];
+        
+        parenDepth = 0;
+        for (int i = 0; i < expr.tokens.size(); i++) {
+            Vector line = (Vector) expr.tokens.elementAt(i);
+            for (int j = 0; j < line.size(); j++) {
+                TLAToken tok = (TLAToken) line.elementAt(j);
+                parenDepth = parenDepth + tok.getBeginSubst().size() - tok.getEndSubst().size();
+                if (parenDepth < 0) {
+                        throw new NullPointerException("result: begin/end Subst depth negative");
+                }
+            }
+//            depths[i] = parenDepth;
+        }
+        if (parenDepth != 0) {
+            throw new NullPointerException("result: Unmatched begin/subst");
+        }
+        /*   ------------------ end testing --------------------------*/
+        return expr;
+    }
 
 }
 
