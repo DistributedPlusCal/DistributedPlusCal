@@ -2512,8 +2512,8 @@ public class PcalTLAGen
                      * MappingObject.LeftParen and MappingObject.RightParen
                      * objects.
                      */
-                    AST.VarDecl decl = (AST.VarDecl) proc.decls.elementAt(p);
-                    is.append("/\\ ");
+                	AST.VarDecl decl = (AST.VarDecl) proc.decls.elementAt(p);
+                	is.append("/\\ ");
                     /*
                      * The following adds  /\ ((  to the TLA+ output.
                      */
@@ -2545,6 +2545,31 @@ public class PcalTLAGen
                     }
                     else {
                         if (decl.isEq) {
+                        	PcalDebug.reportInfo("we caught decl : " + decl);
+                        	if (ParseAlgorithm.processLocalChans.contains(decl.var)) {
+                    			AST.Channel ch = (AST.Channel) decl;
+                        		is = new StringBuffer(decl.var);
+                        		is.append(" = [_nmd438 \\in ");
+                        		addOneTokenToTLA(is.toString());
+                        		addLeftParen(proc.id.getOrigin());
+    	                        addExprToTLA(proc.id);
+    	                        addRightParen(proc.id.getOrigin());
+
+                        		addOneTokenToTLA(", _nmd498 \\in ");
+                        		addLeftParen(proc.id.getOrigin());
+    	                        addExprToTLA(proc.id);
+    	                        addRightParen(proc.id.getOrigin());
+    	                        
+	                            addOneTokenToTLA(TLAConstants.RECORD_ARROW);
+	                            addLeftParen(decl.val.getOrigin());
+	                            addExprToTLA(AddSubscriptsToExpr(
+	                                           decl.val,
+	                                           SubExpr(Self("procedure")), 
+	                                           new Changed(new Vector())));
+	                            addRightParen(decl.val.getOrigin());
+	                            addOneTokenToTLA("]");
+                    			
+                        	}
                             /*
                              * The source is
                              *    
@@ -2557,20 +2582,22 @@ public class PcalTLAGen
                              * where ValBar obtained from Val by replacing each 
                              * variable w of the process with w[self].   
                              */
-                            is = new StringBuffer(decl.var);
-                            is.append(" = [self \\in ");
-                            addOneTokenToTLA(is.toString());
-                            addLeftParen(proc.id.getOrigin());
-                            addExprToTLA(proc.id);
-                            addRightParen(proc.id.getOrigin());
-                            addOneTokenToTLA(TLAConstants.RECORD_ARROW);
-                            addLeftParen(decl.val.getOrigin());
-                            addExprToTLA(AddSubscriptsToExpr(
-                                           decl.val,
-                                           SubExpr(Self("procedure")), 
-                                           new Changed(new Vector())));
-                            addRightParen(decl.val.getOrigin());
-                            addOneTokenToTLA("]");
+                        	else {
+	                        	is = new StringBuffer(decl.var);
+	                            is.append(" = [self \\in ");
+	                            addOneTokenToTLA(is.toString());
+	                            addLeftParen(proc.id.getOrigin());
+	                            addExprToTLA(proc.id);
+	                            addRightParen(proc.id.getOrigin());
+	                            addOneTokenToTLA(TLAConstants.RECORD_ARROW);
+	                            addLeftParen(decl.val.getOrigin());
+	                            addExprToTLA(AddSubscriptsToExpr(
+	                                           decl.val,
+	                                           SubExpr(Self("procedure")), 
+	                                           new Changed(new Vector())));
+	                            addRightParen(decl.val.getOrigin());
+	                            addOneTokenToTLA("]");
+                        	}
                             
                         }
                         else {
@@ -4420,6 +4447,7 @@ public class PcalTLAGen
         
     	//for distributed pcal
       // HC: fix bug FIFO (06/04/21)
+        PcalDebug.reportInfo("addVarDeclToTLA    decl : " + decl);
         if((decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel)
 				&& ((Channel) decl).dimensions != null) {
 			RewriteVarDeclDimensions(((Channel)decl));
@@ -4434,6 +4462,7 @@ public class PcalTLAGen
         if (needsParens) {
             addOneTokenToTLA(")");
         }
+
         addRightParen(decl.val.getOrigin());
         addRightParen(decl.getOrigin());
         endCurrentLineOfTLA();
@@ -4858,6 +4887,7 @@ public class PcalTLAGen
 	 * @param decl
 	 */
 	private void RewriteVarDeclDimensions(Channel decl) {
+		PcalDebug.reportInfo("RewriteVarDeclDimensions decl : " + decl);
 		TLAExpr expr = new TLAExpr();
 		expr.addLine();
 		
@@ -4894,6 +4924,7 @@ public class PcalTLAGen
 		expr.setOrigin(decl.val.getOrigin());
 		expr.normalize();
 		decl.val = expr;
+		PcalDebug.reportInfo("expr : " + expr);
 	}
 	
 	private void RewriteVarDeclDimensions(Clock decl) {

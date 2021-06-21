@@ -1129,6 +1129,10 @@ public class AST
    		}else {
    			sass.lhs.sub = new TLAExpr(new Vector());
    		}
+   		PcalDebug.reportInfo(" ------------------- ");
+   		PcalDebug.reportInfo("sass.lhs.sub :: " + sass.lhs.sub);
+   		PcalDebug.reportInfo("expr : " + expr);
+   		PcalDebug.reportInfo(" ------------------- ");
 
    		expr = new TLAExpr();
    		expr.addLine();

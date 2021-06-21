@@ -238,7 +238,11 @@ public class ParseAlgorithm
    
    // For Distributed Pluscal clocks.
    public static boolean logicalClocks;
-
+   
+   // For Distributed PlusCal. Process local chans/fifos
+   public static boolean processLocalChannels;
+   public static ArrayList<String> processLocalChans = new ArrayList<String>();
+   
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
     * methods, including setting charReader.  It is called only by        *
@@ -858,6 +862,7 @@ public class ParseAlgorithm
         	       //to read channels and fifo channels
         	       while (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
         	    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
+        	    	   processLocalChannels = true;
         	    	   result.decls.addAll(GetChannelDecls());
         	       }
         	       PcalDebug.reportInfo("after channel declarations");
@@ -5693,7 +5698,11 @@ public class ParseAlgorithm
 
 				GobbleThis("[");
 				pv.dimensions = new ArrayList<>();
-				pv.dimensions.add(GetAlgToken());
+				String dim = GetAlgToken();
+				pv.dimensions.add(dim);
+				if (processLocalChannels) {
+					processLocalChans.add(pv.var);
+				}
 
 				String next = PeekAtAlgToken(1);
 				
@@ -5722,6 +5731,7 @@ public class ParseAlgorithm
 			 * separated by commas. *
 			 ******************************************************************/
 			pv.setOrigin(new Region(beginLoc, endLoc));
+			PcalDebug.reportInfo("pv : " + pv.dimensions);
 			return pv;
 		}
 	   

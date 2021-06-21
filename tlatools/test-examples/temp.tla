@@ -43,7 +43,7 @@ ProcSet == (Nodes)
 SubProcSet == [_n42 \in ProcSet |-> 1..2]
 
 (* Comparator for lamport clocks *)
-Max(c,d) == IF c > d THEN c ELSE d
+Max(_c, _d) == IF _c > _d THEN _c ELSE _d
 
 Init == (* Global variables *)
         /\ c = 11
@@ -57,17 +57,20 @@ rc(self) == /\ pc[self][1]  = "rc"
             /\ c' = c + 1
             /\ w' = w + 99
             /\ pc' = [pc EXCEPT ![self][1] = "dd"]
-            /\ UNCHANGED << x, clock >>
+            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+            /\ UNCHANGED << x >>
 
 dd(self) == /\ pc[self][1]  = "dd"
             /\ TRUE
             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
-            /\ UNCHANGED << c, w, x, clock >>
+            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+            /\ UNCHANGED << c, w, x >>
 
 cv(self) == /\ pc[self][2]  = "cv"
             /\ c' = c + 2
             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
-            /\ UNCHANGED << w, x, clock >>
+            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
+            /\ UNCHANGED << w, x >>
 
 q(self) == rc(self) \/ dd(self) \/ cv(self)
 
@@ -82,7 +85,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6b96cab882459af595e92e5ee633e70f
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-86ffc46a9e0b4b151a111b8c0a5b3f77
 
 
 =========================================================
