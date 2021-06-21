@@ -386,8 +386,7 @@ TwoProcessesOneThread2sC.tla
 * generated extra WF_vars(pid1(self)), /\ WF_vars(pid2) and /\ WF_vars(pid3). The toolbox does not generate this
 
 VarAndChannelDecls1C.tla
-* NOT Parsed correctly
-	DM comment: Due to fifs[self][1] must be fifs[1]
+* Parsed correctly
 
 
 Question:

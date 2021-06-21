@@ -241,7 +241,7 @@ public class ParseAlgorithm
    
    // For Distributed PlusCal. Process local chans/fifos
    public static boolean processLocalChannels;
-   public static ArrayList<String> processLocalChans = new ArrayList<String>();
+   public static ArrayList<VarDecl> processLocalChans = new ArrayList<VarDecl>();
    
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
@@ -5701,7 +5701,7 @@ public class ParseAlgorithm
 				String dim = GetAlgToken();
 				pv.dimensions.add(dim);
 				if (processLocalChannels) {
-					processLocalChans.add(pv.var);
+					processLocalChans.add(pv);
 				}
 
 				String next = PeekAtAlgToken(1);

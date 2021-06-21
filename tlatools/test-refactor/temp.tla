@@ -11,11 +11,11 @@ T == 1..5
 channel network[Nodes, Nodes];
 
 process ( pid2 \in Nodes )
-variable c = [q \in Nodes |-> 0];
-channel chan;
+variable c = [q \in T |-> 0];
+channel chan[T];
 {
         Label:
-                send(chan, "msg");
+                send(chan[self], "msg");
                 c[self] := c[self] + 1;
         RC:
                 send(network[self, self], "asd");
@@ -25,7 +25,7 @@ channel chan;
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-5161ae7263337492ebc7492a5241c608
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-e13146cc0a52be9b743259277d4af023
 VARIABLES network, pc, c, chan
 
 vars == << network, pc, c, chan >>
@@ -38,12 +38,12 @@ SubProcSet == [_n42 \in ProcSet |-> 1..1]
 Init == (* Global variables *)
         /\ network = [_mn430 \in Nodes, _mn441 \in Nodes |-> {}]
         (* Process pid2 *)
-        /\ c = [self \in Nodes |-> [q \in Nodes |-> 0]]
-        /\ chan = [self \in Nodes |-> {}]
+        /\ c = [self \in Nodes |-> [q \in T |-> 0]]
+        /\ chan = [_nmd438 \in Nodes |-> [_nmd498 \in T |-> {}]]
         /\ pc = [self \in ProcSet |-> <<"Label">>]
 
 Label(self) == /\ pc[self][1]  = "Label"
-               /\ chan' = [chan EXCEPT ![self] = chan[self] \cup {"msg"}]
+               /\ chan' = [chan EXCEPT ![self][self] = chan[self][self] \cup {"msg"}]
                /\ c' = [c EXCEPT ![self][self] = c[self][self] + 1]
                /\ pc' = [pc EXCEPT ![self][1] = "RC"]
                /\ UNCHANGED network
@@ -67,7 +67,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-92430e56e508ec57783b2b6860061c81
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-72f1c08828cc94e74f643c135d3fe7d2
 
 
 

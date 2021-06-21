@@ -2546,27 +2546,30 @@ public class PcalTLAGen
                     else {
                         if (decl.isEq) {
                         	PcalDebug.reportInfo("we caught decl : " + decl);
-                        	if (ParseAlgorithm.processLocalChans.contains(decl.var)) {
+                        	if (ParseAlgorithm.processLocalChans.contains(decl)) {
                     			AST.Channel ch = (AST.Channel) decl;
+                    			PcalDebug.reportInfo("ch dimensions : " + ch.dimensions);
                         		is = new StringBuffer(decl.var);
                         		is.append(" = [_nmd438 \\in ");
                         		addOneTokenToTLA(is.toString());
                         		addLeftParen(proc.id.getOrigin());
     	                        addExprToTLA(proc.id);
     	                        addRightParen(proc.id.getOrigin());
-
-                        		addOneTokenToTLA(", _nmd498 \\in ");
-                        		addLeftParen(proc.id.getOrigin());
-    	                        addExprToTLA(proc.id);
-    	                        addRightParen(proc.id.getOrigin());
     	                        
-	                            addOneTokenToTLA(TLAConstants.RECORD_ARROW);
+    	                        addOneTokenToTLA(TLAConstants.RECORD_ARROW);
+    	                        
+                        		addOneTokenToTLA("[_nmd498 \\in ");
+                        		addLeftParen(proc.id.getOrigin());
+                        		addOneTokenToTLA(ch.dimensions.get(0).toString());
+                        		addOneTokenToTLA(TLAConstants.RECORD_ARROW);
+                        		addRightParen(proc.id.getOrigin());
 	                            addLeftParen(decl.val.getOrigin());
 	                            addExprToTLA(AddSubscriptsToExpr(
 	                                           decl.val,
 	                                           SubExpr(Self("procedure")), 
 	                                           new Changed(new Vector())));
 	                            addRightParen(decl.val.getOrigin());
+	                            addOneTokenToTLA("]");
 	                            addOneTokenToTLA("]");
                     			
                         	}

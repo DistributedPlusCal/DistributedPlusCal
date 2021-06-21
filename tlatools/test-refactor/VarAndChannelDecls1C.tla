@@ -47,7 +47,7 @@ Init == (* Global variables *)
         /\ chan = [_mn430 \in NS |-> {}]
         (* Process w *)
         /\ c = [self \in Nodes |-> 4]
-        /\ fifs = [self \in Nodes |-> <<>>]
+        /\ fifs = [_nmd438 \in Nodes |-> [_nmd498 \in NN |-> <<>>]]
         /\ pc = [self \in ProcSet |-> <<"Lab">>]
 
 Lab(self) == /\ pc[self][1]  = "Lab"
@@ -80,5 +80,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f4ec58a2fb9e24795a153e76bbb57ca0
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-070e291b0a0389d45b7b2b381bacf2fe
 ==========================================================
