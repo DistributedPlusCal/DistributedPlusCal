@@ -839,13 +839,12 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("variables"))
                result.decls.addAll(GetVarDecls());
              // HC BUG: parsed correctly but initialization is buggy
-             if(PeekAtAlgToken(1).equals("channel")
-                  || PeekAtAlgToken(1).equals("channels")
-                  || PeekAtAlgToken(1).equals("fifo")
-                  || PeekAtAlgToken(1).equals("fifos")){
-               PcalDebug.reportError("TOKEN = " + PeekAtAlgToken(1));
-               result.decls.addAll(GetChannelDecls());
-             }
+             // if(PeekAtAlgToken(1).equals("channel")
+                  // || PeekAtAlgToken(1).equals("channels")
+                  // || PeekAtAlgToken(1).equals("fifo")
+                  // || PeekAtAlgToken(1).equals("fifos")){
+               // result.decls.addAll(GetChannelDecls());
+             // }
            } ;
 
          Vector<AST.Thread> threads = new Vector<>();
