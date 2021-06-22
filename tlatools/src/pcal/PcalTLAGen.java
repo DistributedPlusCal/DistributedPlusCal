@@ -1034,6 +1034,7 @@ public class PcalTLAGen
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
                 //For Distributed PlusCal
                 // HC: just to handle process local variables in procedures
+                //     use [self] instead of [self][subprocess]
                 if(PcalParams.distpcalFlag){
                   if(context.equals("procedure")){
                     rhs = AddSubscriptsToExprInProcedure(sass.rhs, SubExpr(Self(context)), c);
@@ -1042,9 +1043,10 @@ public class PcalTLAGen
 
                 //For Distributed PlusCal 
                 if(PcalParams.distpcalFlag){
-                  // inside the procedure extend the self exp for both pc
+                  // if mp, and inside the procedure, extend the self exp for both pc
                   //   and stack variables
-                  if((sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                  if(mp &&
+                     (sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
                     
                     sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
                     rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);

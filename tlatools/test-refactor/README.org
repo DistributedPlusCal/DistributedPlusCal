@@ -84,6 +84,7 @@
   receiver twice)
 
 * Procedures
+- 0p -> uniprocess
 - 1p1s -> one process / one thread
 - 1p2t -> one process / two threads
 - both use the same procedure
