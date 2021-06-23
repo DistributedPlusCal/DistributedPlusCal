@@ -11,7 +11,8 @@ Nodes == 1 .. N
 --algorithm LamportMutex {
 
 variables _n = 1,
-          \* _n42 = 3;
+          _n1 = 3;
+          _n30 = 3;
           n1 = 2;
 fifo chan[Nodes];
 

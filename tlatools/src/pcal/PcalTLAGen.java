@@ -39,7 +39,7 @@ public class PcalTLAGen
     //For Distributed PlusCal
     // index for fresh variables (for SubProcSet)
     // make it public if we want to set it as a parameter
-    private static int varIndex=42;
+    private static int varIndex=1;
   
     // Private class variables
     /** The tlacode field accumulates the translation as it is constructed.  It 
@@ -4723,6 +4723,9 @@ public class PcalTLAGen
 		if (st.processes == null || st.processes.size() == 0)
 			return;
     String ind = "_n" + varIndex++;
+    while( InVector(ind,vars) ){
+      ind = "_n" + varIndex++;
+    }
 		ps.append("SubProcSet == ["+ind+" \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		int positionOfLastIf = 0;
@@ -4810,8 +4813,10 @@ public class PcalTLAGen
 			String dimension = (String) decl.dimensions.get(i);
 
       // HC: add counter
-			// String tempVarName = String.valueOf(dimension.toLowerCase().charAt(0)) + i;
-			String tempVarName = "_" + dimension.toLowerCase().charAt(0) + varIndex++ + i;
+			String tempVarName = "_n" + varIndex++ + i;
+      while( InVector(tempVarName,vars) ){
+       tempVarName = "_n" + varIndex++ + i;
+      }
 
 			if(i == 0) {
 				expr.addToken(PcalTranslate.BuiltInToken("["));
