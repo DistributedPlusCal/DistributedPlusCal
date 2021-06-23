@@ -14,7 +14,8 @@ variables _n = 1,
           _n1 = 3;
           _n30 = 3;
           n1 = 2;
-fifo chan[Nodes];
+channel chan[Nodes], ch[Nodes,Nodes];
+fifo fif[Nodes], f;
 
 process (x = N+1)
 variables t = <<1,2,3	>>;

@@ -236,6 +236,12 @@ public class ParseAlgorithm
    public static boolean pSyntax;
    public static boolean cSyntax;
 
+  /**********************************************************************
+    * Constants for the types of channels                               *
+    **********************************************************************/
+   private static final String CHANNEL_TYPE_UNORDERED = "Unordered";
+   private static final String CHANNEL_TYPE_FIFO = "FIFO";
+
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
     * methods, including setting charReader.  It is called only by        *
@@ -341,11 +347,14 @@ public class ParseAlgorithm
     	   vdecls = GetVarDecls();
        }
        
-       //For Distributed PlusCal, could be surrounded by an if statement
-       //to read channels and fifo channels
-       if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
-    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
-    	   vdecls.addAll(GetChannelDecls());
+       //For Distributed PlusCal
+       if (PcalParams.distpcalFlag)  {
+         if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("channels") ) {
+           vdecls.addAll(GetChannelDecls("channel",CHANNEL_TYPE_UNORDERED));
+         }
+         if ( PeekAtAlgToken(1).equals("fifo") || PeekAtAlgToken(1).equals("fifos")) {
+           vdecls.addAll(GetChannelDecls("fifo",CHANNEL_TYPE_FIFO));
+         }
        }
 
        TLAExpr defs = new TLAExpr();
@@ -832,7 +841,6 @@ public class ParseAlgorithm
          else
            {
              // result.decls = GetVarDecls() ;
-             // HC: add GetChannelDecls()
              result.decls = new Vector(2) ;
              if (PeekAtAlgToken(1).equals("variable")
                  || PeekAtAlgToken(1).equals("variables"))
@@ -842,7 +850,7 @@ public class ParseAlgorithm
                   // || PeekAtAlgToken(1).equals("channels")
                   // || PeekAtAlgToken(1).equals("fifo")
                   // || PeekAtAlgToken(1).equals("fifos")){
-               // result.decls.addAll(GetChannelDecls());
+               // result.decls.addAll(GetChannelDecls(...));
              // }
            } ;
 
@@ -4655,21 +4663,19 @@ public class ParseAlgorithm
 
   
    //For Distributed PlusCal	
-   public static Vector GetChannelDecls() throws ParseAlgorithmException {
+  public static Vector GetChannelDecls(String decl, String type) throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
 		String channelType = "";
 
-		if (tok.contains("channel")) {
-			channelType = "Unordered";
-		} else if (tok.contains("fifo")) {
-			channelType = "FIFO";
+		if (tok.equals(decl) || tok.equals(decl+"s")) {
+			channelType = type;
 		} else {
 			//no channels to read
 			return new Vector();
 		}
 		
-		if (tok.contains("channel") || tok.contains("fifo")) {
+		if (tok.equals(decl) || tok.equals(decl+"s")) {
 			MustGobbleThis(tok);
 		} else {
 			GobbleThis(tok);
@@ -4682,26 +4688,27 @@ public class ParseAlgorithm
 				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
 				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
 				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
+				|| PeekAtAlgToken(1).equals("fifo") || PeekAtAlgToken(1).equals("fifos")
 				|| PeekAtAlgToken(1).equals("subprocess"))) {
 			// change here if we want to prevent variable declaration between threads
 			result.addElement(GetChannelDecl(channelType));
 		}
 		return result;
 	}
-   
+
+  
    	//For Distributed PlusCal	
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
 		AST.Channel pv;
-		//TODO is this default definition given here overridden at some point?
-		if (channelType.equals("Unordered")) {
+		if (channelType.equals(CHANNEL_TYPE_UNORDERED)) {
 			pv = new AST.UnorderedChannel();
 			pv.val = PcalParams.DefaultChannelInit();
-		} else if (channelType.equals("FIFO")) {
+		} else if (channelType.equals(CHANNEL_TYPE_FIFO)) {
 			pv = new AST.FIFOChannel();
 			pv.val = PcalParams.DefaultFifoInit();
 		} else {
-			// specify a default type
+			// specify a default type (or throw exception)
 			pv = null;
 			hasDefaultInitialization = true;
 		}
