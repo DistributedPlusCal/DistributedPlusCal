@@ -95,3 +95,7 @@
 - parses but error in TLC (with or without distpcal)
 - ProceduresWithLVprocId: use local variables from unique process
 - ProceduresWithLVprocSet: use local variables from process set
+
+* FreshVars
+- check how fresh variables are generated
+- try to declare a variable that will be freshly generated (eg _n42)

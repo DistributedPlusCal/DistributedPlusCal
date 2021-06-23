@@ -449,9 +449,8 @@ public class ParseAlgorithm
             while (j < proc.threads.size()) {
               AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
               
-              ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
-              
               ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
+              ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
               AddLabelsToStmtSeq(thread.body);
               thread.body = MakeLabeledStmtSeq(thread.body);
               

@@ -10,7 +10,9 @@ Nodes == 1 .. N
 (*
 --algorithm LamportMutex {
 
-variables _n = 1, n1 = 2;
+variables _n = 1,
+          \* _n42 = 3;
+          n1 = 2;
 fifo chan[Nodes];
 
 process (x = N+1)
