@@ -2149,14 +2149,13 @@ public class AST
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
-   			"[type |-> \"ChannelSender\"," + NewLine() +
+   			"[type |-> \"ChannelSender\", (b:" + isBroadcast + ")" + NewLine() +
    			" name |-> \"" + name + "\"," + NewLine() +
-   			Indent(" channel     |-> ") + channelName + "]" +
+   			Indent(" channel |-> ") + channelName +
    			EndIndent() + NewLine() +
-   			Indent(" msg     |-> ") + msg + "]" +
-   			EndIndent() +
-   			Indent(" callExp     |-> ") + callExp + "]" +
-   			EndIndent() +
+   			Indent(" callExp |-> ") + callExp +
+   			EndIndent() + NewLine() +
+   			Indent(" msg |-> ") + msg + "]" +
    			EndIndent() ;
    	}
    	

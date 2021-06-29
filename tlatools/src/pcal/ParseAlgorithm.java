@@ -576,6 +576,11 @@ public class ParseAlgorithm
 			(AST.Procedure) uniproc.prcds.elementAt(i) ;
 			currentProcedure = prcd.name ;
 			ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
+      //For Distributed PlusCal
+      if(PcalParams.distpcalFlag) {
+        //to expand the channel callers that are within a procedures body
+        ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
+      }
 			AddLabelsToStmtSeq(prcd.body);
 			prcd.body = MakeLabeledStmtSeq(prcd.body);
 			i = i + 1 ;
@@ -3261,7 +3266,40 @@ public class ParseAlgorithm
             result.exp.substituteForAll(args, params) ;
             return result;
           } ;
-       
+
+        //For Distributed pluscal
+        if( PcalParams.distpcalFlag ){
+          if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
+            {
+              AST.ChannelSendCall chanstmt = (AST.ChannelSendCall) stmt;
+              AST.ChannelSendCall result = new AST.ChannelSendCall();
+              result.col  = chanstmt.col ;
+              result.line = chanstmt.line ;
+              result.macroCol  = chanstmt.macroCol ;
+              result.macroLine = chanstmt.macroLine ;
+              result.setOrigin(chanstmt.getOrigin()) ;
+              if (macroLine > 0)
+                { result.macroLine = macroLine ;
+                  result.macroCol  = macroCol ;
+                } ; 
+
+              result.name = chanstmt.name;
+              if (result.name.equals("multicast"))
+                result.isMulticast = true;
+              else if (result.name.equals("broadcast"))
+                result.isBroadcast = true;
+              
+              result.channelName = chanstmt.channelName;
+              
+              result.msg  = chanstmt.msg.cloneAndNormalize() ;
+              result.msg.substituteForAll(args, params) ;
+              result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
+              result.callExp.substituteForAll(args, params) ;
+
+              return result;
+            } ;
+        }
+        
         /*******************************************************************
         * The following statements are ones that may not appear in a macro *
         * definition body.                                                 *
@@ -3479,7 +3517,7 @@ public class ParseAlgorithm
       * column macroCol, where macroLine = -1 if this is not being called  *
       * during macro expansion.                                            *
       *********************************************************************/
-      { 
+      {
         try {
         AST.SingleAssign result = new AST.SingleAssign() ;
         result.setOrigin(assgn.getOrigin());
