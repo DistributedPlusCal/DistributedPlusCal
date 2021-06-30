@@ -1120,7 +1120,7 @@ public class PcalTLAGen
                     int wrapCol = sb.length() + 2;
                     sb.append(sass.lhs.var);
                     sb.append(" EXCEPT ");
-                    //PcalDebug.reportInfo("22.     sass.lhs.var :" + sass.lhs.var);
+
                     /* dostonbek. start
                     if ( PcalParams.distpcalFlag && process_local_vars.contains(ws) ) {
                     	TLAExpr my_self = PcalTLAGen.selfAsExpr();
@@ -1213,7 +1213,7 @@ public class PcalTLAGen
                     sb = new StringBuffer();
                 } else if (!EmptyExpr(sass.lhs.sub))
                 {
-                	PcalDebug.reportInfo("else if (!EmptyExpr(sass.lhs.sub))   ");
+
                     /* 
                      * Generate single assignment to variable with no [self] subscript
                      * but with an explicit subscript. 
@@ -1221,7 +1221,6 @@ public class PcalTLAGen
                     sb.append(sass.lhs.var);
                     sb.append("' = [");
                     sb.append(sass.lhs.var);
-                    PcalDebug.reportInfo("sass.lhs.var : " + sass.lhs.var);
                     sb.append(" EXCEPT !");
                     addOneTokenToTLA(sb.toString());
                     addLeftParen(sub.getOrigin());
@@ -1232,8 +1231,7 @@ public class PcalTLAGen
                     addExprToTLA(rhs);
                     addRightParen(rhs.getOrigin());
                     addOneTokenToTLA("]");
-                    PcalDebug.reportInfo("rhs : " + rhs);
-                    PcalDebug.reportInfo("sub : " + sub);
+
 //                    
 //                    int here = sb.length();
 //                    Vector sv = sub.toStringVector();
@@ -1259,7 +1257,6 @@ public class PcalTLAGen
                     sb = new StringBuffer();
                 } else
                 {
-                	PcalDebug.reportInfo("ELSE branch");
                     /* 
                      * Generate assignment to a variable with no subscript at all.
                      */
@@ -4450,7 +4447,6 @@ public class PcalTLAGen
         
     	//for distributed pcal
       // HC: fix bug FIFO (06/04/21)
-        PcalDebug.reportInfo("addVarDeclToTLA    decl : " + decl);
         if((decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel)
 				&& ((Channel) decl).dimensions != null) {
 			RewriteVarDeclDimensions(((Channel)decl));
@@ -4890,7 +4886,6 @@ public class PcalTLAGen
 	 * @param decl
 	 */
 	private void RewriteVarDeclDimensions(Channel decl) {
-		PcalDebug.reportInfo("RewriteVarDeclDimensions decl : " + decl);
 		TLAExpr expr = new TLAExpr();
 		expr.addLine();
 		
@@ -4927,7 +4922,7 @@ public class PcalTLAGen
 		expr.setOrigin(decl.val.getOrigin());
 		expr.normalize();
 		decl.val = expr;
-		PcalDebug.reportInfo("expr : " + expr);
+
 	}
 	
 	private void RewriteVarDeclDimensions(Clock decl) {
@@ -5073,10 +5068,16 @@ public class PcalTLAGen
 								  
 								  s += "/\\ " + ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
 										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
-								  my_tlacode.insertElementAt(my_tlacode.get(j).replace(", " + ParseAlgorithm.clockName, ""), j);
+								  // Three cases can happen: 1. UNCHANGED << a, b, clock>>
+								  //						 2. UNCHANGED << a, clock, b >>
+								  //						 3. UNCHANGED << clock, a, b >>
+								  String new_line = my_tlacode.get(j).replace(", " + ParseAlgorithm.clockName, "");
+								  if (new_line.contains(ParseAlgorithm.clockName)) {
+									  new_line = new_line.replace(ParseAlgorithm.clockName + ",", "");
+								  }
+								  my_tlacode.insertElementAt(new_line, j);
 								  my_tlacode.remove(j+1);
 								  my_tlacode.insertElementAt(s, j);
-								  // count spaces in the proceeding line. TASK TO DO
 								  break;
 							  }
 						  }

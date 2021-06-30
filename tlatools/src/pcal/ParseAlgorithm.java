@@ -572,9 +572,9 @@ public class ParseAlgorithm
 			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
 			
 			// dostonbek. Expand channel calls in sequential specs.
-			if (PcalParams.distpcalFlag)
+			if (PcalParams.distpcalFlag) {
 				ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
-			
+			}
 			// LL comment added 11 Mar 2006.
 			// I moved the following to after processing the procedures
 			// so added labels are printed in correct order-- e.g., with 
@@ -587,6 +587,9 @@ public class ParseAlgorithm
 			(AST.Procedure) uniproc.prcds.elementAt(i) ;
 			currentProcedure = prcd.name ;
 			ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
+			if (PcalParams.distpcalFlag) {
+				ExpandChannelCallersInStmtSeq(uniproc.body, prcd.decls, uniproc.decls);
+			}
 			AddLabelsToStmtSeq(prcd.body);
 			prcd.body = MakeLabeledStmtSeq(prcd.body);
 			i = i + 1 ;
@@ -993,7 +996,6 @@ public class ParseAlgorithm
      **********************************************************************/
      { 
 	   String tok = PeekAtAlgToken(1) ;
-	   PcalDebug.reportInfo("tok : " + tok);
        if ( tok.equals("variables")) 
          { MustGobbleThis("variables") ; } 
        else 
@@ -1692,12 +1694,9 @@ public class ParseAlgorithm
          } ;
        GobbleThis(";") ; 
        AST firstAssign = (AST) result.ass.elementAt(0) ;
-       PcalDebug.reportInfo("firstAssign : " + firstAssign);
        AST lastAssign = (AST) result.ass.elementAt(result.ass.size()-1) ;
-       PcalDebug.reportInfo("lastAssign : " + lastAssign);
        result.setOrigin(new Region(firstAssign.getOrigin().getBegin(), 
                                    lastAssign.getOrigin().getEnd()));
-       PcalDebug.reportInfo("GetAssign : " + result);
        return result ;
      }
 
@@ -3719,7 +3718,35 @@ public class ParseAlgorithm
           
           // For Distributed PlusCal. Channel operations with clocks.
           if (stmt.getClass().equals( AST.ChannelSendWithClockObj.getClass() )) {
-        	  
+        	  AST.ChannelSendWithClockCall chanstmt = (AST.ChannelSendWithClockCall) stmt;
+              AST.ChannelSendWithClockCall result = new AST.ChannelSendWithClockCall();
+              result.col  = chanstmt.col ;
+              result.line = chanstmt.line ;
+              result.macroCol  = chanstmt.macroCol ;
+              result.macroLine = chanstmt.macroLine ;
+              result.setOrigin(chanstmt.getOrigin()) ;
+              if (macroLine > 0)
+                { result.macroLine = macroLine ;
+                  result.macroCol  = macroCol ;
+                } ; 
+
+              result.name = chanstmt.name;
+              result.channelName = chanstmt.channelName;
+              
+              if (result.name.equals("multicastWithClock"))
+                  result.isMulticast = true;
+              else if (result.name.equals("broadcastWithClock"))
+                  result.isBroadcast = true;
+              
+              result.msg  = chanstmt.msg.cloneAndNormalize() ;
+              result.msg.substituteForAll(args, params) ;
+              result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
+              result.callExp.substituteForAll(args, params) ;
+
+              result.clock = chanstmt.clock.cloneAndNormalize();
+              result.clock.substituteForAll(args, params);
+              
+              return result;
           }
           
           if (stmt.getClass().equals( AST.ChannelReceiveWithClockObj.getClass() )) {
@@ -5032,8 +5059,7 @@ public class ParseAlgorithm
 		// dm. set callExp property
 		result.callExp = GetExpr();
 		
-		PcalDebug.reportInfo("channel name : " + result.channelName);
-		PcalDebug.reportInfo("callExp : " + result.callExp);
+
 		
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
@@ -5731,7 +5757,6 @@ public class ParseAlgorithm
 			 * separated by commas. *
 			 ******************************************************************/
 			pv.setOrigin(new Region(beginLoc, endLoc));
-			PcalDebug.reportInfo("pv : " + pv.dimensions);
 			return pv;
 		}
 	   

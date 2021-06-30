@@ -8,67 +8,66 @@ Nodes == 1 .. N
 (* PlusCal options (-distpcal) *)
 
 (*
---algorithm LamportMutex {
+--algorithm LamportMutex
 
    fifos network[Nodes, Nodes];
 
-   define {
+   define
      beats(a,b) == \/ req[b] = 0
                    \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
-     \* messages used in the algorithm
-     Request(c) == [type |-> "request", clock |-> c]
-     Release(c) == [type |-> "release", clock |-> c]
-     Acknowledge(c) == [type |-> "ack", clock |-> c]
-   }
+   end define;
 
-   process(n \in Nodes)
+   macro Attempt() begin
+        req[self] := clock; 
+        ack := {self};
+        broadcastWithClock(network, "request", clock);
+   end macro;
+
+   macro Handle() begin
+        if (msg.type = "request") then
+            req[sndr] := msg.clock;
+            sendWithClock(network[self, sndr], "ack", clock)
+        elsif (msg.type = "ack") then
+            ack := ack \cup {sndr}; 
+        elsif (msg.type = "release") then
+            req[sndr] := 0; 
+        end if;
+   end macro;
+
+   process n \in Nodes
      variables req = [n \in Nodes |-> 0],
                ack = {}, sndr, msg;
      lamportClock clock; \* declaring a logical lamport clock. 
-   { \* thread executing the main algorithm
+   begin \* thread executing the main algorithm
         ncs: 
-            while (TRUE) {
+            while (TRUE) do
                skip;  \* non-critical section
-               try:   
-                    req[self] := clock; 
-                    ack := {self};
-                    broadcastWithClock(network, "request", clock);
+               try:   Attempt();
                enter: await (ack = Nodes /\ \A n \in Nodes \ {self} : beats(self, n));
-        cs:    skip;  \* critical section
-        exit:  broadcastWithClock(network, "release", clock);
-     } \* end while
-  }  { \* message handling thread
+               cs:    skip;  \* critical section
+               exit:  broadcastWithClock(network, "release", clock);
+            end while;
+  end process;
+  begin \* message handling thread
         rcv:   
-            while (TRUE) { 
-                with (n \in Nodes) {
+            while (TRUE) do
+                with n \in Nodes do
                    receiveWithClock(network[n,self], msg, clock); sndr := n;
-                };
+                end with;
                 handle: 
-                    if (msg.type = "request") {
-                        req[sndr] := msg.clock;
-                        sendWithClock(network[self, sndr], "ack", clock)
-                    }
-                    else if (msg.type = "ack") { 
-                        ack := ack \cup {sndr}; 
-                    }
-                    else if (msg.type = "release") { 
-                        req[sndr] := 0; 
-                    }
-             }  \* end while
-   } \* end message handling thread
-}  
+                    Handle();
+             end while;
+   end subprocess; \* end message handling thread
+
+end algorithm; 
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-1685c1133e98e3fcfee53491322e7a2e
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7227c1110bb239a1334dde4a69d6315b
 CONSTANT defaultInitValue
 VARIABLES network, pc
 
 (* define statement *)
 beats(a,b) == \/ req[b] = 0
               \/ req[a] < req[b] \/ (req[a] = req[b] /\ a < b)
-
-Request(c) == [type |-> "request", clock |-> c]
-Release(c) == [type |-> "release", clock |-> c]
-Acknowledge(c) == [type |-> "ack", clock |-> c]
 
 VARIABLES req, ack, sndr, msg, clock
 
@@ -82,7 +81,7 @@ SubProcSet == [_n42 \in ProcSet |-> 1..2]
 Max(_c, _d) == IF _c > _d THEN _c ELSE _d
 
 Init == (* Global variables *)
-        /\ network = [_n430 \in Nodes, _n441 \in Nodes |-> <<>>]
+        /\ network = [_mn430 \in Nodes, _mn441 \in Nodes |-> <<>>]
         (* Process n *)
         /\ req = [self \in Nodes |-> [n \in Nodes |-> 0]]
         /\ ack = [self \in Nodes |-> {}]
@@ -134,15 +133,15 @@ rcv(self) == /\ pc[self][2]  = "rcv"
              /\ UNCHANGED << req, ack >>
 
 handle(self) == /\ pc[self][2]  = "handle"
-                /\ IF msg[self].type = "request"
+                /\ IF (msg[self].type = "request")
                       THEN /\ req' = [req EXCEPT ![self][sndr[self]] = msg[self].clock]
                            /\ network' = [network EXCEPT ![self, sndr[self]] =  Append(@, [msg |-> "ack", clock |-> clock])]
                            /\ clock' = [clock EXCEPT ![self] = clock[self] + 1 ]
                            /\ ack' = ack
-                      ELSE /\ IF msg[self].type = "ack"
+                      ELSE /\ IF (msg[self].type = "ack")
                                  THEN /\ ack' = [ack EXCEPT ![self] = ack[self] \cup {sndr[self]}]
                                       /\ req' = req
-                                 ELSE /\ IF msg[self].type = "release"
+                                 ELSE /\ IF (msg[self].type = "release")
                                             THEN /\ req' = [req EXCEPT ![self][sndr[self]] = 0]
                                             ELSE /\ TRUE
                                                  /\ req' = req
@@ -166,7 +165,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3f93d73f752086b8446fc3b9e3d9431d
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e5da5d31edda15a719dfd30272bd5079
 
 
 
