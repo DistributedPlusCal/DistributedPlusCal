@@ -3298,7 +3298,57 @@ public class ParseAlgorithm
 
               return result;
             } ;
+
+          if ( stmt.getClass().equals( AST.ChannelReceiverObj.getClass() ) )
+            {
+              AST.ChannelReceiveCall chanstmt = (AST.ChannelReceiveCall) stmt;
+              AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
+              result.col  = chanstmt.col ;
+              result.line = chanstmt.line ;
+              result.macroCol  = chanstmt.macroCol ;
+              result.macroLine = chanstmt.macroLine ;
+              result.setOrigin(chanstmt.getOrigin()) ;
+              if (macroLine > 0)
+                { result.macroLine = macroLine ;
+                  result.macroCol  = macroCol ;
+                } ; 
+
+              result.name = chanstmt.name;
+              result.channelName = chanstmt.channelName;
+              
+              result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
+              result.callExp.substituteForAll(args, params) ;
+
+              result.targetVarName = chanstmt.targetVarName;
+              result.targetExp  = chanstmt.targetExp.cloneAndNormalize() ;
+              result.targetExp.substituteForAll(args, params) ;
+
+              return result;
+            } ;
+
+          if ( stmt.getClass().equals( AST.ChannelClearObj.getClass() ) )
+            {
+              AST.ChannelClearCall chanstmt = (AST.ChannelClearCall) stmt;
+              AST.ChannelClearCall result = new AST.ChannelClearCall();
+              result.col  = chanstmt.col ;
+              result.line = chanstmt.line ;
+              result.macroCol  = chanstmt.macroCol ;
+              result.macroLine = chanstmt.macroLine ;
+              result.setOrigin(chanstmt.getOrigin()) ;
+              if (macroLine > 0)
+                { result.macroLine = macroLine ;
+                  result.macroCol  = macroCol ;
+                } ; 
+
+              result.name = chanstmt.name;
+              result.channelName = chanstmt.channelName;
+              result.channel = chanstmt.channel;
+
+              return result;
+            } ;
         }
+
+
         
         /*******************************************************************
         * The following statements are ones that may not appear in a macro *
@@ -4936,7 +4986,7 @@ public class ParseAlgorithm
 					j = j - 1;
 				}
 				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ChannelClearCall.getClass())) {
+			} else if (stmt.getClass().equals(AST.ChannelClearObj.getClass())) {
 				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
@@ -5029,7 +5079,6 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
-		PcalDebug.reportInfo("At ExpandClearCall: " + call + " : " + nodeDecl + " : " + globalDecl);
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 
 		if(chanVar == null) {

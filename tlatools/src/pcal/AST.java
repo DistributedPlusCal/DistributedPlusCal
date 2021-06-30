@@ -114,7 +114,7 @@ public class AST
     //For Distributed PlusCal	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
-    public static AST.ChannelClearCall ChannelClearCall;
+    public static AST.ChannelClearCall ChannelClearObj;
     
     public static final String SELF = "slf";
     
@@ -235,7 +235,7 @@ public class AST
         
         ChannelSenderObj =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
-        ChannelClearCall = new AST.ChannelClearCall();
+        ChannelClearObj = new AST.ChannelClearCall();
       }
 
 
@@ -2193,21 +2193,21 @@ public class AST
 	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public Vector args;
 	   public String name = "";
-	   String targetVarName = "";
+	   public String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
 	   public ChannelReceiveCall() {};
 	   public String toString()
 	   { return 
 			   Indent(lineCol()) + 
 			   "[type |-> \"ChannelReceiver\"," + NewLine() +
-			   Indent(" channel     |-> ") + channelName + "," +
-			   EndIndent() +
-			   Indent(" targetVar     |-> ") + targetVarName + "," +
-			   EndIndent() +
-			   Indent(" callExp     |-> ") + callExp + "," +
-			   EndIndent() +
-			   Indent(" targetExp     |-> ") + targetExp + "]" +
-			   EndIndent() +
+   			 " name |-> \"" + name + "\"," + NewLine() +
+			   Indent(" channel |-> ") + channelName + "," +
+			   EndIndent() + NewLine() +
+			   Indent(" callExp |-> ") + callExp + "," +
+			   EndIndent() + NewLine() +
+			   Indent(" targetVar |-> ") + targetVarName + "," +
+			   EndIndent() + NewLine() +
+			   Indent(" targetExp |-> ") + targetExp + "]" +
 			   EndIndent() ;
 	   }
 
@@ -2226,8 +2226,9 @@ public class AST
 	   { return 
 			   Indent(lineCol()) + 
 			   "[type |-> \"ChannelClearCall\"," + NewLine() +
-			   Indent(" channel     |-> ") + channelName + "]" +
-			   EndIndent() +
+   			 " name |-> \"" + name + "\"," + NewLine() +
+			   " channelName |-> " + channelName + "]" + NewLine() +
+			   " channel |-> " + channel + "]" +
 			   EndIndent() ;
 	   }
 
