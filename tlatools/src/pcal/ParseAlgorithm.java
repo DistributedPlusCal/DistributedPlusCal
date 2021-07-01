@@ -3284,12 +3284,22 @@ public class ParseAlgorithm
                 } ; 
 
               result.name = chanstmt.name;
+
               if (result.name.equals("multicast"))
                 result.isMulticast = true;
               else if (result.name.equals("broadcast"))
                 result.isBroadcast = true;
               
               result.channelName = chanstmt.channelName;
+              // HC: if the channel nad for the operation is one of the parameters
+              int ind = params.indexOf(chanstmt.channelName);
+              if( ind != -1 ){
+                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
+                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
+                if( tok.type == TLAToken.IDENT ) {
+                  result.channelName = tok.string;
+                }
+              }
               
               result.msg  = chanstmt.msg.cloneAndNormalize() ;
               result.msg.substituteForAll(args, params) ;
@@ -3315,6 +3325,15 @@ public class ParseAlgorithm
 
               result.name = chanstmt.name;
               result.channelName = chanstmt.channelName;
+              // HC: if the channel nad for the operation is one of the parameters
+              int ind = params.indexOf(chanstmt.channelName);
+              if( ind != -1 ){
+                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
+                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
+                if( tok.type == TLAToken.IDENT ) {
+                  result.channelName = tok.string;
+                }
+              }
               
               result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
               result.callExp.substituteForAll(args, params) ;
@@ -3342,6 +3361,16 @@ public class ParseAlgorithm
 
               result.name = chanstmt.name;
               result.channelName = chanstmt.channelName;
+              // HC: if the channel nad for the operation is one of the parameters
+              int ind = params.indexOf(chanstmt.channelName);
+              if( ind != -1 ){
+                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
+                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
+                if( tok.type == TLAToken.IDENT ) {
+                  result.channelName = tok.string;
+                }
+              }
+
               result.channel = chanstmt.channel;
 
               return result;
