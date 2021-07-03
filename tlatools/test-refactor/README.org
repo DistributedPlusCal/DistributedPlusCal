@@ -37,6 +37,9 @@
 - C or P
 - id in set
 
+* OneProcessMultiThreadMC
+- use macros
+- and channel operations in the macros
 
 * TwoProcessesOneThread2C
 - dummy algorithm with TWO processes (1 and n instances) and one thread
@@ -99,3 +102,4 @@
 * FreshVars
 - check how fresh variables are generated
 - try to declare a variable that will be freshly generated (eg _n42)
+

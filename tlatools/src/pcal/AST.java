@@ -1112,31 +1112,18 @@ public class AST
    			sass.lhs.sub = new TLAExpr(new Vector());
    		}
 
-   		expr = new TLAExpr();
    		expr.addLine();
-   		expr.addToken(PcalTranslate.IdentToken(channelName));
-
-   		if(callExp.tokens != null) {
-   			for(int i = 0; i < callExp.tokens.size(); i++) {
-
-   				Vector tv = (Vector) callExp.tokens.elementAt(i);
-   				for (int j = 0; j < tv.size(); j++) {
-   					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-   					expr.addToken(tok);
-   				}
-   			}
-   		}
+      
+      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
 
    		expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
    		expr.addToken(PcalTranslate.BuiltInToken("{"));
 
    		for(int i = 0; i < msg.tokens.size(); i++) {
-
    			Vector tv = (Vector) msg.tokens.elementAt(i);
    			for (int j = 0; j < tv.size(); j++) {
    				TLAToken tok = (TLAToken) tv.elementAt(j);
-
    				expr.addToken(tok);
    			}
    		}
@@ -1164,8 +1151,7 @@ public class AST
 		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 
 			Vector result = new Vector();
-      // HC: is _ enough for fresh vars? is it needed?
-			// String tempVarName = String.valueOf(channelName.toLowerCase().charAt(0)) + line + col;
+
 			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
 
 			TLAExpr exp = new TLAExpr();
@@ -1182,9 +1168,7 @@ public class AST
 			exp.addToken(PcalTranslate.IdentToken(channelName));
 
 			if(callExp.tokens != null) {
-
 				for(int i = 0; i < callExp.tokens.size(); i++) {
-
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
 					for (int j = 0; j < tv.size(); j++) {
 						TLAToken tok = (TLAToken) tv.elementAt(j);
@@ -1207,7 +1191,6 @@ public class AST
 
 			if(targetExp.tokens != null) {
 				for(int i = 0; i < targetExp.tokens.size(); i++) {
-
 					Vector tv = (Vector) targetExp.tokens.elementAt(i);
 					for (int j = 0; j < tv.size(); j++) {
 						TLAToken tok = (TLAToken) tv.elementAt(j);
@@ -1218,7 +1201,6 @@ public class AST
 			} else {
 				sass.lhs.sub = new TLAExpr(new Vector());
 			}
-
 			
 			expr = new TLAExpr();
 			expr.addLine();
@@ -1235,28 +1217,17 @@ public class AST
 
 			assign.ass.addElement(sass);
 
-
 			sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = channel.var;
+			sass.lhs.var = channelName;
 
 			expr = new TLAExpr();
 			expr.addLine();
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			
-			if(callExp.tokens != null) {
 
-				for(int i = 0; i < callExp.tokens.size(); i++) {
+      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
 
-					Vector tv = (Vector) callExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						expr.addToken(tok);
-					}
-				}
-			}
-			
 			expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
 			expr.addToken(PcalTranslate.BuiltInToken("{"));
 			expr.addToken(PcalTranslate.IdentToken(tempVarName));
@@ -1644,18 +1615,18 @@ public class AST
 			}
 			
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Append(@, "));
+      
+      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      expr.addToken(PcalTranslate.BuiltInToken(" Append(" + prevChannel + ", ")); 
 
-			for(int i = 0; i < msg.tokens.size(); i++) {
-				
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-					expr.addToken(tok);
-				}
-			}
-			
+      for(int i = 0; i < msg.tokens.size(); i++) {
+        Vector tv = (Vector) msg.tokens.elementAt(i);
+        for (int j = 0; j < tv.size(); j++) {
+          TLAToken tok = (TLAToken) tv.elementAt(j);
+          expr.addToken(tok);
+        }
+      }
+      
 			expr.addToken(PcalTranslate.BuiltInToken(")"));
 			sass.rhs = expr;
 
@@ -1689,15 +1660,13 @@ public class AST
 			exp.addLine();
 
 			exp.addToken(PcalTranslate.BuiltInToken("Len("));
-			exp.addToken(PcalTranslate.IdentToken(channel.var));
+			exp.addToken(PcalTranslate.IdentToken(channelName));
 			
 			if(callExp.tokens != null) {
 				for(int i = 0; i < callExp.tokens.size(); i++) {
-
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
 					for (int j = 0; j < tv.size(); j++) {
 						TLAToken tok = (TLAToken) tv.elementAt(j);
-
 						exp.addToken(tok);
 					}
 				}
@@ -1720,11 +1689,9 @@ public class AST
 			sass.lhs.var = targetVar.var;
 
 			TLAExpr expr = new TLAExpr();
-      // HC: fix bug FIFO (06/04/21)
-			// expr.addLine(); 
+
 			if(targetExp.tokens != null) {
 				for(int i = 0; i < targetExp.tokens.size(); i++) {
-
 					Vector tv = (Vector) targetExp.tokens.elementAt(i);
 					for (int j = 0; j < tv.size(); j++) {
 						TLAToken tok = (TLAToken) tv.elementAt(j);
@@ -1739,14 +1706,13 @@ public class AST
 			expr = new TLAExpr();
 			expr.addLine();
 			expr.addToken(PcalTranslate.BuiltInToken("Head("));
-			expr.addToken(PcalTranslate.IdentToken(channel.var));
+			expr.addToken(PcalTranslate.IdentToken(channelName));
 			
 			if(callExp.tokens != null) {
 				for(int i = 0; i < callExp.tokens.size(); i++) {
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
 					for (int j = 0; j < tv.size(); j++) {
 						TLAToken tok = (TLAToken) tv.elementAt(j);
-
 						expr.addToken(tok);
 					}
 				}
@@ -1768,7 +1734,7 @@ public class AST
 			sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
-			sass.lhs.var = channel.var;
+			sass.lhs.var = channelName;
 
 			if(callExp.tokens != null) {
 				sass.lhs.sub = callExp;
@@ -1778,7 +1744,9 @@ public class AST
 			
 			expr = new TLAExpr();
 			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Tail(@) "));
+
+      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + prevChannel + ") ")); 
 
 			sass.rhs = expr;
 
