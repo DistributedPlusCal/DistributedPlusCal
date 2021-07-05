@@ -1,5 +1,4 @@
------------------------- MODULE C_Proc
-processedureReceive2 -------------------------
+------------------------ MODULE C_ProcedureReceive2 -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
@@ -19,9 +18,10 @@ procedure f(i, msg2) {
 		return;
 }
 
+process (c \in Nodes)
 {
 	Lab:
-		call f(2, msg);
+		call f(self, msg);
 }
 
 }

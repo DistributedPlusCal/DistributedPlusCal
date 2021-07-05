@@ -1,5 +1,4 @@
------------------------- MODULE C_Proc
-processedureReceive2 -------------------------
+------------------------ MODULE C_ProcedureSend2 -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
@@ -9,19 +8,20 @@ Nodes == 1..4
 
 (*
 --algorithm seq_algo {
- 
-variable msg;
-channel chan[Nodes];
 
-procedure f(i, msg2) {
-	Rec:
-		receive(chan[i], msg2);
+variable msg = "abc";
+channel chan;
+
+procedure f(msg2) {
+	Add:
+		send(chan, msg2);
 		return;
 }
 
+process (c \in Nodes)
 {
 	Lab:
-		call f(2, msg);
+		call f(msg);
 }
 
 }

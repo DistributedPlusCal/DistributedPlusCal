@@ -1,5 +1,4 @@
------------------------- MODULE C_Proc
-processedureReceive2 -------------------------
+------------------------ MODULE C_ProcedureMulticast1 -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
@@ -10,18 +9,18 @@ Nodes == 1..4
 (*
 --algorithm seq_algo {
  
-variable msg;
 channel chan[Nodes];
 
-procedure f(i, msg2) {
+procedure f(expr) {
 	Rec:
-		receive(chan[i], msg2);
+		clear(chan, expr);
 		return;
 }
 
+process (c \in Nodes)
 {
 	Lab:
-		call f(2, msg);
+		call f([a \in Nodes |-> "abc"]);
 }
 
 }

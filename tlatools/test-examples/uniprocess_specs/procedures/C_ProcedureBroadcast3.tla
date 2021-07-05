@@ -19,7 +19,7 @@ procedure f(i, msg) {
 
 {
 	Lab:
-		call f("msg");
+		call f(1, "msg");
 }
 
 }
