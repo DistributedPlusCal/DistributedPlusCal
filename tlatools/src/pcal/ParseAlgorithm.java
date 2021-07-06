@@ -107,6 +107,7 @@
 package pcal;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -243,6 +244,8 @@ public class ParseAlgorithm
    public static boolean processLocalChannels;
    public static ArrayList<VarDecl> processLocalChans = new ArrayList<VarDecl>();
    
+   public static HashMap<String, String> processLamportClocks = new HashMap<String, String>();
+   
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
     * methods, including setting charReader.  It is called only by        *
@@ -359,12 +362,14 @@ public class ParseAlgorithm
     	   vdecls.addAll(GetChannelDecls());
        }
        
-       // to read logical clocks
+       /* Logical clocks must be declared as a process local variables. 
+        * Uncomment the codes below to allow global logical clocks declaration
+        * 
        while (PcalParams.distpcalFlag && (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
     		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks"))) {
     	   vdecls.addAll(GetClockDecls());
        }
-       
+       */
        
        TLAExpr defs = new TLAExpr();
 		if (PeekAtAlgToken(1).equals("define")) {
@@ -468,9 +473,15 @@ public class ParseAlgorithm
               
               ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
               
-              AddLabelsToStmtSeq(thread.body);              
+              AddLabelsToStmtSeq(thread.body);  
+              PcalDebug.reportInfo("thread.body 222 : " + thread.body);
               thread.body = MakeLabeledStmtSeq(thread.body);
-
+              PcalDebug.reportInfo("thread.body 333 : " + thread.body);
+              if (processLamportClocks.containsKey(proc.name)) {
+            	  PcalDebug.reportInfo("this process has a lamport clock declaration");
+            	  
+              }
+              
               checkBody(thread.body);
               omitStutteringWhenDoneValue =
                 omitStutteringWhenDoneValue || omitStutteringWhenDone;
@@ -834,6 +845,7 @@ public class ParseAlgorithm
        result.line = lastTokLine ;
        if (cSyntax) { GobbleThis("(") ; } ;
        result.name = GetAlgToken() ;
+       PcalDebug.reportInfo("result.name : " + result.name);
        result.isEq = GobbleEqualOrIf() ;
        result.id   = GetExpr() ; 
        plusLabels = new Vector(0);
@@ -844,7 +856,10 @@ public class ParseAlgorithm
          { ParsingError("Empty process id at ") ;}
        
        if (PcalParams.distpcalFlag) {
-           if (   PeekAtAlgToken(1).equals("begin")
+    	   // for each process at start we set logicalClocks to false to determine later whether this process has a logical clock declaration
+    	   logicalClocks = false;
+    	   
+    	   if (   PeekAtAlgToken(1).equals("begin")
                   || PeekAtAlgToken(1).equals("{")
                   // when using p-syntax
                   // HC: still use subprocess?
@@ -861,19 +876,21 @@ public class ParseAlgorithm
         	    	   result.decls = GetVarDecls();
         	       }
         	       
-        	       //For Distributed PlusCal, could be surrounded by an if statement
         	       //to read channels and fifo channels
         	       while (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("fifo")
         	    		   ||PeekAtAlgToken(1).contains("channels") || PeekAtAlgToken(1).contains("fifos")) {
         	    	   processLocalChannels = true;
         	    	   result.decls.addAll(GetChannelDecls());
         	       }
-        	       PcalDebug.reportInfo("after channel declarations");
+        	       
         	       // to read logical clocks
         	       while (PeekAtAlgToken(1).equals("lamportClock") || PeekAtAlgToken(1).equals("vectorClock") || 
         	    		   PeekAtAlgToken(1).equals("lamportClocks") || PeekAtAlgToken(1).equals("vectorClocks")) {
         	    	   result.decls.addAll(GetClockDecls());
         	       }
+        	       
+        	       if (logicalClocks)
+        	    	   processLamportClocks.put(result.name, clockName);
              } 
            
            Vector<AST.Thread> threads = new Vector<>();
@@ -885,6 +902,7 @@ public class ParseAlgorithm
            //read the sub-process delimiter
            GobbleBeginOrLeftBrace();  
            thread.body = GetStmtSeq();
+           PcalDebug.reportInfo("thread.body : " + thread.body);
            GobbleEndOrRightBrace("process"); // HC: use subprocess?
   	
            if(pSyntax) {
@@ -1338,6 +1356,7 @@ public class ParseAlgorithm
 		}
 		
 		if (PeekPastAlgToken(1).charAt(0) == '(') {
+			
 			PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
 			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
 				return getSendToChannelCall(nextTok);
@@ -1351,13 +1370,6 @@ public class ParseAlgorithm
 				return getReceiveWithClockChannelCall(nextTok);
 			}
 			
-			else if (nextTok.equals("increase")) { // For logical clocks
-				return getIncreaseClockCall(nextTok);
-			} else if (nextTok.equals("update") ) {
-				return getUpdateClockCall(nextTok);
-			} else if (nextTok.equals("reset")) {
-				return getResetClockCall(nextTok);
-			}
 			else {
 				return GetMacroCall();
 			}
@@ -3753,19 +3765,6 @@ public class ParseAlgorithm
         	  
           }
           
-	       // For Distributed Pluscal. Handling Logical clock objects inside macro
-	       if ( stmt.getClass().equals( AST.ClockIncreaseObj.getClass() ) ) {
-	    	   // TODO. Implement clock calls expansion inside macro
-	       }
-	       
-	       if (stmt.getClass().equals( AST.ClockResetObj.getClass() )) {
-	    	   // TODO. Implement clock calls expansion inside macro    	   
-	       }
-	       
-	       if (stmt.getClass().equals( AST.ClockUpdateObj.getClass() ) ) {
-	    	   // TODO. Implement clock calls expansion inside macro
-	       }
-          
         PcalDebug.ReportBug(
            "Found unexpected statement type in macro at" +
              stmt.location() ); 
@@ -4973,7 +4972,7 @@ public class ParseAlgorithm
    public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();
 		result.name = GetAlgToken() ;
-
+		
 		MustGobbleThis("(");
 
 		result.col = curTokCol[0] + 1;
@@ -5004,7 +5003,6 @@ public class ParseAlgorithm
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
 		
-		PcalDebug.reportInfo("result getSendTo : " + result);
 		
 		return result;
 	}
@@ -5058,9 +5056,7 @@ public class ParseAlgorithm
 		result.channelName = GetAlgToken();
 		// dm. set callExp property
 		result.callExp = GetExpr();
-		
 
-		
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
 
@@ -5214,24 +5210,6 @@ public class ParseAlgorithm
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelReceiveWithClockObj.getClass())) {
 				Vector expansion = ExpandReceiveWithClockCall(((AST.ChannelReceiveWithClockCall) stmt), nodeDecls, globalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
-				}
-				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ClockIncreaseObj.getClass())) {
-				Vector expansion =  ExpandClockIncreaseCall((AST.ClockIncreaseCall) stmt, nodeDecls, globalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
-				}
-				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ClockResetObj.getClass())) {
-				Vector expansion =  ExpandClockResetCall((AST.ClockResetCall) stmt, nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5406,65 +5384,6 @@ public class ParseAlgorithm
         
 		return result;
 	}
-	
-	
-	
-	
-	// Distributed PlusCal. For Logical Clocks. 
-	public static Vector ExpandClockIncreaseCall (AST.ClockIncreaseCall call, Vector nodeDecl, Vector globalDecl)
-			throws ParseAlgorithmException {
-		VarDecl clock = findVarDeclByVarName(((AST.ClockIncreaseCall) call).clockName, nodeDecl, globalDecl);
-
-		if(clock == null) {
-			PcalDebug.reportInfo("Throw error chanVar == null");
-			//throw and exceptionExpandClearCall
-		}
-		
-		//construct body based on type 
-		Vector result = call.generateClockIncreaseTemplate((AST.Clock) clock);
-		
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
-		return result;
-	}
-	
-	public static Vector ExpandClockResetCall (AST.ClockResetCall call, Vector nodeDecl, Vector globalDecl)
-			throws ParseAlgorithmException {
-		VarDecl clock = findVarDeclByVarName(((AST.ClockResetCall) call).clockName, nodeDecl, globalDecl);
-
-		if(clock == null) {
-			PcalDebug.reportInfo("Throw error chanVar == null");
-			//throw and exceptionExpandClearCall
-		}
-		
-		//construct body based on type 
-		Vector result = call.generateClockResetTemplate((AST.Clock) clock); 
-		
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
-		return result;
-	}
-	
 	
 	
 	/**
@@ -5759,98 +5678,6 @@ public class ParseAlgorithm
 			pv.setOrigin(new Region(beginLoc, endLoc));
 			return pv;
 		}
-	   
-	   
-	   public static AST.ClockIncreaseCall getIncreaseClockCall(String nextTok) throws ParseAlgorithmException {
-			AST.ClockIncreaseCall result = new AST.ClockIncreaseCall();
-			result.name = GetAlgToken() ;
-			MustGobbleThis("(");
-
-			result.col = curTokCol[0] + 1;
-			result.line = curTokLine[0] + 1;
-			/******************************************************************
-			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-			 * LAT[0] contains the next token. *
-			 ******************************************************************/
-			PCalLocation beginLoc = null;
-			PCalLocation endLoc = null;
-			result.clockName = GetAlgToken();
-			
-			// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
-			result.callExp = GetExpr();
-
-			beginLoc = GetLastLocationStart();
-			endLoc = GetLastLocationEnd();
-
-			//if there is more than one parameter an error is thrown
-			GobbleThis(")");
-			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-			GobbleThis(";");
-
-			return result;
-		}
-	
-	   public static AST.ClockUpdateCall getUpdateClockCall(String nextTok) throws ParseAlgorithmException {
-		   AST.ClockUpdateCall result = new AST.ClockUpdateCall();
-			result.name1 = GetAlgToken() ;
-			MustGobbleThis("(");
-
-			result.col = curTokCol[0] + 1;
-			result.line = curTokLine[0] + 1;
-			/******************************************************************
-			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-			 * LAT[0] contains the next token. *
-			 ******************************************************************/
-			PCalLocation beginLoc = null;
-			PCalLocation endLoc = null;
-			result.clockName1 = GetAlgToken();
-
-			beginLoc = GetLastLocationStart();
-			endLoc = GetLastLocationEnd();
-
-			result.callExp1 = GetExpr();
-			
-			GobbleThis(",");
-			
-			result.name2 = GetAlgToken();
-			result.clockName2 = result.name2;
-			//result.clockName2 = GetAlgToken();
-			result.callExp2 = GetExpr();
-			//if there is more than one parameter an error is thrown
-			GobbleThis(")");
-			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-			GobbleThis(";");
-
-			return result;
-		}
-	   
-	   public static AST.ClockResetCall getResetClockCall(String nextTok) throws ParseAlgorithmException {
-			AST.ClockResetCall result = new AST.ClockResetCall();
-			result.name = GetAlgToken() ;
-			MustGobbleThis("(");
-
-			result.col = curTokCol[0] + 1;
-			result.line = curTokLine[0] + 1;
-			/******************************************************************
-			 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-			 * LAT[0] contains the next token. *
-			 ******************************************************************/
-			PCalLocation beginLoc = null;
-			PCalLocation endLoc = null;
-			result.clockName = GetAlgToken();
-			
-			// For Distributed Pluscal. set callExp property to retrieve [N] from clear(chan[N])
-			result.callExp = GetExpr();
-
-			beginLoc = GetLastLocationStart();
-			endLoc = GetLastLocationEnd();
-
-			//if there is more than one parameter an error is thrown
-			GobbleThis(")");
-			result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-			GobbleThis(";");
-
-			return result;
-		}
+		
 	   
 }

@@ -119,8 +119,6 @@ public class AST
     public static AST.ChannelReceiveWithClockCall ChannelReceiveWithClockObj;
     // For Distributed Pluscal. Logical clocks
     public static AST.ClockIncreaseCall ClockIncreaseObj;
-    public static AST.ClockUpdateCall ClockUpdateObj;
-    public static AST.ClockResetCall ClockResetObj;
     
     public static final String SELF = "slf";
     
@@ -246,8 +244,7 @@ public class AST
         ChannelReceiveWithClockObj = new  AST.ChannelReceiveWithClockCall();
         //For Distributed Pluscal. Logical clocks
         ClockIncreaseObj   = new AST.ClockIncreaseCall();
-        ClockUpdateObj     = new AST.ClockUpdateCall();
-        ClockResetObj      = new AST.ClockResetCall();
+        
       }
 
 
@@ -1097,10 +1094,8 @@ public class AST
    	List dimensions = null;
    	public abstract Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp);
    	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
-   	// For Distributed PLuscal. Add TLAExpr msg argument to implement new broadcast
    	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
-   	// For Distributed Pluscal. Add String channelName and TLAExpr callExp arguments to allow new clear functionality
    	public abstract Vector clear(Channel channel, String channelName, TLAExpr callExp) throws ParseAlgorithmException;
    	
    	// For Distributed PlusCal. Channel operations with logical clocks
@@ -3376,8 +3371,6 @@ public class AST
 	   	public Clock() {};
 	   	List dimensions = null;
 	   	public abstract Vector increase(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException;
-	   	public abstract Vector update(Clock clock1, String clockName1, TLAExpr callExp1, Clock clock2, String clockName2, TLAExpr callExp2) throws ParseAlgorithmException;
-	   	public abstract Vector reset(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException;
   }
   
   public static class ClockIncreaseCall extends AST{
@@ -3403,59 +3396,7 @@ public class AST
 		   return clock.increase(clock, clockName, callExp);
 	   }
   }
-  
-  public static class ClockUpdateCall extends AST{
-	   public String name1 = "";
-	   public Channel clock1 = null;
-	   public String clockName1 = null;
-	   public String name2 = "";
-	   public Channel clock2 = null;
-	   public String clockName2 = null;
-	   
-	   // For Distributed PLuscal. NEED TO THINK ABOUT : update(clock[self], clock[self-1]) ??? how to handle it
-	   public TLAExpr callExp1 = new TLAExpr(new Vector());
-	   public TLAExpr callExp2 = new TLAExpr(new Vector());
-	   
-	   public ClockUpdateCall() {};
-	   
-	   public String toString()
-	   { return 
-			   Indent(lineCol()) + 
-			   "[type |-> \"ClockUpdateCall\"," + NewLine() +
-			   Indent(" clock1    |-> ") + clockName1 + "]" +
-			   Indent(" clock2    |-> ") + clockName2 + "]" + 
-			   EndIndent() +
-			   EndIndent() ;
-	   }
-
-	   public Vector generateClockUpdateTemplate(Clock clock1, Clock clock2) throws ParseAlgorithmException {
-		   return clock1.update(clock1, clockName1, callExp1, clock2, clockName2, callExp2);
-	   }
-  }
-  
-  public static class ClockResetCall extends AST{
-	   public String name = "";
-	   public Channel clock = null;
-	   public String clockName = null;
-	   
-	   // For Distributed PLuscal. to support increase(clock[N])...
-	   public TLAExpr callExp = new TLAExpr(new Vector());
-	   
-	   public ClockResetCall() {};
-
-	   public String toString()
-	   { return 
-			   Indent(lineCol()) + 
-			   "[type |-> \"ClockResetCall\"," + NewLine() +
-			   Indent(" clock     |-> ") + clockName + "]" +
-			   EndIndent() +
-			   EndIndent() ;
-	   }
-
-	   public Vector generateClockResetTemplate(Clock clock) throws ParseAlgorithmException {
-		   return clock.reset(clock, clockName, callExp);
-	   }
- }
+ 
   
   public static class LamportClock extends Clock {
 	  
@@ -3512,144 +3453,7 @@ public class AST
 		return result;
 	}
 
-	@Override
-	public Vector update(Clock clock1, String clockName1, TLAExpr callExp1, Clock clock2, String clockName2, TLAExpr callExp2) throws ParseAlgorithmException {
-		Vector result = new Vector();
-		
-   		AST.SingleAssign sass = new AST.SingleAssign();
-   		sass.line = line;
-   		sass.col  = col;
-   		sass.lhs.var = clock1.var;
-
-   		TLAExpr expr = new TLAExpr();
-
-   		if(callExp1.tokens != null)
-   			sass.lhs.sub = callExp1;
-   		else
-   			sass.lhs.sub = new TLAExpr(new Vector());
-   		
-   		expr = new TLAExpr();
-   		expr.addLine();
-
-   		expr.addToken(PcalTranslate.BuiltInToken(" Max("));
-   		expr.addToken(PcalTranslate.IdentToken(clockName1));
-
-   		if(callExp1.tokens != null) {
-   			for(int i = 0; i < callExp1.tokens.size(); i++) {
-
-   				Vector tv = (Vector) callExp1.tokens.elementAt(i);
-   				for (int j = 0; j < tv.size(); j++) {
-   					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-   					expr.addToken(tok);
-   				}
-   			}
-   		}
-   		
-   		expr.addToken(PcalTranslate.BuiltInToken(", "));
-   		expr.addToken(PcalTranslate.IdentToken(clockName2));
-   		
-   		if(callExp2.tokens != null) {
-   			for(int i = 0; i < callExp2.tokens.size(); i++) {
-
-   				Vector tv = (Vector) callExp2.tokens.elementAt(i);
-   				for (int j = 0; j < tv.size(); j++) {
-   					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-   					expr.addToken(tok);
-   				}
-   			}
-   		}
-   		
-   		expr.addToken(PcalTranslate.BuiltInToken(") + 1"));
-   		sass.rhs = expr;
-   		sass.setOrigin(this.getOrigin());
-
-   		AST.Assign assign = new AST.Assign();
-   		assign.ass = new Vector();
-   		assign.line = line ;
-   		assign.col  = col ;
-   		assign.setOrigin(this.getOrigin());
-   		assign.ass.addElement(sass);
-
-   		result.addElement(assign);
-		return result;
-	}
-
-	@Override
-	public Vector reset(Clock clock, String clockName, TLAExpr callExp) throws ParseAlgorithmException {
-		Vector result = new Vector();
-		 
-		int clock_dim = (clock.dimensions == null) ? 0 : clock.dimensions.size();
-		int callExp_dim = PcalTLAGen.getCallExprValues(callExp).size();
-		
-		if ( clock_dim < callExp_dim ) {
-			throw new ParseAlgorithmException("clock dimension is less than call Expression dimension. ");
-		}
-		
-		AST.SingleAssign sass = new AST.SingleAssign();
-		sass.line = line;
-		sass.col  = col;
-		sass.lhs.var = clock.var;
-		TLAExpr expr;
-		
-		if (clock_dim == callExp_dim) {
-			if(callExp.tokens != null)
-	   			sass.lhs.sub = callExp;
-	   		else
-	   			sass.lhs.sub = new TLAExpr(new Vector());
-	   		
-			sass.setOrigin(this.getOrigin());
-
-			expr = new TLAExpr();
-			expr.addLine();
-			
-			expr.addToken(PcalTranslate.BuiltInToken("0"));
-		} else {
-			sass.lhs.sub = new TLAExpr(new Vector());
-			sass.setOrigin(this.getOrigin());
-
-			expr = new TLAExpr();
-			expr.addLine();
-			
-			for(int i = 0; i < clock.dimensions.size(); i++) {
-				String dimension = (String) clock.dimensions.get(i);
-				// For Distributed PlusCal. append _ to overcome variable name clash
-				String tempVarName = String.valueOf("_" + dimension.toLowerCase().charAt(0)) + i;
-				
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
-				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-
-				if(clock.dimensions.size() != 1 && i != clock.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
-			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-			expr.addToken(PcalTranslate.IdentToken(clock.dimensions.get(0).toString()));
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-			expr.addToken(PcalTranslate.BuiltInToken("0 "));
-			expr.addToken(PcalTranslate.BuiltInToken("] "));
-		}
-		
-		expr.setOrigin(this.getOrigin());
-		expr.normalize();
-
-		sass.rhs = expr;
-
-		AST.Assign assign = new AST.Assign();
-		assign.ass = new Vector();
-		assign.line = line ;
-		assign.col  = col ;
-		assign.setOrigin(this.getOrigin());
-		assign.ass.addElement(sass);
-
-		result.addElement(assign);
-		
-		return result;
-	}
+	
 	  
   }
   
@@ -3662,20 +3466,6 @@ public class AST
 			// TODO Auto-generated method stub
 			return null;
 		}
-
-		@Override
-		public Vector update(Clock clock1, String clockName1, TLAExpr callExp1, Clock clock2, String clockName2, TLAExpr callExp2) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public Vector reset(Clock clock, String clockName, TLAExpr callExp) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-		  
-	  }
-  
+  }
 
  }
