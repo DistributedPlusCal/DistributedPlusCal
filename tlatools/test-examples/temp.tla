@@ -10,7 +10,8 @@ Nodes == 1..3
 
 channel chan[Nodes];
 
-process (c \in Nodes)
+process (l \in Nodes)
+lamportClock c;
 {
     Start:
         send(chan, "msg");
@@ -18,72 +19,79 @@ process (c \in Nodes)
         clear(chan);
 }
 
-process (p = 78)
+process (u = 22)
 variable  q = 0;
 lamportClock clock;
 {
     Lab:
         q := q + 1;
+    QAS:
         skip;
 }
 
 }
 *)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3650b4f95975a3b9f6663806e5e086b3
-VARIABLES chan, pc, q, clock
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-c1f1ef370d4fe0a61b3720968c9f738a
+VARIABLES chan, pc, c, q, clock
 
-vars == << chan, pc, q, clock >>
+vars == << chan, pc, c, q, clock >>
 
-ProcSet == (Nodes) \cup {78}
+ProcSet == (Nodes) \cup {22}
 
 SubProcSet == [_n42 \in ProcSet |-> IF _n42 \in Nodes THEN 1..1
-                                   ELSE (**78**) 1..1]
+                                   ELSE (**22**) 1..1]
 
 Init == (* Global variables *)
         /\ chan = [_mn430 \in Nodes |-> {}]
-        (* Process p *)
+        (* Process l *)
+        /\ c = [self \in Nodes |-> 0]
+        (* Process u *)
         /\ q = 0
         /\ clock = 0
         /\ pc = [self \in ProcSet |-> CASE self \in Nodes -> <<"Start">>
-                                        [] self = 78 -> <<"Lab">>]
+                                        [] self = 22 -> <<"Lab">>]
 
 Start(self) == /\ pc[self][1]  = "Start"
+               /\ c'  = [c EXCEPT ![self] = c[self] + 1]
                /\ chan' = (chan \cup {"msg"})
                /\ pc' = [pc EXCEPT ![self][1] = "Rec"]
-               /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-               /\ UNCHANGED << q >>
+               /\ UNCHANGED << c, q, clock >>
 
 Rec(self) == /\ pc[self][1]  = "Rec"
+             /\ c'  = [c EXCEPT ![self] = c[self] + 1]
              /\ chan' = [_n0 \in Nodes |-> {}]
              /\ pc' = [pc EXCEPT ![self][1] = "Done"]
-             /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-             /\ UNCHANGED << q >>
+             /\ UNCHANGED << c, q, clock >>
 
-c(self) == Start(self) \/ Rec(self)
+l(self) == Start(self) \/ Rec(self)
 
-Lab == /\ pc[78][1]  = "Lab"
+Lab == /\ pc[22][1]  = "Lab"
+       /\ clock'  = [clock EXCEPT ![self] = clock[self] + 1]
        /\ q' = q + 1
-       /\ TRUE
-       /\ pc' = [pc EXCEPT ![78][1] = "Done"]
-       /\ clock' = [clock EXCEPT ![self] = clock[self] + 1]
-       /\ UNCHANGED << chan >>
+       /\ pc' = [pc EXCEPT ![22][1] = "QAS"]
+       /\ UNCHANGED << chan, c, clock >>
 
-p == Lab
+QAS == /\ pc[22][1]  = "QAS"
+       /\ clock'  = [clock EXCEPT ![self] = clock[self] + 1]
+       /\ TRUE
+       /\ pc' = [pc EXCEPT ![22][1] = "Done"]
+       /\ UNCHANGED << chan, c, q, clock >>
+
+u == Lab \/ QAS
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
                /\ UNCHANGED vars
 
-Next == p
-           \/ (\E self \in Nodes: c(self))
+Next == u
+           \/ (\E self \in Nodes: l(self))
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-aadd6a89fd9a474e01edb4956b0c8a93
-
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-5a6cde72e711e4575cd0bc8fadc795b7
 
 
 =========================================================

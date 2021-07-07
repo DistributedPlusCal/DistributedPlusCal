@@ -44,8 +44,6 @@ public class PcalTranslate {
     private static String currentProcedure;  
     public final static Integer NO_THREAD = -1;
     
-    private static boolean mp; // For Distributed Pluscal. true if multiprocess spec otherwise false
-    
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
      *************************************************************************/
@@ -377,8 +375,6 @@ public class PcalTranslate {
         if (ast.getClass().equals(AST.UniprocessObj.getClass())) 
             return ExplodeUniprocess((AST.Uniprocess) ast);
         else if (ast.getClass().equals(AST.MultiprocessObj.getClass())) {
-        	// For Distributed Pluscal set mp to true
-            // mp = true;
         	return ExplodeMultiprocess((AST.Multiprocess) ast);
         }
         else {
@@ -783,7 +779,11 @@ public class PcalTranslate {
            /* prepend pc check */
           //For Distributed pluscal (add threadIndex)
           newast.stmts.insertElementAt(CheckPC(newast.label, threadIndex), 0);
-           result.addElement(newast);
+          if (ParseAlgorithm.labelsWithClocks.containsKey(newast.label)) {
+       	   	newast.stmts.insertElementAt(CheckLamportClocks(newast.label), 1);
+       	   //result.addElement(newast);
+          } 
+          result.addElement(newast);
         }
         /* add recursively generated labeled statements */
         result.addAll((Vector) pair.elementAt(1));
@@ -1724,5 +1724,19 @@ public class PcalTranslate {
         }
         return newast;
     }
+    
+    //For Distributed pluscal logical clocks
+    private static AST.When CheckLamportClocks (String label) {
+  	  	AST.When checkLC = new AST.When();
+        Vector toks = new Vector();
+
+        toks.addElement(AddedToken(ParseAlgorithm.labelsWithClocks.get(label) + "'"));
+        //For Distributed pluscal
+        toks.addElement(BuiltInToken(" = [" + ParseAlgorithm.labelsWithClocks.get(label) + " EXCEPT ![self] = " 
+        								+ ParseAlgorithm.labelsWithClocks.get(label) + "[self] + 1]"));
+        checkLC.exp = TokVectorToExpr(toks, 1);
+        return checkLC;
+      }
+    
     
 }

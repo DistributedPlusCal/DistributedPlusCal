@@ -1110,7 +1110,6 @@ public class PcalTLAGen
                         expr.normalize();
                         
                         rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
-                        //PcalDebug.reportInfo("111. rhs: " + rhs);
                       }
                     }
                 	
@@ -1209,7 +1208,6 @@ public class PcalTLAGen
                     addExprToTLA(rhs);
                     addRightParen(rhs.getOrigin());
                     addOneTokenToTLA("]");
-                    //PcalDebug.reportInfo("33 .    rhs:  " + rhs);
                     sb = new StringBuffer();
                 } else if (!EmptyExpr(sass.lhs.sub))
                 {
@@ -1297,7 +1295,6 @@ public class PcalTLAGen
                 addRightParen(sass.getOrigin());
             } else
             {
-            	PcalDebug.reportInfo("ELSE branch new single assignment object");
                 /*
                  * Multiple assignments to the same variable, which must therefore
                  * each have a user-specified subscript.
@@ -1852,10 +1849,15 @@ public class PcalTLAGen
 
     private void GenWhen(AST.When ast, Changed c, String context, String prefix, int col) throws PcalTLAGenException
     {
+    	PcalDebug.reportInfo("c : " + c);
         addOneTokenToTLA(prefix);
         
 //        StringBuffer sb = new StringBuffer(prefix);
-        TLAExpr exp = AddSubscriptsToExpr(ast.exp, SubExpr(Self(context)), c);
+        TLAExpr exp = ast.exp;
+        // if it's pc then we add subcripts, for logical clocks we don't need it.
+        if (ast.exp.toPlainString().substring(0, 2).equals("pc"))
+        	exp = AddSubscriptsToExpr(ast.exp, SubExpr(Self(context)), c);
+        
         addLeftParen(exp.getOrigin());
         addExprToTLA(exp);
         addRightParen(exp.getOrigin());
@@ -5029,64 +5031,6 @@ public class PcalTLAGen
 			  }
 			  my_tlacode.add(line);
 		  }
-		  
-		  // For logical clocks auto-incrementing for each labels
-		  
-		  if (ParseAlgorithm.logicalClocks) {
-			  for (String label: labels) {
-				  PcalDebug.reportInfo("At label: " + label);
-				  for (int i = 0; i < my_tlacode.size(); i++) {
-					  if (my_tlacode.get(i).contains(label)) {
-						  for (int j = i + 1; j < my_tlacode.size(); j++) {
-							  PcalDebug.reportInfo("at tlacode : " + my_tlacode.get(j));
-							  if (my_tlacode.get(j).contains(ParseAlgorithm.clockName + "' = " + ParseAlgorithm.clockName)) {
-								  String s = "";
-								  for (int k = 0; k < my_tlacode.get(j).length(); k++) {
-									  if (my_tlacode.get(j).charAt(k) == ' ') {
-										  s += " ";
-									  } else {
-										  break;
-									  }
-								  }
-								  s += "/\\ " + ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
-										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
-								  my_tlacode.insertElementAt(s, j);
-								  my_tlacode.get(j).replace(my_tlacode.get(j), s);
-								  my_tlacode.remove(j+1);
-								  break;
-							  }
-							  if (my_tlacode.get(j).contains("UNCHANGED") && my_tlacode.get(j).contains(ParseAlgorithm.clockName)) {
-								  String s = "";
-								  for (int k = 0; k < my_tlacode.get(j).length(); k++) {
-									  if (my_tlacode.get(j).charAt(k) == ' ') {
-										  s += " ";
-									  } else {
-										  break;
-									  }
-									  
-								  }
-								  
-								  s += "/\\ " + ParseAlgorithm.clockName + "' = [" + ParseAlgorithm.clockName 
-										  + " EXCEPT ![self] = " + ParseAlgorithm.clockName + "[self] + 1]";
-								  // Three cases can happen: 1. UNCHANGED << a, b, clock>>
-								  //						 2. UNCHANGED << a, clock, b >>
-								  //						 3. UNCHANGED << clock, a, b >>
-								  String new_line = my_tlacode.get(j).replace(", " + ParseAlgorithm.clockName, "");
-								  if (new_line.contains(ParseAlgorithm.clockName)) {
-									  new_line = new_line.replace(ParseAlgorithm.clockName + ",", "");
-								  }
-								  my_tlacode.insertElementAt(new_line, j);
-								  my_tlacode.remove(j+1);
-								  my_tlacode.insertElementAt(s, j);
-								  break;
-							  }
-						  }
-					  }
-				  }
-			  }
-
-		  }
-		  
 		  
 		  return my_tlacode;
 	  }

@@ -237,14 +237,18 @@ public class ParseAlgorithm
    public static boolean pSyntax;
    public static boolean cSyntax;
    
-   // For Distributed Pluscal clocks.
+   // For Distributed Pluscal logical clocks.
    public static boolean logicalClocks;
+   public static String clockName;
+   
+   public static HashMap<String, String> processLamportClocks = new HashMap<String, String>();
+   public static HashMap<String, String> labelsWithClocks = new HashMap<String, String>();
+   
    
    // For Distributed PlusCal. Process local chans/fifos
    public static boolean processLocalChannels;
    public static ArrayList<VarDecl> processLocalChans = new ArrayList<VarDecl>();
    
-   public static HashMap<String, String> processLamportClocks = new HashMap<String, String>();
    
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
@@ -473,19 +477,24 @@ public class ParseAlgorithm
               
               ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
               
-              AddLabelsToStmtSeq(thread.body);  
-              PcalDebug.reportInfo("thread.body 222 : " + thread.body);
-              thread.body = MakeLabeledStmtSeq(thread.body);
-              PcalDebug.reportInfo("thread.body 333 : " + thread.body);
               if (processLamportClocks.containsKey(proc.name)) {
             	  PcalDebug.reportInfo("this process has a lamport clock declaration");
-            	  
+            	  logicalClocks = true;
+            	  clockName = processLamportClocks.get(proc.name);
               }
+              
+              AddLabelsToStmtSeq(thread.body);  
+              
+              thread.body = MakeLabeledStmtSeq(thread.body);
               
               checkBody(thread.body);
               omitStutteringWhenDoneValue =
                 omitStutteringWhenDoneValue || omitStutteringWhenDone;
               j++;
+              
+              // reset variables used for tracking process logical clocks.
+              logicalClocks = false;
+              clockName = "";
             }
             if(proc.threads.size() > 1) {
               omitPC = false;
@@ -935,6 +944,10 @@ public class ParseAlgorithm
                threads.add(thread);
              }
            }
+           // reset variables used for tracking process logical clocks. Because we will use them later.
+           logicalClocks = false;
+           clockName = "";
+           
            result.threads = threads;
          } else {
            if (   PeekAtAlgToken(1).equals("begin")
@@ -2550,7 +2563,11 @@ public class ParseAlgorithm
            * Set its label.                                                *
            ****************************************************************/
            lstmt.label = stmt.lbl ;
-
+           // collect labels for which clock increasing action will be added later.
+           if (logicalClocks) {
+        	   labelsWithClocks.put(lstmt.label, clockName);
+           }
+           
            if (stmt.lbl.equals("")) {
 	           Debug.ReportBug(
 	           "ParseAlgorithmInnerMakeLabeledStmtSeq found null label starting labeled stmt seq");
@@ -5486,9 +5503,6 @@ public class ParseAlgorithm
 
 			return result;
 		}
-	
-	   // For Distributed PlusCal. store clock name for increment purpose.
-	   public static String clockName;
 	
 	   public static VarDecl GetClockDecl(String clockType) throws ParseAlgorithmException {
 		   	logicalClocks = true;
