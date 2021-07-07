@@ -668,7 +668,22 @@ public class PcalTLAGen
         }
         StringBuffer sb = new StringBuffer(actionName);
         /* c is used to determine which vars are in UNCHANGED. */
-        Changed c = new Changed(vars);
+        Changed c;
+        PcalDebug.reportInfo("label : " +actionName);
+        PcalDebug.reportInfo("vars : " + vars);
+        if (PcalParams.distpcalFlag && (ParseAlgorithm.labelsWithClocks.containsKey(ast.label) 
+				&& vars.contains(ParseAlgorithm.labelsWithClocks.get(ast.label)))) {
+			// copy vars vector elements to another vector to remove lamport clock from the set of unchanged variables
+        	Vector<String> temp = new Vector<String>();
+			temp.addAll(vars);
+			int ind = temp.indexOf(ParseAlgorithm.labelsWithClocks.get(ast.label));
+			temp.removeElementAt(ind);
+			c = new Changed(temp);
+		} 
+        else {
+			c = new Changed(vars);
+		}
+        
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
         	if(PcalParams.distpcalFlag && context.equals("procedure")) {
                 sb.append("(self, subprocess)");
@@ -756,7 +771,9 @@ public class PcalTLAGen
          * the last one is replaced with a call of addOneTokenToTLA so we can
          * put the RightParen object in mappingVector.
          */
+        
         Vector unc = c.Unchanged(wrapColumn - col - "/\\ UNCHANGED << ".length());
+        
         if (c.NumUnchanged() > 1)
         {
             sb = new StringBuffer(NSpaces(col));

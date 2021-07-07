@@ -55,13 +55,13 @@ Start(self) == /\ pc[self][1]  = "Start"
                /\ c'  = [c EXCEPT ![self] = c[self] + 1]
                /\ chan' = (chan \cup {"msg"})
                /\ pc' = [pc EXCEPT ![self][1] = "Rec"]
-               /\ UNCHANGED << c, q, clock >>
+               /\ UNCHANGED << q, clock >>
 
 Rec(self) == /\ pc[self][1]  = "Rec"
              /\ c'  = [c EXCEPT ![self] = c[self] + 1]
              /\ chan' = [_n0 \in Nodes |-> {}]
              /\ pc' = [pc EXCEPT ![self][1] = "Done"]
-             /\ UNCHANGED << c, q, clock >>
+             /\ UNCHANGED << q, clock >>
 
 l(self) == Start(self) \/ Rec(self)
 
@@ -69,13 +69,13 @@ Lab == /\ pc[22][1]  = "Lab"
        /\ clock'  = [clock EXCEPT ![self] = clock[self] + 1]
        /\ q' = q + 1
        /\ pc' = [pc EXCEPT ![22][1] = "QAS"]
-       /\ UNCHANGED << chan, c, clock >>
+       /\ UNCHANGED << chan, c >>
 
 QAS == /\ pc[22][1]  = "QAS"
        /\ clock'  = [clock EXCEPT ![self] = clock[self] + 1]
        /\ TRUE
        /\ pc' = [pc EXCEPT ![22][1] = "Done"]
-       /\ UNCHANGED << chan, c, q, clock >>
+       /\ UNCHANGED << chan, c, q >>
 
 u == Lab \/ QAS
 
@@ -91,7 +91,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-5a6cde72e711e4575cd0bc8fadc795b7
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-97cebb4e255d7a9f5ca9bedf5193e3ad
 
 
 =========================================================

@@ -854,7 +854,6 @@ public class ParseAlgorithm
        result.line = lastTokLine ;
        if (cSyntax) { GobbleThis("(") ; } ;
        result.name = GetAlgToken() ;
-       PcalDebug.reportInfo("result.name : " + result.name);
        result.isEq = GobbleEqualOrIf() ;
        result.id   = GetExpr() ; 
        plusLabels = new Vector(0);
@@ -911,7 +910,6 @@ public class ParseAlgorithm
            //read the sub-process delimiter
            GobbleBeginOrLeftBrace();  
            thread.body = GetStmtSeq();
-           PcalDebug.reportInfo("thread.body : " + thread.body);
            GobbleEndOrRightBrace("process"); // HC: use subprocess?
   	
            if(pSyntax) {
@@ -1707,12 +1705,10 @@ public class ParseAlgorithm
          ******************************************************************/
        result.ass = new Vector() ;
        result.ass.addElement(GetSingleAssign()) ;
-       //PcalDebug.reportInfo("result.ass :: " + result.ass);
        while (PeekAtAlgToken(1).equals("||"))
          { String throwAway = GetAlgToken() ;
            try {
            result.ass.addElement(GetSingleAssign()) ;
-           //PcalDebug.reportInfo("22.  result.ass :: " + result.ass);
            } catch (ParseAlgorithmException e) {
            ParsingError("Bad assignment statement at ") ;
         }
@@ -3536,7 +3532,6 @@ public class ParseAlgorithm
           // For Distributed Pluscal. Handling Channel objects inside macro
           if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
           {
-        	  PcalDebug.reportInfo("stmt : " + stmt);
         	  AST.ChannelSendCall chanstmt = (AST.ChannelSendCall) stmt;
         	  AST.ChannelSendCall result = new AST.ChannelSendCall();
         	  result.col = chanstmt.col;
@@ -5189,7 +5184,6 @@ public class ParseAlgorithm
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				PcalDebug.reportInfo("expand send call.");
 				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
@@ -5318,7 +5312,6 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
-		//PcalDebug.reportInfo("At ExpandClearCall: " + call + " : " + nodeDecl + " : " + globalDecl);
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 
 		if(chanVar == null) {
@@ -5581,7 +5574,6 @@ public class ParseAlgorithm
 			Vector result = new Vector();
 			
 			if (tok.contains("channel") || tok.contains("channels")) {
-				PcalDebug.reportInfo("if branch for channel");
 				while (!(PeekAtAlgToken(1).equals("begin")
 		                 || PeekAtAlgToken(1).equals("{")
 		                 || PeekAtAlgToken(1).equals("procedure")
@@ -5599,11 +5591,9 @@ public class ParseAlgorithm
 		                 || PeekAtAlgToken(1).equals("vectorClocks")
 		 				 || PeekAtAlgToken(1).equals("subprocess")))
 		         {
-					PcalDebug.reportInfo("tok : " + tok);
 					result.addElement(GetChannelDecl(tok));
 		          }
 			} else {
-				PcalDebug.reportInfo("else branch for fifo");
 				while (!(PeekAtAlgToken(1).equals("begin")
 		                 || PeekAtAlgToken(1).equals("{")
 		                 || PeekAtAlgToken(1).equals("procedure")
@@ -5621,7 +5611,6 @@ public class ParseAlgorithm
 		                 || PeekAtAlgToken(1).equals("vectorClocks")
 		 				 || PeekAtAlgToken(1).equals("subprocess")))
 		         {
-					PcalDebug.reportInfo("tok : " + tok);
 					result.addElement(GetChannelDecl(tok));
 		          }
 			}
