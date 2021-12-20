@@ -1,2 +1,6 @@
 report/report-master.pdf
 report-master.pdf
+**/*.toolbox
+*.cfg
+*.old
+**/tlatools/class
