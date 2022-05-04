@@ -4860,6 +4860,7 @@ public class ParseAlgorithm
 						next = PeekAtAlgToken(1);
 					}
 				}
+
 				GobbleThis("]");
 			}
 		}
@@ -4890,6 +4891,8 @@ public class ParseAlgorithm
 		PCalLocation endLoc = null;
 		result.channelName = GetAlgToken();
 
+    result.callExp = GetExpr();
+
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
 
@@ -4897,8 +4900,6 @@ public class ParseAlgorithm
 			result.isBroadcast = true;
 		} else if(nextTok.equals("multicast")) {
 			result.isMulticast = true;
-		} else {
-			result.callExp = GetExpr();
 		}
 
 		GobbleThis(",");

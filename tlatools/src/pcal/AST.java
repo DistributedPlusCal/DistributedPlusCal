@@ -1085,7 +1085,7 @@ public class AST
    	List dimensions = null;
    	public abstract Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp);
    	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
-   	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
+   	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
    	public abstract Vector clear(Channel channel) throws ParseAlgorithmException;
 
@@ -1251,10 +1251,12 @@ public class AST
 		}
 
 		@Override
-		public Vector broadcast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
+		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
-			PcalDebug.reportInfo("Sending a broadcast message");
+			PcalDebug.reportInfo("HC channel: "+ channel);
+			PcalDebug.reportInfo("HC callExp: "+ callExp);
+			PcalDebug.reportInfo("HC callExp VALs: "+ callExp.tokens);
 
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
@@ -1761,7 +1763,7 @@ public class AST
 		
 		
 		@Override
-		public Vector broadcast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
+		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
 			PcalDebug.reportInfo("Sending a broadcast message for a FIFOChannel : " + channelName);
@@ -2143,7 +2145,7 @@ public class AST
    	 * @throws ParseAlgorithmException 
    	 */
 		public Vector generateBroadcastBodyTemplate(Channel channel) throws ParseAlgorithmException {
-   		return channel.broadcast(channel, channelName, msg);
+   		return channel.broadcast(channel, channelName, msg, callExp);
 		}
 		/**
 		 * @param channel
