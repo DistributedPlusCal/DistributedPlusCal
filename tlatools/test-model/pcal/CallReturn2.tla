@@ -47,7 +47,7 @@ EXTENDS Naturals, Sequences, TLC
        C: call PP(1) ;
   end algorithm
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-84a5cdf59d68214ad905732a585890ae
 \* Procedure variable x of procedure P at line 13 col 16 changed to x_
 CONSTANT defaultInitValue
@@ -77,11 +77,11 @@ P1 == /\ pc = "P1"
       /\ Assert(a = 1, "Failure of assertion at line 14, column 17.")
       /\ Assert(x_ = a, "Failure of assertion at line 15, column 17.")
       /\ Assert(y = a+1, "Failure of assertion at line 16, column 17.")
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ x_' = Head(stack).x_
       /\ y' = Head(stack).y
       /\ a' = Head(stack).a
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << depth, aa, xx, yy, r, x, s >>
 
 P == P1
@@ -89,11 +89,11 @@ P == P1
 Q1 == /\ pc = "Q1"
       /\ /\ a' = 1
          /\ stack' = << [ procedure |->  "P",
-                          pc        |->  Head(stack[self][subprocess]).pc,
+                          pc        |->  Head(stack).pc,
                           x_        |->  x_,
                           y         |->  y,
                           a         |->  a ] >>
-                      \o Tail(stack[self][subprocess])
+                      \o Tail(stack)
       /\ x_' = a'
       /\ y' = x_'+1
       /\ pc' = "P1"
@@ -115,11 +115,11 @@ PP1 == /\ pc = "PP1"
                   /\ yy' = xx'+1
                   /\ pc' = "PP1"
                   /\ stack' = stack
-             ELSE /\ pc' = Head(stack[self][subprocess]).pc
+             ELSE /\ pc' = Head(stack).pc
                   /\ xx' = Head(stack).xx
                   /\ yy' = Head(stack).yy
                   /\ aa' = Head(stack).aa
-                  /\ stack' = Tail(stack[self][subprocess])
+                  /\ stack' = Tail(stack)
                   /\ depth' = depth
        /\ UNCHANGED << a, x_, y, r, x, s >>
 
@@ -133,9 +133,9 @@ R1 == /\ pc = "R1"
 R2 == /\ pc = "R2"
       /\ /\ s' = x
          /\ stack' = << [ procedure |->  "S",
-                          pc        |->  Head(stack[self][subprocess]).pc,
+                          pc        |->  Head(stack).pc,
                           s         |->  s ] >>
-                      \o Tail(stack[self][subprocess])
+                      \o Tail(stack)
          /\ x' = Head(stack).x
       /\ pc' = "S1"
       /\ UNCHANGED << depth, a, x_, y, aa, xx, yy, r >>
@@ -144,9 +144,9 @@ R == R1 \/ R2
 
 S1 == /\ pc = "S1"
       /\ Assert(s = 2, "Failure of assertion at line 42, column 15.")
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ s' = Head(stack).s
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << depth, a, x_, y, aa, xx, yy, r, x >>
 
 S == S1
@@ -195,5 +195,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-94a5ed67c830934c70782f46bffb5b19
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c8e76178d4d24aee35fa88a19dd439d8
 =============================================================================

@@ -28,10 +28,10 @@ package util;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class TestPrintStream extends PrintStream {
 
@@ -39,7 +39,7 @@ public class TestPrintStream extends PrintStream {
 	private final List<String> strings = new ArrayList<String>();
 	
 	public TestPrintStream() {
-        super(new PipedOutputStream());
+        super(ToolIO.out);
 	}
 
 	/* (non-Javadoc)
@@ -48,7 +48,6 @@ public class TestPrintStream extends PrintStream {
 	public void println(String x) {
 		strings.add(x);
 		buf.append(x + "\n");
-		System.out.println(x);
 		super.println(x);
 	}
 	
@@ -67,5 +66,23 @@ public class TestPrintStream extends PrintStream {
 			}
 		}
 		fail("Substring not found");
+	}
+
+	public void assertRegex(String regex) {
+		Pattern pattern = Pattern.compile(regex);
+		for (String string : strings) {			
+			if (pattern.matcher(string).find()) {
+				return;
+			}
+		}
+		fail("Match not found for regex \"" + pattern.toString() + "\"");		
+	}
+	
+	public void assertNoSubstring(String substring) {
+		for (String string : strings) {
+			if (string.contains(substring)) {
+				fail("Substring was found");
+			}
+		}
 	}
 }

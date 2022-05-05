@@ -15,7 +15,7 @@ EXTENDS Naturals, Sequences, TLC
      begin A: call P(1)
   end algorithm
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-1f8e16f0d9c2b45f0271cd3d8415f9b8
 VARIABLES pc, stack, a, x, y
 
@@ -32,11 +32,11 @@ P1 == /\ pc = "P1"
       /\ Assert(a = 1, "Failure of assertion at line 10, column 17.")
       /\ Assert(x = a, "Failure of assertion at line 11, column 17.")
       /\ Assert(y = a+1, "Failure of assertion at line 12, column 17.")
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ x' = Head(stack).x
       /\ y' = Head(stack).y
       /\ a' = Head(stack).a
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
 
 P == P1
 
@@ -62,5 +62,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-2e3872e100d24ea8a11a27eca370c8a8
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6df4c643b7934c47f1761b2b8aced244
 =============================================================================

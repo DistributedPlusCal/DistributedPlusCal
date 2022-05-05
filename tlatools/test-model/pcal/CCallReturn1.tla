@@ -28,7 +28,7 @@ EXTENDS Sequences, Naturals, TLC
     } }
 
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-eb6f25a53750950964fc51a79ea41da3
 VARIABLES pc, stack, arg1, u, arg2, v, arg3
 
@@ -52,7 +52,7 @@ p1 == /\ pc = "p1"
                           pc        |->  "p2",
                           v         |->  v,
                           arg2      |->  arg2 ] >>
-                      \o stack[self][subprocess]
+                      \o stack
       /\ v' = 42
       /\ pc' = "q1"
       /\ UNCHANGED << arg1, arg3 >>
@@ -62,10 +62,10 @@ p2 == /\ pc = "p2"
       /\ Assert(arg1  = 4, "Failure of assertion at line 11, column 18.")
       /\ /\ arg2' = 2 * u + 1
          /\ stack' = << [ procedure |->  "Proc2",
-                          pc        |->  Head(stack[self][subprocess]).pc,
+                          pc        |->  Head(stack).pc,
                           v         |->  v,
                           arg2      |->  arg2 ] >>
-                      \o Tail(stack[self][subprocess])
+                      \o Tail(stack)
          /\ u' = Head(stack).u
       /\ v' = 42
       /\ pc' = "q1"
@@ -79,9 +79,9 @@ q1 == /\ pc = "q1"
                 "Failure of assertion at line 18, column 18.")
       /\ /\ arg3' = v + arg2
          /\ stack' = << [ procedure |->  "Proc3",
-                          pc        |->  Head(stack[self][subprocess]).pc,
+                          pc        |->  Head(stack).pc,
                           arg3      |->  arg3 ] >>
-                      \o Tail(stack[self][subprocess])
+                      \o Tail(stack)
          /\ v' = Head(stack).v
       /\ pc' = "r1"
       /\ UNCHANGED << arg1, u, arg2 >>
@@ -91,9 +91,9 @@ Proc2 == q1
 r1 == /\ pc = "r1"
       /\ Assert(arg3 \in {46, 47}, 
                 "Failure of assertion at line 23, column 18.")
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ arg3' = Head(stack).arg3
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << arg1, u, arg2, v >>
 
 Proc3 == r1
@@ -120,5 +120,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-901ba987bd6d2a8c1cc76aa8ac8edc69
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-54b1efca8092525f1f0eb4eb06b502c9
 =============================================================================

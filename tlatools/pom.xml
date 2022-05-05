@@ -2,12 +2,20 @@
 <project
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
   xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<modelVersion>4.0.0</modelVersion>
-<groupId>tlatoolbox</groupId>
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>parent</artifactId>
+    <groupId>tlatoolbox</groupId>
+    <version>0.0.1-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+  <groupId>tlatoolbox</groupId>
   <artifactId>org.lamport.tlatools</artifactId>
   <version>1.0.0-SNAPSHOT</version>
+  <packaging>eclipse-plugin</packaging>
 
-<properties>
+  <properties>
     <!-- tlatools is a non-standard maven project. Its heart is customBuild.xml written for ant          -->
     <!-- which gets invoked from maven. Unfortunately, it means that the tasks which are executed        -->
     <!-- by ant are not visible to maven. In this case it results in sonar not finding necessary         -->
@@ -25,13 +33,10 @@
 	<sonar.surefire.reportsPath>target/surefire-reports</sonar.surefire.reportsPath>
 	<sonar.junit.reportsPath>target/surefire-reports</sonar.junit.reportsPath>
 	<sonar.jacoco.reportPaths>target/code-coverage.exec</sonar.jacoco.reportPaths>
-	
-   <maven.compiler.source>11</maven.compiler.source>
-   <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
-<build>
-<pluginManagement>
+
+    <build>
     <plugins>
 		<!-- Delete the ../states/ folder created by the Ant JUnit tests as part 
 			of the maven-antrun-plugin of customBuild.xml. On the CI-machine, the ../states/ 
@@ -183,7 +188,6 @@
                </executions>
            </plugin>
       </plugins>
-      </pluginManagement>
   </build>
 
   <dependencies>
@@ -193,25 +197,46 @@
 		<version>1.7.1</version>
 		<scope>compile</scope>
 	</dependency>
-
-<!-- https://mvnrepository.com/artifact/org.jline/jline -->
-<dependency>
-    <groupId>org.jline</groupId>
-    <artifactId>jline</artifactId>
-    <version>3.17.1</version>
-</dependency>
-<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
-<dependency>
-    <groupId>com.fasterxml.jackson.core</groupId>
-    <artifactId>jackson-databind</artifactId>
-    <version>2.11.3</version>
-</dependency>
-
-<dependency>
+  		<dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
             <version>1.9.1</version>
         </dependency>
+        <!-- REPL.java imports classes from org.jline.  The Toolbox (being an OSGi based Rich Client Platform) -->
+        <!-- does not see the jline jars references in customBuild.xml or .classpath.  It has to find jline    -->
+        <!-- elsewhere such as in the target platform (TLAToolbox.target) or on Maven Central.  For jline      -->
+        <!-- there exists no p2 repository that we could add to our target platform.  However, an OSGi-fied    -->
+        <!-- jline exists on Maven Central.                                                                    -->
+		<!-- https://mvnrepository.com/artifact/org.jline/jline-terminal -->
+		<dependency>
+		    <groupId>org.jline</groupId>
+		    <artifactId>jline-terminal</artifactId>
+		    <version>3.14.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.jline/jline-reader -->
+		<dependency>
+		    <groupId>org.jline</groupId>
+		    <artifactId>jline-reader</artifactId>
+		    <version>3.14.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<dependency>
+ 		   <groupId>com.google.code.gson</groupId>
+ 		   <artifactId>gson</artifactId>
+		   <version>2.8.6</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j.jsonrpc.debug -->
+		<dependency>
+		    <groupId>org.eclipse.lsp4j</groupId>
+		    <artifactId>org.eclipse.lsp4j.debug</artifactId>
+		    <version>0.12.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j.jsonrpc -->
+		<dependency>
+		    <groupId>org.eclipse.lsp4j</groupId>
+		    <artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
+		    <version>0.12.0</version>
+		</dependency>
       </dependencies>
 
       <!-- August 2014 - TL
@@ -222,7 +247,6 @@
       <profile>
         <id>exporter</id>
         <build>
-        <pluginManagement>
           <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -259,7 +283,6 @@
             </executions>
           </plugin>
         </plugins>
-        </pluginManagement>
         </build>
     </profile>
   </profiles>

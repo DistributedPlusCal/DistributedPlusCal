@@ -124,10 +124,10 @@ Next == Tick
            \/ (\E self \in 1..N: Proc(self))
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..N : \A subprocess \in SubProcSet[self] : WF_vars(Proc(self))
+        /\ \A self \in 1..N : WF_vars(Proc(self))
         /\ WF_vars(Tick)
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e4b0f6f700d612366e8e723d820d06eb
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-d8d38bac35efc64e68e3d99ac06a0837
 
 inCS(i) ==  pc[i] = "cs"
 

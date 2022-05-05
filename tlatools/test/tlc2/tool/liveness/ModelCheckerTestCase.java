@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,11 +46,12 @@ import tlc2.output.MP;
 import tlc2.tool.CommonTestCase;
 import tlc2.tool.ModelChecker;
 import util.FileUtil;
+import util.FilenameToStream;
 import util.SimpleFilenameToStream;
 import util.ToolIO;
 
 public abstract class ModelCheckerTestCase extends CommonTestCase {
-	
+
 	protected String path = "";
 	protected String spec;
 	protected String[] extraArguments = new String[0];
@@ -102,7 +104,7 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 	 */
 	@Before
 	public void setUp() {
-		beforeSetUp();
+		beforeSetUp();		
 		
 		// some tests might want to access the liveness graph after model
 		// checking completed. Thus, prevent the liveness graph from being
@@ -120,10 +122,10 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 			// state queue is empty and fail if not. This is only given 
 			// when liveness checking is executed when all states have been
 			// generated.
-			TLCGlobals.livenessThreshold = Double.MAX_VALUE;
+			TLCGlobals.livenessThreshold = getLivenessThreshold();
 			
 			tlc = new TLC();
-			tlc.setResolver(new SimpleFilenameToStream());
+			tlc.setResolver(getResolver());
 			// * We want *no* deadlock checking to find the violation of the
 			// temporal formula
 			// * We use (unless overridden) a single worker to simplify
@@ -139,8 +141,27 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 				args.add("-deadlock");
 			}
 			
-			args.add("-fp");
-			args.add("0");
+			if (getNumberOfThreads() == 1 && runWithDebugger()) {
+				args.add("-debugger");
+				args.add(String.format("nosuspend,port=%s,nohalt", 1025 + new Random().nextInt(64540)));
+			}
+			
+			if (noGenerateSpec()) {
+				args.add("-noGenerateSpecTE");
+			} else {
+				// Make sure the generated spec ends up in a designated location.
+				args.add("-generateSpecTE");
+				args.add("-teSpecOutDir");
+				args.add(TTraceModelCheckerTestCase.getPath(getClass()));
+			}
+			
+			if (noRandomFPandSeed()) {
+				args.add("-fp");
+				args.add("0");
+				// Deterministic simulation (order in which actions are explored).
+				args.add("-seed");
+				args.add("1");
+			}
 			
 			if (doCoverage()) {
 				args.add("-coverage");
@@ -162,6 +183,13 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 				args.add("${metadir}" + FileUtil.separator + getClass().getCanonicalName() + ".dot");
 			}
 
+			
+			if (doDumpTrace()) {
+				args.add("-dumpTrace");
+				args.add("json");
+				args.add(TLCGlobals.metaRoot + FileUtil.separator + getClass().getCanonicalName() + ".json");
+			}
+
 			args.addAll(Arrays.asList(extraArguments));
 			
 			args.add(spec);
@@ -176,10 +204,30 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 		}
 	}
 
+	protected boolean noRandomFPandSeed() {
+		return true;
+	}
+
+	protected boolean runWithDebugger() {
+		return true;
+	}
+
+	protected double getLivenessThreshold() {
+		return Double.MAX_VALUE;
+	}
+
+	protected FilenameToStream getResolver() {
+		return new SimpleFilenameToStream();
+	}
+
+	protected boolean noGenerateSpec() {
+		return false;
+	}	
+
 	protected void beforeTearDown() {
 		// No-op
 	}
-	
+
 	@After
 	public void tearDown() {
 		beforeTearDown();
@@ -203,6 +251,10 @@ public abstract class ModelCheckerTestCase extends CommonTestCase {
 	}
 	
 	protected boolean doDump() {
+		return true;
+	}
+
+	protected boolean doDumpTrace() {
 		return true;
 	}
 

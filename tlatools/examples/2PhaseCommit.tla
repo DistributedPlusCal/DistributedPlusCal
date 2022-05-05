@@ -57,19 +57,19 @@ a1: if (aState = "unknown") {
   }
  }
 ***)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-59de798c8b887c07967c9603f10f77dc
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-9d2ddbc4fa6eff0622ae928f84d979b6
 VARIABLES coord, agt, pc, aState, cState, commits, msg
 
 vars == << coord, agt, pc, aState, cState, commits, msg >>
 
 ProcSet == (Agent) \cup {Coord}
 
-SubProcSet == [n \in ProcSet |-> IF n \in Agent THEN 1..2
-                             ELSE (**Coord**) 1..2]
+SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in Agent THEN 1..2
+                                 ELSE (**Coord**) 1..2]
 
 Init == (* Global variables *)
         /\ coord = {}
-        /\ agt = [a0 \in Agent |-> {}]
+        /\ agt = [_n20 \in Agent |-> {}]
         (* Process a *)
         /\ aState = [self \in Agent |-> "unknown"]
         (* Process c *)
@@ -79,7 +79,7 @@ Init == (* Global variables *)
         /\ pc = [self \in ProcSet |-> CASE self \in Agent -> <<"a1","a3">>
                                         [] self = Coord -> <<"c1","c2">>]
 
-a1(self) == /\ pc[self] [1] = "a1"
+a1(self) == /\ pc[self][1]  = "a1"
             /\ IF aState[self] = "unknown"
                   THEN /\ \E st \in {"accept", "refuse"}:
                             /\ aState' = [aState EXCEPT ![self] = st]
@@ -89,37 +89,37 @@ a1(self) == /\ pc[self] [1] = "a1"
             /\ pc' = [pc EXCEPT ![self][1] = "a2"]
             /\ UNCHANGED << agt, cState, commits, msg >>
 
-a2(self) == /\ pc[self] [1] = "a2"
+a2(self) == /\ pc[self][1]  = "a2"
             /\ (aState[self] \in {"commit", "abort"})
             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
             /\ UNCHANGED << coord, agt, aState, cState, commits, msg >>
 
-a3(self) == /\ pc[self] [2] = "a3"
+a3(self) == /\ pc[self][2]  = "a3"
             /\ (aState[self] # "unknown")
-            /\ \E a1519 \in agt[self]:
-                 /\ aState' = [aState EXCEPT ![self] = a1519]
-                 /\ agt' = [agt EXCEPT ![self] = agt[self] \ {a1519}]
+            /\ \E _a1519 \in agt[self]:
+                 /\ aState' = [aState EXCEPT ![self] = _a1519]
+                 /\ agt' = [agt EXCEPT ![self] = @ \ {_a1519}]
             /\ pc' = [pc EXCEPT ![self][2] = "a4"]
             /\ UNCHANGED << coord, cState, commits, msg >>
 
-a4(self) == /\ pc[self] [2] = "a4"
-            /\ agt' = [a0 \in Agent |-> {}]
+a4(self) == /\ pc[self][2]  = "a4"
+            /\ agt' = [_a0 \in Agent |-> {}]
             /\ pc' = [pc EXCEPT ![self][2] = "Done"]
             /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-a(self) == a1(self)a2(self) \/ a3(self) \/ a4(self)
+a(self) == a1(self) \/ a2(self) \/ a3(self) \/ a4(self)
 
-c1 == /\ pc[Coord] [1] = "c1"
+c1 == /\ pc[Coord][1]  = "c1"
       /\ (cState \in {"commit", "abort"})
       /\ agt' = [ag \in Agent |-> agt[ag] \cup  {cState} ]
       /\ pc' = [pc EXCEPT ![Coord][1] = "Done"]
       /\ UNCHANGED << coord, aState, cState, commits, msg >>
 
-c2 == /\ pc[Coord] [2] = "c2"
+c2 == /\ pc[Coord][2]  = "c2"
       /\ IF cState \notin {"abort", "commit"}
-            THEN /\ \E c1512 \in coord:
-                      /\ coord' = coord \ {c1512}
-                      /\ msg' = c1512
+            THEN /\ \E _c1512 \in coord:
+                      /\ coord' = coord \ {_c1512}
+                      /\ msg' = _c1512
                  /\ IF msg'.type = "refuse"
                        THEN /\ cState' = "abort"
                             /\ UNCHANGED commits
@@ -152,6 +152,6 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-37867519459e21b9acbce60d808183b7
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a6d3ce9e7d8ea86b7fe7d47d56a7dfb6
 
 =============================================================================

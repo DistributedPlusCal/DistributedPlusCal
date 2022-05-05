@@ -49,8 +49,8 @@ Q == /\ pc = "Q"
            ELSE /\ LET a == 47 IN
                      LET b == 77 IN
                        y' = 27
-     /\ pc' = Head(stack[self][subprocess]).pc
-     /\ stack' = Tail(stack[self][subprocess])
+     /\ pc' = Head(stack).pc
+     /\ stack' = Tail(stack)
      /\ x' = x
 
 Bar == Q
@@ -100,6 +100,6 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bae353ca8bc85abce7133f1462b39614
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-025c418c95de365cc2a03da9bdd7e60c
 
 ============================================

@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import tlc2.util.FP64;
 import tlc2.value.RandomEnumerableValues;
+import tlc2.value.impl.Enumerable.Ordering;
 import tlc2.value.impl.SubsetValue.CoinTossingSubsetEnumerator;
 import tlc2.value.impl.SubsetValue.KElementEnumerator;
 import tlc2.value.impl.SubsetValue.SubsetEnumerator;
@@ -404,7 +405,7 @@ public class SubsetValueTest {
 	
 	@Test
 	public void testNumKSubsetPreventsOverflow() {
-		final IntervalValue innerSet = new IntervalValue(1, 63);
+		final IntervalValue innerSet = new IntervalValue(1, 64);
 		final SubsetValue subset = new SubsetValue(innerSet);
 		for (int i = 0; i <= innerSet.size(); i++) {
 			try {
@@ -549,4 +550,117 @@ public class SubsetValueTest {
         
         assertEquals(normalized, unnormalized);
 	}
+
+	@Test
+	public void testRandomSubsetGeneratorK0() {
+		final Set<Value> values = new HashSet<>();
+		final SubsetValue subsetValue = new KSubsetValue(0, new IntervalValue(1, 10));
+		final ValueEnumeration elements = subsetValue.elements(Ordering.RANDOMIZED);
+		for (int i = 0; i < 100; i++) {
+			final Value nextElement = elements.nextElement();
+			values.add(nextElement);
+		}
+		assertEquals(1, values.size()); //empty set
+	}
+	
+	@Test
+	public void testRandomSubsetGeneratorKNegative() {
+		try {
+			new KSubsetValue(-1, new IntervalValue(1, 2)).elements(Ordering.RANDOMIZED);
+		} catch (IllegalArgumentException e) {
+			return;
+		}
+		fail("Expected an IllegalArgumentException");
+	}
+	
+	@Test
+	public void testRandomSubsetGeneratorKNplus1() {
+		try {
+			new KSubsetValue(3, new IntervalValue(1, 2)).elements(Ordering.RANDOMIZED);
+		} catch (IllegalArgumentException e) {
+			return;
+		}
+		fail("Expected an IllegalArgumentException");
+	}
+	
+	@Test
+	public void testRandomSubsetGeneratorN10() {
+		final Set<Value> values = new HashSet<>();
+		final SubsetValue subsetValue = new KSubsetValue(3, new IntervalValue(1, 10));
+		final ValueEnumeration elements = subsetValue.elements(Ordering.RANDOMIZED);
+		for (int i = 0; i < 1000; i++) {
+			final Value nextElement = elements.nextElement();
+			values.add(nextElement);
+		}
+		// Eventually, the impl generates all values with high probability.
+		assertEquals(subsetValue.numberOfKElements(3), values.size());
+	}
+
+	// N100 would overflow default implementation in SubsetValue.
+	@Test
+	public void testRandomSubsetGeneratorN100() {
+		final Set<Value> values = new HashSet<>();
+		final SubsetValue subsetValue = new KSubsetValue(3, new IntervalValue(1, 100));
+		final ValueEnumeration elements = subsetValue.elements(Ordering.RANDOMIZED);
+		for (int i = 0; i < 100; i++) {
+			final Value nextElement = elements.nextElement();
+			values.add(nextElement);
+		}
+		// For large input sets, generating a small number of subsets doesn't cause
+		// significant duplicates.
+		assertEquals(100, values.size());
+	}
 }
+
+/*
+
+A spec by Jack Vanlightly as an eyeball test to empirically measures the distributions. 
+
+---- CONFIG ksubsets_ex_quant ----
+SPECIFICATION Spec
+=====
+
+------------------------------ MODULE ksubsets_ex_quant ------------------------------
+EXTENDS Naturals, Randomization, FiniteSets, TLC, FiniteSetsExt
+
+Elements == 1..500
+Limit == 1000
+
+VARIABLES counts,
+          total
+
+vars == <<counts, total >>
+
+AddSubset ==
+    /\ total < Limit 
+    \* /\ \E ss \in SUBSET Elements : 
+    \*     /\ Cardinality(ss) = 3 
+    /\ \E ss \in kSubset(3, Elements) : 
+        /\ IF ss \in DOMAIN counts
+            THEN counts' = [counts EXCEPT ![ss] = @ + 1]
+            ELSE counts' = counts @@ (ss :> 1)
+        /\ total' = total + 1
+
+PrintDist ==
+    /\ total = Limit
+    /\ total' = Limit + 1
+    /\ UNCHANGED <<counts>>
+    /\ \A ss \in DOMAIN counts : PrintT(<<total, ss, counts[ss]>>)
+    /\ PrintT(<<"RESULT", Cardinality(DOMAIN counts)>>)
+
+Init == 
+    /\ counts = [ss \in {} |-> 0]
+    /\ total = 0
+
+Next ==
+    \/ AddSubset
+    \/ PrintDist
+
+Spec == Init /\ [][Next]_vars  
+
+=============================================================================
+\* Modification History
+\* Last modified Wed Oct 28 09:08:31 PDT 2020 by markus
+\* Last modified Tue Oct 27 17:24:00 CET 2020 by jvanlightly
+\* Created Tue Oct 27 09:55:35 CET 2020 by jvanlightly
+*/

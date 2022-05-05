@@ -30,6 +30,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
@@ -51,7 +52,8 @@ public class DepthFirstErrorTraceTest extends ModelCheckerTestCase {
 		assertFalse(recorder.recorded(EC.GENERAL));
 	
 		// Assert the error trace
-		assertTrue(recorder.recorded(EC.TLC_STATE_PRINT1));
+		assertFalse(recorder.recorded(EC.TLC_STATE_PRINT1));
+		assertTrue(recorder.recorded(EC.TLC_STATE_PRINT2));
 		final List<String> expectedTrace = new ArrayList<String>(5);
 		expectedTrace.add("x = 0");
 		expectedTrace.add("x = 1");
@@ -61,7 +63,9 @@ public class DepthFirstErrorTraceTest extends ModelCheckerTestCase {
 		expectedTrace.add("x = 5");
 		expectedTrace.add("x = 6");
 		expectedTrace.add("x = 7");
-		assertTraceWith(recorder.getRecords(EC.TLC_STATE_PRINT1), expectedTrace);
+		// DFID doesn't show names for the initial predicate or the sub-actions of the next-state relation.
+		assertTraceWith(recorder.getRecords(EC.TLC_STATE_PRINT2), expectedTrace,
+				Collections.nCopies(expectedTrace.size(), ""));
 		assertZeroUncovered();
 	}
 }

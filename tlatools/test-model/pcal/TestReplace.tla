@@ -95,10 +95,10 @@ Init == (* Procedure Bar *)
 
 a_ == /\ pc = "a_"
       /\ Assert(u_ = v_, "Failure of assertion at line 12, column 11.")
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ u_' = Head(stack).u_
       /\ v_' = Head(stack).v_
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << u_F, v_F, X_, Y, u, v, X, Z >>
 
 Bar == a_
@@ -130,7 +130,7 @@ c_ == /\ pc = "c_"
                           pc        |->  "d_",
                           u_        |->  u_,
                           v_        |->  v_ ] >>
-                      \o stack[self][subprocess]
+                      \o stack
          /\ u_' = X_
          /\ v_' = 0
       /\ pc' = "a_"
@@ -144,12 +144,12 @@ d_ == /\ pc = "d_"
       /\ UNCHANGED << stack, u_, v_, u_F, v_F, Y, u, v, X, Z >>
 
 e_ == /\ pc = "e_"
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ X_' = Head(stack).X_
       /\ Y' = Head(stack).Y
       /\ u_F' = Head(stack).u_F
       /\ v_F' = Head(stack).v_F
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << u_, v_, u, v, X, Z >>
 
 Foo1 == a_F \/ b_ \/ c_ \/ d_ \/ e_
@@ -181,7 +181,7 @@ c == /\ pc = "c"
                          pc        |->  "d",
                          u_        |->  u_,
                          v_        |->  v_ ] >>
-                     \o stack[self][subprocess]
+                     \o stack
         /\ u_' = X
         /\ v_' = 9
      /\ pc' = "a_"
@@ -195,12 +195,12 @@ d == /\ pc = "d"
      /\ UNCHANGED << stack, u_, v_, u_F, v_F, X_, Y, u, v, Z >>
 
 e == /\ pc = "e"
-     /\ pc' = Head(stack[self][subprocess]).pc
+     /\ pc' = Head(stack).pc
      /\ X' = Head(stack).X
      /\ Z' = Head(stack).Z
      /\ u' = Head(stack).u
      /\ v' = Head(stack).v
-     /\ stack' = Tail(stack[self][subprocess])
+     /\ stack' = Tail(stack)
      /\ UNCHANGED << u_, v_, u_F, v_F, X_, Y >>
 
 Foo2 == a \/ b_F \/ c \/ d \/ e
@@ -245,7 +245,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-b21672399177bf6a255ab329026e54d8
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-424be35f7792f0f2c25e136cc792e4c5
 
 ==================================================
 

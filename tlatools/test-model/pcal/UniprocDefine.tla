@@ -16,7 +16,7 @@ EXTENDS Naturals, Sequences, TLC
          minor: assert n = 6 ;
   end algorithm
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-6a1ac8b08c9ed86b40d0f6e5ef5cbdb0
 CONSTANT defaultInitValue
 VARIABLES n, pc, stack
@@ -39,10 +39,10 @@ Init == (* Global variables *)
 
 foo == /\ pc = "foo"
        /\ n' = nplus2 + a + b
-       /\ pc' = Head(stack[self][subprocess]).pc
+       /\ pc' = Head(stack).pc
        /\ b' = Head(stack).b
        /\ a' = Head(stack).a
-       /\ stack' = Tail(stack[self][subprocess])
+       /\ stack' = Tail(stack)
 
 Foo == foo
 
@@ -72,5 +72,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ae85212511687c6ba2abb669a4f18023
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-bb2646c148c04705a11ba77b1f981f05
 =============================================================================

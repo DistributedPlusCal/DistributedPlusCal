@@ -63,9 +63,9 @@ Proc(self) == start(self) \/ enter(self) \/ cs(self) \/ exit(self)
 Next == (\E self \in 1..N: Proc(self))
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..N : \A subprocess \in SubProcSet[self] : SF_vars(Proc(self))
+        /\ \A self \in 1..N : SF_vars(Proc(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-09e3b62d52c206b5e3c80814d4690d4d
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-30232ad9c07579ad742b84411a6a279a
 
 inCS(i) ==  (pc[i] = "cs") 
 

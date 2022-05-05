@@ -281,10 +281,10 @@ Next == (\E self \in 1..M: Proc1(self))
            \/ (\E self \in (M+1)..N: Proc2(self))
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..M : \A subprocess \in SubProcSet[self] : WF_vars(Proc1(self))
-        /\ \A self \in (M+1)..N : \A subprocess \in SubProcSet[self] : WF_vars(Proc2(self))
+        /\ \A self \in 1..M : WF_vars(Proc1(self))
+        /\ \A self \in (M+1)..N : WF_vars(Proc2(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-34925ae82eb61d954e89e8f6962eb821
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3862da72da966d861f548da308a59a9e
 
 ASSUME Print(<<"ProcSet =" , ProcSet>>, TRUE)
 inCS(i) ==  IF i \in 1..M 

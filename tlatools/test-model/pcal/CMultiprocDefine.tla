@@ -13,7 +13,7 @@ EXTENDS Naturals, Sequences, TLC
     } }
   
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-9c797e1d4e2fc4c259c478fdea1bd5fa
 CONSTANT defaultInitValue
 VARIABLES n, pc
@@ -51,9 +51,9 @@ Next == (\E self \in {1, 2, 3}: Proc(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in {1, 2, 3} : \A subprocess \in SubProcSet[self] : WF_vars(Proc(self))
+        /\ \A self \in {1, 2, 3} : WF_vars(Proc(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-9863b05437d8f62f508e10c6a7addcbd
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-70c2856f6a2b2707884c9cedc014d866
 =============================================================================

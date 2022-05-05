@@ -50,10 +50,10 @@ Init == (* Global variables *)
 
 p1 == /\ pc = "p1"
       /\ IF arg1 = 0
-            THEN /\ pc' = Head(stack[self][subprocess]).pc
+            THEN /\ pc' = Head(stack).pc
                  /\ u' = Head(stack).u
                  /\ arg1' = Head(stack).arg1
-                 /\ stack' = Tail(stack[self][subprocess])
+                 /\ stack' = Tail(stack)
                  /\ UNCHANGED << result, arg2, u2 >>
             ELSE /\ result' = result * arg1
                  /\ /\ arg2' = arg1 - 1
@@ -61,34 +61,34 @@ p1 == /\ pc = "p1"
                                      pc        |->  "b",
                                      u2        |->  u2,
                                      arg2      |->  arg2 ] >>
-                                 \o stack[self][subprocess]
+                                 \o stack
                  /\ u2' = 1
                  /\ pc' = "p12"
                  /\ UNCHANGED << arg1, u >>
 
 b == /\ pc = "b"
-     /\ pc' = Head(stack[self][subprocess]).pc
+     /\ pc' = Head(stack).pc
      /\ u' = Head(stack).u
      /\ arg1' = Head(stack).arg1
-     /\ stack' = Tail(stack[self][subprocess])
+     /\ stack' = Tail(stack)
      /\ UNCHANGED << result, arg2, u2 >>
 
 FactProc == p1 \/ b
 
 p12 == /\ pc = "p12"
        /\ IF arg2 = 0
-             THEN /\ pc' = Head(stack[self][subprocess]).pc
+             THEN /\ pc' = Head(stack).pc
                   /\ u2' = Head(stack).u2
                   /\ arg2' = Head(stack).arg2
-                  /\ stack' = Tail(stack[self][subprocess])
+                  /\ stack' = Tail(stack)
                   /\ UNCHANGED << result, arg1, u >>
              ELSE /\ result' = result * arg2
                   /\ /\ arg1' = arg2 - 1
                      /\ stack' = << [ procedure |->  "FactProc",
-                                      pc        |->  Head(stack[self][subprocess]).pc,
+                                      pc        |->  Head(stack).pc,
                                       u         |->  u,
                                       arg1      |->  arg1 ] >>
-                                  \o Tail(stack[self][subprocess])
+                                  \o Tail(stack)
                      /\ u2' = Head(stack).u2
                   /\ u' = 1
                   /\ pc' = "p1"
@@ -125,7 +125,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-868ddf81709704a1702f128f591ade74
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6c949f27864a3ffc1d874b0a64419ab7
 
 
 Invariant == result \in Nat

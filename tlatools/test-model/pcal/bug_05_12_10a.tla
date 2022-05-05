@@ -117,7 +117,7 @@ IA1 == /\ pc = "IA1"
                            pc        |->  "IA2",
                            i         |->  i,
                            exp       |->  exp ] >>
-                       \o stack[self][subprocess]
+                       \o stack
        /\ i' = defaultInitValue
        /\ pc' = "IE1"
        /\ UNCHANGED << A, res, i_, vdcl, prcdr, lstmt, proc >>
@@ -134,7 +134,7 @@ IA3 == /\ pc = "IA3"
              THEN /\ /\ stack' = << [ procedure |->  "IsVarDecl",
                                       pc        |->  "IA3a",
                                       vdcl      |->  vdcl ] >>
-                                  \o stack[self][subprocess]
+                                  \o stack
                      /\ vdcl' = A.decls[i_]
                   /\ pc' = "IV1"
                   /\ i_' = i_
@@ -154,7 +154,7 @@ IA4 == /\ pc = "IA4"
                      /\ stack' = << [ procedure |->  "IsProcedure",
                                       pc        |->  "IA4a",
                                       prcdr     |->  prcdr ] >>
-                                  \o stack[self][subprocess]
+                                  \o stack
                   /\ pc' = "IP1"
                   /\ i_' = i_
              ELSE /\ IF A.type = "uniprocess"
@@ -180,7 +180,7 @@ IA5 == /\ pc = "IA5"
                      /\ stack' = << [ procedure |->  "IsLabeledStmt",
                                       pc        |->  "IA5a_",
                                       lstmt     |->  lstmt ] >>
-                                  \o stack[self][subprocess]
+                                  \o stack
                   /\ pc' = "IL1"
              ELSE /\ pc' = "IA7"
                   /\ UNCHANGED << stack, lstmt >>
@@ -197,7 +197,7 @@ IA6 == /\ pc = "IA6"
                      /\ stack' = << [ procedure |->  "IsProcess",
                                       pc        |->  "IA6a",
                                       proc      |->  proc ] >>
-                                  \o stack[self][subprocess]
+                                  \o stack
                   /\ pc' = "IPr1"
              ELSE /\ pc' = "IA7"
                   /\ UNCHANGED << stack, proc >>
@@ -209,11 +209,11 @@ IA6a == /\ pc = "IA6a"
         /\ UNCHANGED << stack, A, res, exp, i, vdcl, prcdr, lstmt, proc >>
 
 IA7 == /\ pc = "IA7"
-       /\ pc' = Head(stack[self][subprocess]).pc
+       /\ pc' = Head(stack).pc
        /\ res' = Head(stack).res
        /\ i_' = Head(stack).i_
        /\ A' = Head(stack).A
-       /\ stack' = Tail(stack[self][subprocess])
+       /\ stack' = Tail(stack)
        /\ UNCHANGED << exp, i, vdcl, prcdr, lstmt, proc >>
 
 IsAlgorithm == IA1 \/ IA2 \/ IA3 \/ IA3a \/ IA4 \/ IA4a \/ IA5 \/ IA5a_
@@ -231,10 +231,10 @@ IE2 == /\ pc = "IE2"
                             "Failure of assertion at line 57, column 31.")
                   /\ pc' = "IA5a"
                   /\ UNCHANGED << stack, exp, i >>
-             ELSE /\ pc' = Head(stack[self][subprocess]).pc
+             ELSE /\ pc' = Head(stack).pc
                   /\ i' = Head(stack).i
                   /\ exp' = Head(stack).exp
-                  /\ stack' = Tail(stack[self][subprocess])
+                  /\ stack' = Tail(stack)
        /\ UNCHANGED << A, res, i_, vdcl, prcdr, lstmt, proc >>
 
 IA5a == /\ pc = "IA5a"
@@ -245,33 +245,33 @@ IA5a == /\ pc = "IA5a"
 IsExpr == IE1 \/ IE2 \/ IA5a
 
 IV1 == /\ pc = "IV1"
-       /\ pc' = Head(stack[self][subprocess]).pc
+       /\ pc' = Head(stack).pc
        /\ vdcl' = Head(stack).vdcl
-       /\ stack' = Tail(stack[self][subprocess])
+       /\ stack' = Tail(stack)
        /\ UNCHANGED << A, res, i_, exp, i, prcdr, lstmt, proc >>
 
 IsVarDecl == IV1
 
 IP1 == /\ pc = "IP1"
-       /\ pc' = Head(stack[self][subprocess]).pc
+       /\ pc' = Head(stack).pc
        /\ prcdr' = Head(stack).prcdr
-       /\ stack' = Tail(stack[self][subprocess])
+       /\ stack' = Tail(stack)
        /\ UNCHANGED << A, res, i_, exp, i, vdcl, lstmt, proc >>
 
 IsProcedure == IP1
 
 IL1 == /\ pc = "IL1"
-       /\ pc' = Head(stack[self][subprocess]).pc
+       /\ pc' = Head(stack).pc
        /\ lstmt' = Head(stack).lstmt
-       /\ stack' = Tail(stack[self][subprocess])
+       /\ stack' = Tail(stack)
        /\ UNCHANGED << A, res, i_, exp, i, vdcl, prcdr, proc >>
 
 IsLabeledStmt == IL1
 
 IPr1 == /\ pc = "IPr1"
-        /\ pc' = Head(stack[self][subprocess]).pc
+        /\ pc' = Head(stack).pc
         /\ proc' = Head(stack).proc
-        /\ stack' = Tail(stack[self][subprocess])
+        /\ stack' = Tail(stack)
         /\ UNCHANGED << A, res, i_, exp, i, vdcl, prcdr, lstmt >>
 
 IsProcess == IPr1
@@ -305,5 +305,5 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-984922db1931ed3635291dcdbe53b4b7
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1e7f8dbaa6644662e3fa38b76045e01d
 =============================================================================

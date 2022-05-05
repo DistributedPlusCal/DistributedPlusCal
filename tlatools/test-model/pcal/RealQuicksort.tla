@@ -49,7 +49,7 @@ Max(S) == CHOOSE i \in S : \A j \in S : i \geq j
   end algorithm
 
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-1f05a46c32a9d2bb1934b39aad724eed
 CONSTANT defaultInitValue
 VARIABLES A, Uns, new, pc, stack, parg
@@ -74,9 +74,9 @@ pt1 == /\ pc = "pt1"
                                /\ (\A i \in new1, j \in new2 :
                                        AA[i] \leq AA[j])}:
                    /\ A' = Ap
-                   /\ pc' = Head(stack[self][subprocess]).pc
+                   /\ pc' = Head(stack).pc
                    /\ parg' = Head(stack).parg
-                   /\ stack' = Tail(stack[self][subprocess])
+                   /\ stack' = Tail(stack)
        /\ Uns' = Uns
 
 Part == pt1
@@ -116,7 +116,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-14d6e5b6af6f722294f1cff27164e83c
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-4de5033005d037379ed702fb72c5f705
 
 Invariant == 
    (pc = "Done") => \A i, j \in 1..Len(A) :

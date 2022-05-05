@@ -42,7 +42,7 @@ PermsOf(Arr) ==
   begin  main : call QS(1, Len(A)) ;
   end algorithm
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-f3c86b18c12d46dfb100d83f44bd15cc
 VARIABLES A, returnVal, pc, stack, qlo, qhi, pivot
 
@@ -70,11 +70,11 @@ qs1 == /\ pc = "qs1"
                             A' = Ap
                   /\ pc' = "qs2"
                   /\ UNCHANGED << stack, qlo, qhi, pivot >>
-             ELSE /\ pc' = Head(stack[self][subprocess]).pc
+             ELSE /\ pc' = Head(stack).pc
                   /\ pivot' = Head(stack).pivot
                   /\ qlo' = Head(stack).qlo
                   /\ qhi' = Head(stack).qhi
-                  /\ stack' = Tail(stack[self][subprocess])
+                  /\ stack' = Tail(stack)
                   /\ UNCHANGED << A, returnVal >>
 
 qs2 == /\ pc = "qs2"
@@ -90,7 +90,7 @@ qs3 == /\ pc = "qs3"
                            pivot     |->  pivot,
                            qlo       |->  qlo,
                            qhi       |->  qhi ] >>
-                       \o stack[self][subprocess]
+                       \o stack
        /\ pivot' = 1
        /\ pc' = "qs1"
        /\ UNCHANGED << A, returnVal >>
@@ -128,7 +128,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-3b85e37a0464ec0cb7cd652a088187f7
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-f36591cc8efd54110514a4b1f13d3500
 
 Invariant == 
    (pc = "Done") => \A i, j \in 1..ArrayLen :

@@ -28,7 +28,7 @@ EXTENDS Sequences, Naturals, TLC
     end algorithm
 
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-a699498c8513ed4e4423d961c35407b2
 VARIABLES pc, stack, arg1, u, arg2, v, arg3
 
@@ -52,7 +52,7 @@ Lbl_1 == /\ pc = "Lbl_1"
                              pc        |->  "Lbl_2",
                              v         |->  v,
                              arg2      |->  arg2 ] >>
-                         \o stack[self][subprocess]
+                         \o stack
          /\ v' = 42
          /\ pc' = "Lbl_3"
          /\ UNCHANGED << arg1, arg3 >>
@@ -62,10 +62,10 @@ Lbl_2 == /\ pc = "Lbl_2"
          /\ Assert(arg1  = 4, "Failure of assertion at line 11, column 18.")
          /\ /\ arg2' = 2 * u + 1
             /\ stack' = << [ procedure |->  "Proc2",
-                             pc        |->  Head(stack[self][subprocess]).pc,
+                             pc        |->  Head(stack).pc,
                              v         |->  v,
                              arg2      |->  arg2 ] >>
-                         \o Tail(stack[self][subprocess])
+                         \o Tail(stack)
             /\ u' = Head(stack).u
          /\ v' = 42
          /\ pc' = "Lbl_3"
@@ -79,9 +79,9 @@ Lbl_3 == /\ pc = "Lbl_3"
                    "Failure of assertion at line 18, column 18.")
          /\ /\ arg3' = v + arg2
             /\ stack' = << [ procedure |->  "Proc3",
-                             pc        |->  Head(stack[self][subprocess]).pc,
+                             pc        |->  Head(stack).pc,
                              arg3      |->  arg3 ] >>
-                         \o Tail(stack[self][subprocess])
+                         \o Tail(stack)
             /\ v' = Head(stack).v
          /\ pc' = "Lbl_4"
          /\ UNCHANGED << arg1, u, arg2 >>
@@ -91,9 +91,9 @@ Proc2 == Lbl_3
 Lbl_4 == /\ pc = "Lbl_4"
          /\ Assert(arg3 \in {46, 47}, 
                    "Failure of assertion at line 23, column 22.")
-         /\ pc' = Head(stack[self][subprocess]).pc
+         /\ pc' = Head(stack).pc
          /\ arg3' = Head(stack).arg3
-         /\ stack' = Tail(stack[self][subprocess])
+         /\ stack' = Tail(stack)
          /\ UNCHANGED << arg1, u, arg2, v >>
 
 Proc3 == Lbl_4
@@ -120,5 +120,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-43e66d3ddcb2f600982757e5fdc88c3b
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-542b3dd4f4eee627dff4b0b877928865
 =============================================================================

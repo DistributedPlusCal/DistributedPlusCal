@@ -48,14 +48,14 @@ Init == (* Global variables *)
 Lbl_1 == /\ pc = "Lbl_1"
          /\ IF xEven = 0
                THEN /\ result' = TRUE
-                    /\ pc' = Head(stack[self][subprocess]).pc
+                    /\ pc' = Head(stack).pc
                     /\ xEven' = Head(stack).xEven
-                    /\ stack' = Tail(stack[self][subprocess])
+                    /\ stack' = Tail(stack)
                     /\ xOdd' = xOdd
                ELSE /\ /\ stack' = << [ procedure |->  "Odd",
-                                        pc        |->  Head(stack[self][subprocess]).pc,
+                                        pc        |->  Head(stack).pc,
                                         xOdd      |->  xOdd ] >>
-                                    \o Tail(stack[self][subprocess])
+                                    \o Tail(stack)
                        /\ xOdd' = xEven - 1
                     /\ pc' = "Lbl_2"
                     /\ UNCHANGED << result, xEven >>
@@ -70,16 +70,16 @@ Lbl_2 == /\ pc = "Lbl_2"
                ELSE /\ /\ stack' = << [ procedure |->  "Even",
                                         pc        |->  "Lbl_3",
                                         xEven     |->  xEven ] >>
-                                    \o stack[self][subprocess]
+                                    \o stack
                        /\ xEven' = xOdd - 1
                     /\ pc' = "Lbl_1"
                     /\ UNCHANGED result
          /\ xOdd' = xOdd
 
 Lbl_3 == /\ pc = "Lbl_3"
-         /\ pc' = Head(stack[self][subprocess]).pc
+         /\ pc' = Head(stack).pc
          /\ xOdd' = Head(stack).xOdd
-         /\ stack' = Tail(stack[self][subprocess])
+         /\ stack' = Tail(stack)
          /\ UNCHANGED << result, xEven >>
 
 Odd == Lbl_2 \/ Lbl_3
@@ -109,7 +109,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-8958e18f49d010c8bcd068e12836e943
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-20632e604e66ef1ac373dca4eac3efb3
 
 ==============================================
 

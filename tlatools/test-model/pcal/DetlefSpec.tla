@@ -69,9 +69,9 @@ P(self) == L1(self) \/ L2(self)
 Next == (\E self \in Procs: P(self))
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in Procs : \A subprocess \in SubProcSet[self] : WF_vars(P(self))
+        /\ \A self \in Procs : WF_vars(P(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-aa7c421a09416a1b2d7d2fc045b0e739
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a5e9e9156ce3a9bf6c7fb3f657f54020
 
 CONSTANT N
 

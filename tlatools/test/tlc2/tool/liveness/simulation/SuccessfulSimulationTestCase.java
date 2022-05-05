@@ -48,6 +48,10 @@ public abstract class SuccessfulSimulationTestCase extends ModelCheckerTestCase 
 		super(spec, path, extraArguments);
 	}
 	
+	public SuccessfulSimulationTestCase(String spec, String path, String[] extraArguments, int exitStatus) {
+		super(spec, path, extraArguments, exitStatus);
+	}
+	
 	@Test
 	public void testSpec() {
 		// Simulation must *NOT* show a counterexample. Regular model-checking
@@ -56,6 +60,8 @@ public abstract class SuccessfulSimulationTestCase extends ModelCheckerTestCase 
 		// Since simulation runs forever until it either finds a counterexample
 		// or it is manually stopped, we can only keep it running for a fixed
 		// amount of time and stop it afterwards.
+
+		assertNoTESpec();
 
 		// Finished...
 		assertTrue(recorder.recorded(EC.TLC_FINISHED));

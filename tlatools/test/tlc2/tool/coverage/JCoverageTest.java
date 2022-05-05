@@ -49,8 +49,10 @@ public class JCoverageTest extends AbstractCoverageTest {
 		assertFalse(recorder.recorded(EC.GENERAL));
 
 		assertCoverage("<Init line 5, col 1 to line 5, col 4 of module J>: 5:5\n" + 
-				"  line 5, col 12 to line 5, col 28 of module J: 1\n" + 
+				"  line 5, col 12 to line 5, col 28 of module J: 1:6\n" + 
 				"  line 6, col 12 to line 6, col 40 of module J: 5\n" + 
+				"  |line 6, col 16 to line 6, col 40 of module J: 5:25\n" +
+				"  ||line 6, col 23 to line 6, col 33 of module J: 5:30\n" +
 				"<Next line 12, col 1 to line 12, col 4 of module J>: 1:6\n" + 
 				"  line 12, col 12 to line 12, col 22 of module J: 6\n" + 
 				"  |line 12, col 17 to line 12, col 22 of module J: 6\n" + 

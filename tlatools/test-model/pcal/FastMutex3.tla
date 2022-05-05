@@ -280,9 +280,9 @@ Next == Proc1
 
 Spec == /\ Init /\ [][Next]_vars
         /\ WF_vars(Proc1)
-        /\ \A self \in 2..N : \A subprocess \in SubProcSet[self] : WF_vars(Proc2(self))
+        /\ \A self \in 2..N : WF_vars(Proc2(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-a94f7236177e32f29c007c1c863a4847
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-35555ac3cdd01367ca89de83ceeebd64
 
 ASSUME Print(<<"ProcSet =" , ProcSet>>, TRUE)
 inCS(i) ==  IF i = 1 THEN (pc[i] = "cs") /\ (~failed)

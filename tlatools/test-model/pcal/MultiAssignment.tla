@@ -20,7 +20,7 @@ EXTENDS Naturals, TLC
   end algorithm 
 
 ****)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-922bd40bbb66854d6ea0cf6dbef935cb
 VARIABLES pc, A, x
 
@@ -57,9 +57,9 @@ Next == (\E self \in 1..3: Proc(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..3 : \A subprocess \in SubProcSet[self] : WF_vars(Proc(self))
+        /\ \A self \in 1..3 : WF_vars(Proc(self))
 
 Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-fe735de1ccb2d5cf4bdd7c6851889c74
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-6c5ff91175ea2e80dc22b1dde5479e58
 =============================================================================

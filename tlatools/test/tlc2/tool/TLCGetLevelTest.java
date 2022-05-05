@@ -42,7 +42,7 @@ public class TLCGetLevelTest extends ModelCheckerTestCase {
 	public TLCGetLevelTest() {
 		super("TLCGetLevel", ExitStatus.VIOLATION_LIVENESS);
 	}
-	
+
 	@Test
 	public void testSpec() {
 		assertTrue(recorder.recorded(EC.TLC_FINISHED));
@@ -56,14 +56,22 @@ public class TLCGetLevelTest extends ModelCheckerTestCase {
 		// Assert the error trace
 		assertTrue(recorder.recorded(EC.TLC_STATE_PRINT2));
 		final List<String> expectedTrace = new ArrayList<String>(4);
-		expectedTrace.add("/\\ x = 0\n" 
-						+ "/\\ y = 0");
-		expectedTrace.add("/\\ x = 1\n" 
-						+ "/\\ y = 1");
-		expectedTrace.add("/\\ x = 2\n" 
-				        + "/\\ y = 2");
-		expectedTrace.add("/\\ x = 3\n" 
-						+ "/\\ y = 3");
+		expectedTrace.add("/\\ yb = 0\n"
+				+ "/\\ x = 0\n"
+				+ "/\\ y = 0\n"
+				+ "/\\ z = 1");
+		expectedTrace.add("/\\ yb = 1\n"
+				+ "/\\ x = 1\n"
+				+ "/\\ y = 1\n"
+				+ "/\\ z = 2");
+		expectedTrace.add("/\\ yb = 2\n"
+				+ "/\\ x = 2\n"
+				+ "/\\ y = 2\n"
+				+ "/\\ z = 3");
+		expectedTrace.add("/\\ yb = 3\n"
+				+ "/\\ x = 3\n"
+				+ "/\\ y = 3\n"
+				+ "/\\ z = 4");
 		assertTraceWith(recorder.getRecords(EC.TLC_STATE_PRINT2), expectedTrace);
 
 		assertStuttering(5);

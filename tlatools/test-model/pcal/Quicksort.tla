@@ -46,7 +46,7 @@ PermsOf(Arr) ==
                             (i < j) =>  A[i] \leq A[j]
   end algorithm
 *)
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-9360dabbf03d04fb938a53e6f43a0dc3
 CONSTANT defaultInitValue
 VARIABLES Ainit, A, returnVal, pc, stack, lo, hi, qlo, qhi, pivot
@@ -76,10 +76,10 @@ pt1 == /\ pc = "pt1"
                              /\ (\A i \in lo..piv, j \in (piv+1)..hi :
                                      AA[i] \leq AA[j])}:
                  /\ A' = Ap
-                 /\ pc' = Head(stack[self][subprocess]).pc
+                 /\ pc' = Head(stack).pc
                  /\ lo' = Head(stack).lo
                  /\ hi' = Head(stack).hi
-                 /\ stack' = Tail(stack[self][subprocess])
+                 /\ stack' = Tail(stack)
        /\ UNCHANGED << Ainit, qlo, qhi, pivot >>
 
 Partition == pt1
@@ -92,14 +92,14 @@ qs1 == /\ pc = "qs1"
                                       pc        |->  "qs2",
                                       lo        |->  lo,
                                       hi        |->  hi ] >>
-                                  \o stack[self][subprocess]
+                                  \o stack
                   /\ pc' = "pt1"
                   /\ UNCHANGED << qlo, qhi, pivot >>
-             ELSE /\ pc' = Head(stack[self][subprocess]).pc
+             ELSE /\ pc' = Head(stack).pc
                   /\ pivot' = Head(stack).pivot
                   /\ qlo' = Head(stack).qlo
                   /\ qhi' = Head(stack).qhi
-                  /\ stack' = Tail(stack[self][subprocess])
+                  /\ stack' = Tail(stack)
                   /\ UNCHANGED << lo, hi >>
        /\ UNCHANGED << Ainit, A, returnVal >>
 
@@ -116,7 +116,7 @@ qs3 == /\ pc = "qs3"
                            pivot     |->  pivot,
                            qlo       |->  qlo,
                            qhi       |->  qhi ] >>
-                       \o stack[self][subprocess]
+                       \o stack
        /\ pivot' = defaultInitValue
        /\ pc' = "qs1"
        /\ UNCHANGED << Ainit, A, returnVal, lo, hi >>
@@ -162,7 +162,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-ecf9dd36804e49055369519d27b76179
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c890d98935ff53e5f234680508ac16aa
 =============================================================================
 Checked without termination on svc-lamport-2 with 2 workers:
   arrayLen = 4 in 15 sec, 32280 states, depth 22

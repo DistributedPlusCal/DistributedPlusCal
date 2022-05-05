@@ -19,7 +19,7 @@ EXTENDS Naturals, Sequences, TLC
 
 *)
 
-					
+                    
 \* BEGIN TRANSLATION - the hash of the PCal code: PCal-925d38ef233a8a8c33b34bb25ba0c30d
 VARIABLES x, y, n, i, pc, stack, incr, z
 
@@ -42,10 +42,10 @@ i1 == /\ pc = "i1"
       /\ UNCHANGED << y, n, i, stack, incr, z >>
 
 i2 == /\ pc = "i2"
-      /\ pc' = Head(stack[self][subprocess]).pc
+      /\ pc' = Head(stack).pc
       /\ z' = Head(stack).z
       /\ incr' = Head(stack).incr
-      /\ stack' = Tail(stack[self][subprocess])
+      /\ stack' = Tail(stack)
       /\ UNCHANGED << x, y, n, i >>
 
 Incr == i1 \/ i2
@@ -77,5 +77,5 @@ Spec == /\ Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-72366222313c0e2e78dae7271fba3682
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1145b37773754e0c960b38596f8082a0
 =============================================================================

@@ -154,9 +154,9 @@ Proc(self) == start(self) \/ l1(self) \/ l2(self) \/ l3(self) \/ l4(self)
 Next == (\E self \in 1..N: Proc(self))
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..N : \A subprocess \in SubProcSet[self] : WF_vars(Proc(self))
+        /\ \A self \in 1..N : WF_vars(Proc(self))
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-e9ba141197086080df5a5a2ca2a0c8ee
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7588f44b8dba7eba3195a1299d84da82
 
 inCS(i) ==  (pc[i] = "cs") /\ (~failed[i])
 

@@ -15,6 +15,7 @@
 	<!-- timestamp -->
 	<tstamp>
 		<format property="TODAY" pattern="yyyy-MM-dd" locale="en,US" />
+		<format property="ISO8601" pattern="yyyy-MM-dd'T'HH:mm:ss.S'Z'" timezone="UTC"/>
 	</tstamp>
 
 	<!-- JaCoCo code coverage -->
@@ -54,6 +55,7 @@
 		<echo message="Skipping Tests : ${test.skip}" />
 		<echo message="With AspectJ   : ${withaj}" />
 		<echo message="Git BuildNumber: ${git.branch}_${git.tag}_${git.shortRevision}" />
+		<echo message="Timestamp      : ${ISO8601}" />
 	</target>
 
 	<target name="default" depends="info" description="Default">
@@ -137,11 +139,13 @@
 			<classpath refid="project.classpath" />
 			<classpath>
 				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
-				<pathelement location="lib/jmh/jmh-core-1.21.jar" />
-				<pathelement location="lib/jackson-core-2.10.2.jar" />
-				<pathelement location="lib/jackson-databind-2.10.2.jar" />
-				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
 				<pathelement location="lib/jline/jline-terminal-3.14.1.jar" />
+				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
+				<pathelement location="lib/gson/gson-2.8.6.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar" />
+				<pathelement location="lib/jackson/jackson-databind-2.13.2.2.jar" />
+				<pathelement location="lib/jackson/jackson-core-2.13.2.jar" />
 			</classpath>
 		</javac>
 
@@ -229,6 +233,23 @@
 			</patternset>
 		</unzip>
 		<touch file="${class.dir}/META-INF/javamail.default.address.map"/>
+		<unzip src="lib/jline/jline-terminal-3.14.1.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
+
+		<unzip src="lib/jline/jline-reader-3.14.1.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
+
+		<unzip src="lib/gson/gson-2.8.6.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
 
 		<!-- Extract javax.mail to maven classes folder. This script is triggered by -->
 		<!-- maven. However, maven compiles the code again to target/classes from -->
@@ -254,7 +275,83 @@
 			</patternset>
 		</unzip>
 		<touch file="target/classes/META-INF/javamail.default.address.map"/>
+
+		<unzip src="lib/jline/jline-terminal-3.14.1.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
+
+		<unzip src="lib/jline/jline-reader-3.14.1.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
+
+		<unzip src="lib/gson/gson-2.8.6.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.*"/>
+			</patternset>
+		</unzip>
 		
+		<unzip src="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+		<unzip src="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+		<unzip src="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar" dest="target/classes">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+
+		<!-- Include a few LICENSE files -->
+		<copy todir="${class.dir}">
+			<fileset dir="lib/jline">
+				<include name="jline-LICENSE.txt" />
+			</fileset>
+			<fileset dir="lib/gson">
+				<include name="gson-LICENSE.txt" />
+			</fileset>
+			<fileset dir="src/org/apache/commons/math3/">
+				<include name="CommonsMath-NOTICE.txt" />
+				<include name="CommonsMath-LICENSE.txt" />
+			</fileset>
+		</copy>
+		
+		<unzip src="lib/gson/gson-2.8.6.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.class"/>
+			</patternset>
+		</unzip>
+		<unzip src="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+		<unzip src="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+		<unzip src="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar" dest="${class.dir}">
+			<patternset>
+				<include name="**/*.class"/>
+				<exclude name="META-INF/**"/>
+			</patternset>
+		</unzip>
+
+
 
 		<!-- create a JAR file for the users -->
 		<mkdir dir="${dist.dir}" />
@@ -280,17 +377,25 @@
 					src/tla2sany/parser/Token.09-09-07,
 					src/tla2sany/parser/TokenMgrError.09-09-07"/>
 			<fileset dir="${doc.dir}" includes="License.txt"/>
+			<fileset dir="${test.class.dir}">
+				<include name="**/tlc2/tool/CommonTestCase*.class" />
+				<include name="**/tlc2/tool/liveness/ModelCheckerTestCase*.class" />
+				<include name="**/tlc2/tool/liveness/tlc2.tool.liveness.TTraceModelCheckerTestCase*.class" />
+				<include name="**/tlc2/TestMPRecorder*.class" />
+				<include name="**/util/IsolatedTestCaseRunner*.class" />
+			</fileset>
 			<manifest>
 				<attribute name="Built-By" value="${user.name}" />
 				<attribute name="Build-Tag" value="${env.BUILD_TAG}" />
 				<attribute name="Build-Rev" value="${Build-Rev}" />
+				<attribute name="Build-TimeStamp" value="${ISO8601}"/>
 				<attribute name="Implementation-Title" value="TLA+ Tools" />
 				<attribute name="Implementation-Version" value="${version} ${TODAY}" />
 				<attribute name="Implementation-Vendor" value="Microsoft Corp." />
 				<!-- The jar files contains many main classes (SANY, TEX, pcal, ...) --> 
                 <!-- but lets consider TLC the one users primarily use. --> 
 				<attribute name="Main-class" value="tlc2.TLC" />
-				<attribute name="Class-Path" value="CommunityModules.jar" />
+				<attribute name="Class-Path" value="CommunityModules-deps.jar CommunityModules.jar" />
 				<!-- Git revision -->
 				<attribute name="X-Git-Branch" value="${git.branch}" />
 				<attribute name="X-Git-Tag" value="${git.tag}" />
@@ -309,7 +414,7 @@
 	</target>
 
 	<!-- Compiles the TLA+ tools *test* code -->
-	<target name="compile-test" unless="test.skip">
+	<target name="compile-test">
 		<!-- compile unit tests -->
 		<mkdir dir="${test.class.dir}" />
 		<javac includeantruntime="false" srcdir="${test.dir}" destdir="${test.class.dir}" debug="true" verbose="false" source="1.8" target="1.8">
@@ -318,6 +423,9 @@
 				<pathelement location="lib/junit-4.12.jar" />
 				<pathelement location="lib/hamcrest-core-1.3.jar" />
 				<pathelement location="lib/easymock-3.3.1.jar" />
+				<pathelement location="lib/gson/gson-2.8.6.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar" />
 				<pathelement path="${class.dir}" />
 			</classpath>
 		</javac>
@@ -335,11 +443,11 @@
 		</copy>
 	</target>
 
-	<!-- Executes accompining unit tests -->
+	<!-- Executes accompanying unit tests -->
 	<target name="test" unless="test.skip">
 		<!-- run junit tests -->
 		<mkdir dir="${test.reports}" />
-		<!-- forkmode used to be "perBatch" on Java 1.8 using the util.IsolatedTestCaseRunner.  
+		<!-- forkmode used to be "perBatch" on Java 1.8 using the util.IsolatedTestCaseRunner.
 		     This concept broken with Java11 for unknown reasons which is why forkmode has been
 		     changed to perTest to run each test in a separate VM.  This is slower compared to
 		     running all tests in a single VM. -->
@@ -360,6 +468,12 @@
 				<pathelement location="lib/objenesis-2.1.jar" />
 				<pathelement location="lib/easymock-3.3.1.jar" />
 				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
+				<pathelement location="lib/jline/jline-terminal-3.14.1.jar" />
+				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
+				<pathelement location="lib/gson/gson-2.8.6.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar"/>
 				<pathelement location="test-model/UserModuleOverrideFromJar.jar" />
 				<pathelement path="${class.dir}" />
 				<pathelement path="${test.class.dir}" />
@@ -390,9 +504,15 @@
 					<exclude name="tlc2/tool/UserModuleOverrideAnnotationTest.java" />
 					
 					<exclude name="**/PCalTest.java" />
+					<exclude name="**/SANYTest.java" />
+					<exclude name="**/*_TTraceTest.java" />
 					<exclude name="**/CommonTestCase.java" />
 					<exclude name="**/ModelCheckerTestCase.java" />
+					<exclude name="**/TTraceModelCheckerTestCase.java" />
+					<exclude name="**/TLCDebuggerTestCase.java" />
 					<exclude name="**/PCalModelCheckerTestCase.java" />
+					<exclude name="**/TraceExpressionSpecTest.java" />
+					<exclude name="**/TraceExpressionSpecSafetyTest.java" />
 					<exclude name="**/SuiteTestCase.java" />
 					<exclude name="**/SuiteETestCase.java" />
 					<exclude name="**/DistributedTLCTestCase.java" />
@@ -420,6 +540,12 @@
 					<exclude name="**/DetlefsTest.java" />
 					<exclude name="**/StarkMutexTest.java" />
 					<exclude name="**/SimpleMultiProcTest.java" />
+				</fileset>
+			</batchtest>
+			<batchtest fork="yes" todir="${test.reports}">
+				<fileset dir="${test.dir}">
+					<!-- Run TTrace tests after the original tests are run -->	
+					<include name="**/*_TTraceTest.java" />
 				</fileset>
 			</batchtest>
 			<batchtest fork="yes" todir="${test.reports}">
@@ -464,18 +590,16 @@
 		<delete dir="${ws.class.dir}" deleteonexit="true"/>
 	</target>
 
-	<!-- Executes a single unit test. -->
-	<target name="test-single" unless="test.skip">
+	<!-- Executes a given set of unit test. -->
+	<target name="test-set" unless="test.skip">
 		<!-- run junit test -->
 		<junit printsummary="yes" haltonfailure="true" showoutput="no" haltonerror="true" forkmode="perTest" fork="yes">
 			<!-- enable all assertions -->
 			<jvmarg value="-ea"/>
 			<jvmarg value="-XX:MaxDirectMemorySize=512k"/>
 			<jvmarg value="-XX:+UseParallelGC"/>
-			<!-- Uncomment to open a debug port in each forked VM to remote attach your Eclipse at port 1044.
             <jvmarg value="-Xdebug" />
-	        <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1044" />
-			-->
+	        <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=${test.suspend},address=1044" />
 			<classpath refid="project.classpath" />
 			<classpath>
 				<pathelement location="lib/junit-4.12.jar" />
@@ -484,6 +608,12 @@
 				<pathelement location="lib/objenesis-2.1.jar" />
 				<pathelement location="lib/easymock-3.3.1.jar" />
 				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
+				<pathelement location="lib/jline/jline-terminal-3.14.1.jar" />
+				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
+				<pathelement location="lib/gson/gson-2.8.6.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar"/>
 				<pathelement location="test-model/UserModuleOverrideFromJar.jar" />
 				<pathelement path="${class.dir}" />
 				<pathelement path="${test.class.dir}" />
@@ -499,15 +629,181 @@
 
 			<!-- Print all output of the test to the screen. -->
 			<formatter type="plain" usefile="false" />
-			<!-- Run a single test case specified by its class name, by setting the property 'test.testcase'. -->
-			<test name="${test.testcase}" skipNonTests="true"/>
+			<!-- Run the given set of test case specified by the pattern, by setting the property 'test.testcase'. -->
+			<!-- For example, to run the tests whose filename constains 'Vec' in the util package: -->
+			<!-- ant -f customBuild.xml test-set -Dtest.testcases=tlc2/util/*Vec* -->
+			<batchtest fork="yes" todir="${test.reports}" skipNonTests="true">
+				<fileset dir="${test.dir}">
+					<include name="${test.testcases}"/>
+				</fileset>
+			</batchtest>
 		</junit>
 
 		<!-- remove copied class.dir -->
 		<delete dir="${ws.class.dir}" deleteonexit="true"/>
 	</target>
 
-	<!-- Executes accompining unit tests on jar file -->
+	<target name="test-trace-tests" unless="test.skip">
+		<delete dir="target/GeneratedTESpecs/"/>
+		<!-- run junit test -->
+		<junit printsummary="yes" haltonfailure="true" showoutput="no" haltonerror="true" forkmode="perTest" fork="yes">
+			<!-- enable all assertions -->
+			<jvmarg value="-ea"/>
+			<jvmarg value="-XX:MaxDirectMemorySize=512k"/>
+			<jvmarg value="-XX:+UseParallelGC"/>
+            <jvmarg value="-Xdebug" />
+	        <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=${test.suspend},address=1044" />
+			<classpath refid="project.classpath" />
+			<classpath>
+				<pathelement location="lib/junit-4.12.jar" />
+				<pathelement location="lib/hamcrest-core-1.3.jar" />
+				<pathelement location="lib/cglib-nodep-3.1.jar" />
+				<pathelement location="lib/objenesis-2.1.jar" />
+				<pathelement location="lib/easymock-3.3.1.jar" />
+				<pathelement location="lib/javax.mail/mailapi-1.6.3.jar" />
+				<pathelement location="lib/jline/jline-terminal-3.14.1.jar" />
+				<pathelement location="lib/jline/jline-reader-3.14.1.jar" />
+				<pathelement location="lib/gson/gson-2.8.6.jar" />
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar"/>
+				<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar"/>
+				<pathelement location="test-model/UserModuleOverrideFromJar.jar" />
+				<pathelement path="${class.dir}" />
+				<pathelement path="${test.class.dir}" />
+				<pathelement path="${test.class.dir}" />
+				<pathelement path="test-model/" />
+			</classpath>
+
+			<!-- Pass the base path of the tlatools project to unit tests in case they need it to locate TLA+ specs or configs -->
+			<sysproperty key="basedir" value="${basedir}/"/>
+			<sysproperty key="tlc2.tool.fp.FPSet.impl" value="tlc2.tool.fp.OffHeapDiskFPSet"/>
+			<sysproperty key="util.FileUtil.milliseconds" value="true"/>
+			<sysproperty key="tlc2.tool.distributed.TLCWorker.threadCount" value="4"/>
+
+			<!-- Print all output of the test to the screen. -->
+			<formatter type="plain" usefile="false" />
+			<!-- Run the given set of test case specified by the pattern, by setting the property 'test.testcase'. -->
+			<!-- For example, to run the tests whose filename constains 'Vec' in the util package: -->
+			<!-- ant -f customBuild.xml test-set -Dtest.testcases=tlc2/util/*Vec* -->
+			<batchtest fork="yes" todir="${test.reports}" skipNonTests="true">
+				<fileset dir="${test.dir}">
+					<include name="pcal/RABTest.java" />
+					<include name="pcal/RABTest_TTraceTest.java" />
+					<include name="pcal/SBBTest.java" />
+					<include name="pcal/SBBTest_TTraceTest.java" />
+					<include name="tlc2/tool/AliasLivenessLassoTest.java" />
+					<include name="tlc2/tool/AliasLivenessLassoTest_TTraceTest.java" />
+					<include name="tlc2/tool/AliasLivenessStutteringTest.java" />
+					<include name="tlc2/tool/AliasLivenessStutteringTest_TTraceTest.java" />
+					<include name="tlc2/tool/AliasSafetySimuTest.java" />
+					<include name="tlc2/tool/AliasSafetySimuTest_TTraceTest.java" />
+					<include name="tlc2/tool/AliasSafetyTest.java" />
+					<include name="tlc2/tool/AliasSafetyTest_TTraceTest.java" />
+					<include name="tlc2/tool/BugzillaBug279Test.java" />
+					<include name="tlc2/tool/BugzillaBug279Test_TTraceTest.java" />
+					<include name="tlc2/tool/checkpoint/CheckpointOnViolationTest.java" />
+					<include name="tlc2/tool/checkpoint/CheckpointOnViolationTest_TTraceTest.java" />
+					<include name="tlc2/tool/DepthFirstDieHardTest.java" />
+					<include name="tlc2/tool/DepthFirstDieHardTest_TTraceTest.java" />
+					<include name="tlc2/tool/DepthFirstErrorTraceTest.java" />
+					<include name="tlc2/tool/DepthFirstErrorTraceTest_TTraceTest.java" />
+					<include name="tlc2/tool/EvalExceptionLivenessTest.java" />
+					<include name="tlc2/tool/EvalExceptionLivenessTest_TTraceTest.java" />
+					<include name="tlc2/tool/EvalExceptionTest.java" />
+					<include name="tlc2/tool/EvalExceptionTest_TTraceTest.java" />
+					<include name="tlc2/tool/Github461Test.java" />
+					<include name="tlc2/tool/Github461Test_TTraceTest.java" />
+					<include name="tlc2/tool/Github597Test.java" />
+					<include name="tlc2/tool/Github597Test_TTraceTest.java" />
+					<include name="tlc2/tool/IncompleteNextMultipleActionsTest.java" />
+					<include name="tlc2/tool/IncompleteNextMultipleActionsTest_TTraceTest.java" />
+					<include name="tlc2/tool/IncompleteNextTest.java" />
+					<include name="tlc2/tool/IncompleteNextTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions1BxTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions1BxTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions1ByTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions1ByTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions2CxTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions2CxTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions2CyTest.java" />
+					<include name="tlc2/tool/liveness/BidirectionalTransitions2CyTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/ChooseTableauSymmetryTestA.java" />
+					<include name="tlc2/tool/liveness/ChooseTableauSymmetryTestA_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08AgentRingTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08AgentRingTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08aTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08aTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL1Test.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL1Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL2Test.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL2Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL3Test.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL3Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL4Test.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08EWD840FL4Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08Test.java" />
+					<include name="tlc2/tool/liveness/CodePlexBug08Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/ErrorTraceConstructionTest.java" />
+					<include name="tlc2/tool/liveness/ErrorTraceConstructionTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/LoopTestForcedPartial.java" />
+					<include name="tlc2/tool/liveness/LoopTestForcedPartial_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/LoopTest.java" />
+					<include name="tlc2/tool/liveness/LoopTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/OneBitMutexNoSymmetryTest.java" />
+					<include name="tlc2/tool/liveness/OneBitMutexNoSymmetryTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/Example1Test.java" />
+					<include name="tlc2/tool/liveness/simulation/Example1Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/Example2Test.java" />
+					<include name="tlc2/tool/liveness/simulation/Example2Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckExample1Test.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckExample1Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckExample2Test.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckExample2Test_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckSimulationTest2a.java" />
+					<include name="tlc2/tool/liveness/simulation/LiveCheckSimulationTest2a_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/SimulationTest2a.java" />
+					<include name="tlc2/tool/liveness/simulation/SimulationTest2a_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/simulation/StutteringTest.java" />
+					<include name="tlc2/tool/liveness/simulation/StutteringTest_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/Test3.java" />
+					<include name="tlc2/tool/liveness/Test3_TTraceTest.java" />
+					<include name="tlc2/tool/liveness/UnsymmetricModelCheckerTestA.java" />
+					<include name="tlc2/tool/liveness/UnsymmetricModelCheckerTestA_TTraceTest.java" />
+					<include name="tlc2/tool/PrintTraceRaceTest.java" />
+					<include name="tlc2/tool/PrintTraceRaceTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomElementSimulationTest.java" />
+					<include name="tlc2/tool/RandomElementSimulationTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomElementT4Test.java" />
+					<include name="tlc2/tool/RandomElementT4Test_TTraceTest.java" />
+					<include name="tlc2/tool/RandomElementTest.java" />
+					<include name="tlc2/tool/RandomElementTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomElementXandYTest.java" />
+					<include name="tlc2/tool/RandomElementXandYTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomSubsetATest.java" />
+					<include name="tlc2/tool/RandomSubsetATest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomSubsetBTest.java" />
+					<include name="tlc2/tool/RandomSubsetBTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomSubsetNextT4Test.java" />
+					<include name="tlc2/tool/RandomSubsetNextT4Test_TTraceTest.java" />
+					<include name="tlc2/tool/RandomSubsetNextTest.java" />
+					<include name="tlc2/tool/RandomSubsetNextTest_TTraceTest.java" />
+					<include name="tlc2/tool/RandomSubsetTest.java" />
+					<include name="tlc2/tool/RandomSubsetTest_TTraceTest.java" />
+					<include name="tlc2/tool/TLCGetLevelTest.java" />
+					<include name="tlc2/tool/TLCGetLevelTest_TTraceTest.java" />
+					<include name="tlc2/tool/TraceWithLargeSetOfInitialStatesTest.java" />
+					<include name="tlc2/tool/TraceWithLargeSetOfInitialStatesTest_TTraceTest.java" />
+					<include name="tlc2/tool/ViewMapTest.java" />
+					<include name="tlc2/tool/ViewMapTest_TTraceTest.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<!-- remove copied class.dir -->
+		<delete dir="${ws.class.dir}" deleteonexit="true"/>
+	</target>
+
+	<!-- Executes accompanying unit tests on jar file -->
 	<target name="test-dist" unless="test.skip">
 		<!-- run junit tests on tlatools.jar -->
 		<mkdir dir="${test.reports}/onJar" />
@@ -524,6 +820,9 @@
 					<pathelement location="lib/cglib-nodep-3.1.jar" />
 					<pathelement location="lib/objenesis-2.1.jar" />
 					<pathelement location="lib/easymock-3.3.1.jar" />
+					<pathelement location="lib/lsp/org.eclipse.lsp4j.debug-0.12.0.jar"/>
+					<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc-0.12.0.jar"/>
+					<pathelement location="lib/lsp/org.eclipse.lsp4j.jsonrpc.debug-0.12.0.jar"/>
 					<pathelement location="${dist.file}" />
 					<pathelement path="${test.class.dir}" />
 					<pathelement path="test-model/" />
@@ -551,9 +850,15 @@
 						<exclude name="tlc2/tool/UserModuleOverrideAnnotationTest.java" />
 												
 						<exclude name="**/PCalTest.java" />
+						<exclude name="**/SANYTest.java" />
+						<exclude name="**/*_TTraceTest.java" />
 						<exclude name="**/CommonTestCase.java" />
 						<exclude name="**/ModelCheckerTestCase.java" />
+						<exclude name="**/TTraceModelCheckerTestCase.java" />
+						<exclude name="**/TLCDebuggerTestCase.java" />
 						<exclude name="**/PCalModelCheckerTestCase.java" />
+						<exclude name="**/TraceExpressionSpecTest.java" />
+						<exclude name="**/TraceExpressionSpecSafetyTest.java" />
 						<exclude name="**/SuiteTestCase.java" />
 						<exclude name="**/SuiteETestCase.java" />
 						<exclude name="**/DistributedTLCTestCase.java" />
@@ -581,6 +886,16 @@
 						<exclude name="**/DetlefsTest.java" />
 						<exclude name="**/StarkMutexTest.java" />
 						<exclude name="**/SimpleMultiProcTest.java" />
+						<!-- The test checks if Tool/FastTool methods are correctly inlined during (long) 
+						     model-checking. It fails with this target but passes with test.  I assume
+						     this is because test-dist records coverage, which, perhaps, interferes with inlining. -->
+						<exclude name="**/InliningTest.java" />
+					</fileset>
+				</batchtest>
+				<batchtest fork="yes" todir="${test.reports}">
+					<fileset dir="${test.dir}">
+						<!-- Run TTrace tests after the original tests are run -->	
+						<include name="**/*_TTraceTest.java" />
 					</fileset>
 				</batchtest>
 				<batchtest fork="yes" todir="${test.reports}">
@@ -621,7 +936,7 @@
 		<delete dir="${ws.class.dir}" deleteonexit="true"/>
 	</target>
 
-	<!-- Executes accompining long-running unit tests on jar file -->
+	<!-- Executes accompanying long-running unit tests on jar file -->
 	<target name="test-dist-long" unless="test.skip">
 		<!-- compile unit tests -->
 		<mkdir dir="${test.class.dir}" />
