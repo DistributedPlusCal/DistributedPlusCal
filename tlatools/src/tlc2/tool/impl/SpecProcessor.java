@@ -25,10 +25,12 @@
  ******************************************************************************/
 package tlc2.tool.impl;
 
+import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -36,6 +38,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import tla2sany.drivers.FrontEndException;
 import tla2sany.drivers.SANY;
@@ -48,12 +51,14 @@ import tla2sany.semantic.ExprOrOpArgNode;
 import tla2sany.semantic.ExternalModuleTable;
 import tla2sany.semantic.LabelNode;
 import tla2sany.semantic.LetInNode;
+import tla2sany.semantic.LevelConstants;
 import tla2sany.semantic.ModuleNode;
 import tla2sany.semantic.NumeralNode;
 import tla2sany.semantic.OpApplNode;
 import tla2sany.semantic.OpArgNode;
 import tla2sany.semantic.OpDeclNode;
 import tla2sany.semantic.OpDefNode;
+import tla2sany.semantic.OpDefOrDeclNode;
 import tla2sany.semantic.SemanticNode;
 import tla2sany.semantic.StringNode;
 import tla2sany.semantic.Subst;
@@ -62,6 +67,7 @@ import tla2sany.semantic.SymbolNode;
 import tla2sany.semantic.TheoremNode;
 import tlc2.TLCGlobals;
 import tlc2.module.BuiltInModuleHelper;
+import tlc2.module.TLCBuiltInOverrides;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.overrides.Evaluation;
@@ -72,12 +78,11 @@ import tlc2.tool.Action;
 import tlc2.tool.BuiltInOPs;
 import tlc2.tool.Defns;
 import tlc2.tool.EvalException;
-import tlc2.tool.Simulator;
 import tlc2.tool.Specs;
-import tlc2.tool.TLAPlusExecutorState;
 import tlc2.tool.TLCStateMut;
-import tlc2.tool.TLCStateMutSimulation;
+import tlc2.tool.TLCStateMutExt;
 import tlc2.tool.ToolGlobals;
+import tlc2.tool.impl.Tool.Mode;
 import tlc2.util.Context;
 import tlc2.util.List;
 import tlc2.util.Vect;
@@ -91,6 +96,7 @@ import tlc2.value.impl.IntValue;
 import tlc2.value.impl.LazyValue;
 import tlc2.value.impl.MethodValue;
 import tlc2.value.impl.OpRcdValue;
+import tlc2.value.impl.PriorityEvaluatingValue;
 import tlc2.value.impl.SetEnumValue;
 import tlc2.value.impl.StringValue;
 import tlc2.value.impl.Value;
@@ -102,7 +108,6 @@ import util.UniqueString;
 public class SpecProcessor implements ValueConstants, ToolGlobals {
 	
     private final String rootFile; // The root file of this spec.
-    private final FilenameToStream resolver; // takes care of path to stream resolution
     private final int toolId;
     private final Defns defns; // Global definitions reachable from root
     private final ModelConfig config; // The model configuration.
@@ -148,23 +153,23 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
     
 	public SpecProcessor(final String rootFile, final FilenameToStream resolver, final int toolId, final Defns defns,
 			final ModelConfig config, final SymbolNodeValueLookupProvider snvlp, final OpDefEvaluator ode,
-			final TLAClass tlaClass) {
+			final TLAClass tlaClass, Mode mode, SpecObj obj) {
 		super();
 		this.rootFile = rootFile;
-		this.resolver = resolver;
 		this.toolId = toolId;
 		this.defns = defns;
 		this.config = config;
 		this.tlaClass = tlaClass;
 		this.processedDefs = new HashSet<OpDefNode>();
         this.initPredVec = new Vect<>(5);
+        this.specObj = obj;
         
         opDefEvaluator = ode;
         symbolNodeValueLookupProvider = snvlp;
 
 		// Parse and process this spec.
 		// It takes care of all overrides.
-		processSpec();
+		processSpec(mode);
 
 		snapshot = defns.snapshot();
 
@@ -198,6 +203,12 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         }
     }
 
+    private final Map<ModuleNode, Map<OpDefOrDeclNode, Object>> constantDefns = new HashMap<>();
+    
+    public final Map<ModuleNode, Map<OpDefOrDeclNode, Object>> getConstantDefns() {
+    	return constantDefns;
+    }
+    
     /**
      * Converts the constant definitions in the corresponding value for the
      * module -- that is, it "converts" (which seems to mean calling deepNormalize)
@@ -214,21 +225,15 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 
       // run for constant definitions
       OpDeclNode[] consts = mod.getConstantDecls();
-      
-      System.out.println("########### running for constant definitions");
       for (int i = 0; i < consts.length; i++) {
         Object val = consts[i].getToolObject(toolId);
-        
-//        System.out.println("########### toolId : " + toolId);
-
         if (val != null && val instanceof IValue) {
 		  // We do not wrap this value in a WorkerValue, because we assume that explicit
 		  // initialization does not pose a problem here. This is based on the observation,
           // that val is either an atom (IValue#isAtom) or a set (of sets) of atoms (primarily
           // ModelValues).
-//          System.out.println("########### val : " + val);
-
 	      ((IValue)val).initialize();
+          constantDefns.computeIfAbsent(mod, key -> new HashMap<OpDefOrDeclNode, Object>()).put(consts[i], val);
           // System.err.println(consts[i].getName() + ": " + val);
         } // The following else clause was added by LL on 17 March 2012.
         else if (val != null && val instanceof OpDefNode) {
@@ -242,8 +247,43 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 
           if (opDef.getArity() == 0) {
             try {
-            	Object defVal = WorkerValue.demux(opDefEvaluator, consts[i], opDef);
-                opDef.setToolObject(toolId, defVal);
+            	Object defVal = WorkerValue.demux(opDefEvaluator, opDef.getBody());
+            	opDef.setToolObject(toolId, defVal);
+            	// https://github.com/tlaplus/tlaplus/issues/648
+            	//
+            	// Without consts[i].setTool... below, TLC re-evaluates CONSTANT definitions on
+            	// every invocation.  With consts[i].setTool..., TLC caches values.  Here is the
+            	// reason why consts[i].setTool... is commented:
+            	//
+            	// A) For "cheap" definitions such as CONSTANT N = 4, caching values makes no 
+            	//    difference.
+            	//
+            	// B) For more expensive expressions, such as PaxosMadeSimple.tla the performance
+            	//    gain is around 10%.
+            	//
+            	//    Quorum == {i \in SUBSET(Server) : Cardinality(i) * 2 > Cardinality(Server)}
+            	//
+            	//    CONSTANT Q <- Quorum
+            	//    
+            	// C) However, half of our user base expects the following spec to probabilistically
+            	//    have 2 to 4 distinct states:
+            	//
+            	//    EXTENDS TLC
+            	//    R == RandomElement({1,2,3})
+            	//    CONSTANT C
+            	//    VARIABLE x
+            	//    Spec == x = 0 /\ [][x' = C]_x
+            	//
+            	//    CONSTANT C <- R
+            	// 
+            	// Therefore, we let the user decide by giving her TLC!TLCEval to wrap expressive 
+            	// constant definitions when necessary:
+            	//
+            	//    R == TLCEval(RandomElement({1,2,3}))
+            	// 
+//            	consts[i].setToolObject(toolId, defVal);
+
+            	constantDefns.computeIfAbsent(mod, key -> new HashMap<OpDefOrDeclNode, Object>()).put(opDef, defVal);
             } catch (Assert.TLCRuntimeException | EvalException e) {
               final String addendum = (e instanceof EvalException) ? "" : (" - specifically: " + e.getMessage());
               Assert.fail(EC.TLC_CONFIG_SUBSTITUTION_NON_CONSTANT,
@@ -255,10 +295,6 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 
       // run for constant operator definitions
       OpDefNode[] opDefs = mod.getOpDefs();
-      
-      System.out.println("########### constant operator definitions ");
-      System.out.println("########### mod : " + mod);
-
       DEFS: for (int i = 0; i < opDefs.length; i++) {
         OpDefNode opDef = opDefs[i];
 
@@ -266,38 +302,30 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         // to prevent pre-evaluation of a definition from an EXTENDS of a module that
         // is also instantiated.
         ModuleNode moduleNode = opDef.getOriginallyDefinedInModuleNode() ;
-        
         boolean evaluate =    (moduleNode == null)
                        || (! moduleNode.isInstantiated())
                        || (   (moduleNode.getConstantDecls().length == 0)
                            && (moduleNode.getVariableDecls().length == 0) ) ;
 
-        System.out.println("########### moduleNode.getSignature() " + moduleNode.getSignature());
-
-        System.out.println("########### moduleNode.getConstantDecls() " + moduleNode.getConstantDecls());
-
-        System.out.println("########### evaluate " + evaluate);
-
         if (evaluate && opDef.getArity() == 0) {
           Object realDef = symbolNodeValueLookupProvider.lookup(opDef, Context.Empty, false, toolId);
           if (realDef instanceof OpDefNode) {
-        	  
-              System.out.println("########### realDef instanceof OpDefNode " + realDef);
-
             opDef = (OpDefNode)realDef;
-            if (symbolNodeValueLookupProvider.getLevelBound(opDef.getBody(), Context.Empty, toolId) == 0) {
+            if (symbolNodeValueLookupProvider.getLevelBound(opDef.getBody(), Context.Empty, toolId) == LevelConstants.ConstantLevel) {
               try {
                 UniqueString opName = opDef.getName();
                 if (isVetoed(opName)) {
                 	continue DEFS;
                 }
                 // System.err.println(opName);
-                final Object val = WorkerValue.demux(opDefEvaluator, opDef);
-                // System.err.println(opName + ": " + val);
+                final Object val = WorkerValue.demux(opDefEvaluator, opDef.getBody());
                 opDef.setToolObject(toolId, val);
                 Object def = this.defns.get(opName);
                 if (def == opDef) {
-                  this.defns.put(opName, val);
+					this.defns.put(opName, val);
+					constantDefns.computeIfAbsent(
+							opDef.hasSource() ? opDef.getSource().getOriginallyDefinedInModuleNode() : moduleNode,
+							key -> new HashMap<OpDefOrDeclNode, Object>()).put(opDef, val);
                 }
               }
               catch (Throwable swallow) {
@@ -314,9 +342,6 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 
       // run for all inner modules
       ModuleNode[] imods = mod.getInnerModules();
-      
-//      System.out.println("###########  all inner modules " + imods);
-
       for (int i = 0; i < imods.length; i++) {
         this.processConstantDefns(imods[i]);
       }
@@ -335,14 +360,11 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
      * Processes the specification and collects information to be used
      * by tools. The processing tries to use any customized module (Java
      * class) to override the corresponding TLA+ module.
+     * @param mode 
      */
     // SZ Feb 20, 2009: added support for existing specObj
-    private final void processSpec()
+    private final void processSpec(final Mode mode)
     {
-
-        // construct new specification object, if the
-        // passed one was null
-        specObj = new SpecObj(this.rootFile, resolver);
 
         // We first call the SANY front-end to parse and semantic-analyze
         // the complete TLA+ spec starting with the main module rootFile.
@@ -375,10 +397,15 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         // since failed parsing is not marked by an exception,
         // check the status of the spec
         // check if the specification has been successfully created
-        if (!specObj.initErrors.isSuccess() || !specObj.parseErrors.isSuccess() || !specObj.semanticErrors.isSuccess())
-        {
-            Assert.fail(EC.TLC_PARSING_FAILED);
-        }
+		if (!specObj.initErrors.isSuccess()) {
+			Assert.fail(EC.TLC_PARSING_FAILED, specObj.initErrors.getErrors());
+		}
+		if (!specObj.parseErrors.isSuccess()) {
+			Assert.fail(EC.TLC_PARSING_FAILED, specObj.parseErrors.getErrors());
+		}
+		if (!specObj.semanticErrors.isSuccess()) {
+			Assert.fail(EC.TLC_PARSING_FAILED, specObj.semanticErrors.getErrors());
+		}
 
         // Set the rootModule:
         this.moduleTbl = specObj.getExternalModuleTable();
@@ -392,9 +419,6 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         // Get all the state variables in the spec:
         OpDeclNode[] varDecls = this.rootModule.getVariableDecls();
 
-        System.out.println("!!!!!!!!!! vardecl : " + varDecls[0]);
-        System.out.println("!!!!!!!!!! vardecl : " + varDecls[1]);
-
         this.variablesNodes = new OpDeclNode[varDecls.length];
         UniqueString[] varNames = new UniqueString[varDecls.length];
 
@@ -404,17 +428,6 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
             varNames[i] = varDecls[i].getName();
             varNames[i].setLoc(i);
         }
-
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[0]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[1]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[2]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[3]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[4]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[5]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[6]);
-        System.out.println("!!!!!!!!!! this.varNames : " + varNames[7]);
-
-        System.out.println("!!!!!!!!!! this.variablesNodes : " + this.variablesNodes);
 
         // SZ 11.04.2009: set the number of variables
         UniqueString.setVariableCount(varDecls.length);
@@ -486,20 +499,11 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         Hashtable constants = this.initializeConstants();
         Hashtable overrides = this.config.getOverrides();
 
-        System.out.println("!!!!!!!!!! this.config : " + this.config);
-
-        System.out.println("!!!!!!!!!! constants :  " + constants);
-        System.out.println("!!!!!!!!!! overrides :  " + overrides);
-
         // Apply config file constants to the constant decls visible to rootModule.
         OpDeclNode[] rootConsts = this.rootModule.getConstantDecls();
-        
-
         for (int i = 0; i < rootConsts.length; i++)
         {
             UniqueString name = rootConsts[i].getName();
-            System.out.println("!!!!!!!!!! rootConsts name :  " + name);
-
             Object val = constants.get(name.toString());
             if (val == null && !overrides.containsKey(name.toString()))
             {
@@ -552,16 +556,10 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         {
         	
         	final UniqueString modName = mods[i].getName();
-            System.out.println("!!!!!!!!!!!!! found module name : " + modName.toString());
-
             final Class<?> userModule = this.tlaClass.loadClass(modName.toString());
-            
             if (userModule != null)
             {
-                System.out.println("!!!!!!!!!!!!! simple name : " + userModule.getSimpleName());
-
             	final Map<UniqueString, Integer> opname2arity = new HashMap<>();
-            	//TODO 
             	if (!BuiltInModuleHelper.isBuiltInModule(userModule)) {
 					// Remember arity for non built-in overrides to later match with java override
 					// when loading.
@@ -583,10 +581,11 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
                     {
                         String name = TLARegistry.mapName(method.getName());
                         UniqueString uname = UniqueString.uniqueStringOf(name);
-                        if (method.getAnnotation(TLAPlusOperator.class) != null) {
-                        	// Skip, handled below with annotation based mechanism.
-                        	continue;
-                        }
+						if (method.getAnnotation(TLAPlusOperator.class) != null
+								|| method.getAnnotation(Evaluation.class) != null) {
+							// Skip, handled below with annotation based mechanism.
+							continue;
+						}
                     	final int acnt = method.getParameterCount();
                     	final Value val = MethodValue.get(method);
                         
@@ -608,6 +607,9 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
                     }
                 }
                 // Adds/overrides new definitions:
+                //TODO This loop could be merged with the previous loop
+                // by using mods[i].getOpDef(UniqueString) right away
+                // without javaDefns.
                 OpDefNode[] opDefs = mods[i].getOpDefs();
                 for (int j = 0; j < opDefs.length; j++)
                 {
@@ -616,181 +618,150 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
                     if (val != null)
                     {
                         opDefs[j].getBody().setToolObject(toolId, val);
-                        System.out.println("!!!!!!!!!! unname : " + uname);
-                        System.out.println("!!!!!!!!!! val : " + val);
-
                         this.defns.put(uname, val);
                     }
                 }
             }
         }
-        
-        System.out.println("!!!!!!!!!! this.defns after loop : " + this.defns.get("SetToSeq"));
-
 		// Load override definitions through user-provided index class. In other words,
 		// a user creates a class that implements the interface ITLCOverrides.
 		// ITLCOverride defines a single method that returns an array of classes which
 		// define Java overrides (this approach is simpler and faster than scanning
-		// the complete classpath). The convention is to name the index class
-		// "tlc2.overrides.TLCOverrides":
-        //TODO: Support multiple loader classes (MyTLCOverrides, AnotherTLCOverrides, ...).
+		// the complete classpath). To load user-provided index classes, pass the
+        // -Dtlc2.overrides.TLCOverrides property with a list of index classes
+        // separated by the system's path separator (":", ";").  If no property is given,
+        // the default is to load the first class on the classpath with name tlc2.overrides.TLCOverrides
+        // that implements tlc2.overrides.ITLCOverrides.  This is usually the tlc2.overrides.TLCOverrides
+        // provided by the CommunityModules.
         boolean hasCallableValue = false;
-		final Class<?> idx = this.tlaClass.loadClass("tlc2.overrides.TLCOverrides");
-		
-		System.out.println("!!!! idx: " + idx);
-		if (idx != null && ITLCOverrides.class.isAssignableFrom(idx)) {
-			try {
-				final ITLCOverrides index = (ITLCOverrides) idx.newInstance();
-				final Class<?>[] candidateClasses = index.get();
-				for (Class<?> c : candidateClasses) {
-					
-					System.out.println("!!!! c: " + c.getCanonicalName());
-
-					final Method[] candidateMethods = c.getDeclaredMethods();
-					LOOP: for (Method m : candidateMethods) {
-						
-						final Evaluation evaluation = m.getAnnotation(Evaluation.class);
-
-						System.out.println("!!!! evaluation: " + evaluation);
-
-						if (evaluation != null) {
-
-							final Value val = new EvaluatingValue(m, evaluation.minLevel());
-
-							final ModuleNode moduleNode = modSet.get(evaluation.module());
-							if (moduleNode == null) {
-								if (evaluation.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
-										evaluation.module() + "!" + evaluation.definition(),
-										c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-								continue LOOP;
-							}
-							final OpDefNode opDef = moduleNode.getOpDef(evaluation.definition());
-							if (opDef == null) {
-								if (evaluation.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
-										evaluation.module() + "!" + evaluation.definition(),
-										c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-								continue LOOP;
-							}
-							
-							opDef.getBody().setToolObject(toolId, val);
-		                    this.defns.put(evaluation.definition(), val);
-		                    
-							// Print success of loading the module override.
-							MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
-									evaluation.module() + "!" + evaluation.definition(),
-									c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-		                    
-		                    // continue with next method (don't try to also load Execution annotation below).
-		                    continue LOOP;
-						}
-						
-						final TLAPlusCallable jev = m.getAnnotation(TLAPlusCallable.class);
-						if (jev != null) {
-
-							final Value val = new CallableValue(m, jev.minLevel());
-							
-							final ModuleNode moduleNode = modSet.get(jev.module());
-							if (moduleNode == null) {
-
-								if (jev.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
-										jev.module() + "!" + jev.definition(),
-										c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-								continue LOOP;
-							}
-							final OpDefNode opDef = moduleNode.getOpDef(jev.definition());
-							if (opDef == null) {
-								if (jev.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
-										jev.module() + "!" + jev.definition(),
-										c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-								continue LOOP;
-							}
-							
-							opDef.getBody().setToolObject(toolId, val);
-		                    this.defns.put(jev.definition(), val);
-		                    hasCallableValue = true;
-		                    
-							// Print success of loading the module override.
-							MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
-									jev.module() + "!" + jev.definition(),
-									c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
-		                    
-		                    // continue with next method (don't try to also load Execution annotation below).
-		                    continue LOOP;
-						}
-						
-						final TLAPlusOperator opOverrideCandidate = m.getAnnotation(TLAPlusOperator.class);
-						System.out.println("!!!!!!!!!!!! modSet : " + modSet.keySet());
-						System.out.println("!!!!!!!!!!!! opOverrideCandidate : " + opOverrideCandidate);
-
-						//modSet holds the end ============ of ecery tla file
-
-						if (opOverrideCandidate != null) {
-							System.out.println("!!!!!!!!!!!! candidate method opOverrideCandidate : " + opOverrideCandidate.module());
-
-							final ModuleNode moduleNode = modSet.get(opOverrideCandidate.module());
-							System.out.println("!!!!!!!!!!!! candidate method moduleNode : " + moduleNode);
-
-							if (moduleNode == null) {
-								if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
-										opOverrideCandidate.identifier(), opOverrideCandidate.module(), m.toString());
-								continue LOOP;
-							}
+		final String tlcOverrides = TLCBuiltInOverrides.class.getName() + File.pathSeparator
+				+ System.getProperty("tlc2.overrides.TLCOverrides", "tlc2.overrides.TLCOverrides");
+		for (String ovrde : tlcOverrides.split(File.pathSeparator)) {
+			final Class<?> idx = this.tlaClass.loadClass(ovrde);
+			if (idx != null && ITLCOverrides.class.isAssignableFrom(idx)) {
+				try {
+					final ITLCOverrides index = (ITLCOverrides) idx.newInstance();
+					final Class<?>[] candidateClasses = index.get();
+					for (Class<?> c : candidateClasses) {
+						final Method[] candidateMethods = c.getDeclaredMethods();
+						LOOP: for (Method m : candidateMethods) {
 							
 							
-							//this reads directly from the TLA file
-							final OpDefNode opDef = moduleNode.getOpDef(opOverrideCandidate.identifier());
-							
-							// opDef holds the exact line and col where the definition of the operator in the tla file exists
-							System.out.println("!!!!!!!!! candidate method opDef : " + opDef);
-							System.out.println("!!!!!!!!! opDef method arity : " + opDef.getArity());
-							System.out.println("!!!!!!!!! opDef method getComment : " + opDef.getComment());
-							System.out.println("!!!!!!!!! opDef method  getHumanReadableImage: " + opDef.getHumanReadableImage());
-							System.out.println("!!!!!!!!! opDef method  getBody: " + opDef.getBody());
-							System.out.println("!!!!!!!!! opDef method  getLevel: " + opDef.getLevel());
-							System.out.println("!!!!!!!!! opDef method  getNumberOfArgs: " + opDef.getNumberOfArgs());
-							System.out.println("!!!!!!!!! opDef method  getSignature: " + opDef.getSignature());
-
-
-
-							if (opDef == null) {
+							final Evaluation evaluation = m.getAnnotation(Evaluation.class);
+							if (evaluation != null) {
+								final ModuleNode moduleNode = modSet.get(evaluation.module());
+								if (moduleNode == null) {
+									if (evaluation.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
+											evaluation.module() + "!" + evaluation.definition(),
+											c.getResource(c.getSimpleName() + ".class").toExternalForm(), "<Java Method: " + m + ">");
+									continue LOOP;
+								}
+								final OpDefNode opDef = moduleNode.getOpDef(evaluation.definition());
+								if (opDef == null) {
+									if (evaluation.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
+											evaluation.module() + "!" + evaluation.definition(),
+											c.getResource(c.getSimpleName() + ".class").toExternalForm(), "<Java Method: " + m + ">");
+									continue LOOP;
+								}
 								
-								if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
-										opOverrideCandidate.identifier(), opOverrideCandidate.module(), m.toString());
-								continue LOOP;
+								// Either load the first EvaluatingValue or combine multiple EvaluatingValues for this operator into
+								// a PriorityEvaluatingValue that -given by the EVs priority- keeps evaluating every EV until one returns
+								// a Value.
+								final Object toolObject = opDef.getBody().getToolObject(toolId);
+								if (toolObject instanceof EvaluatingValue) {
+									final Value val = new PriorityEvaluatingValue(m, evaluation.minLevel(), evaluation.priority(), opDef, (EvaluatingValue) toolObject);
+									opDef.getBody().setToolObject(toolId, val);
+				                    this.defns.put(evaluation.definition(), val);
+								} else if (toolObject instanceof PriorityEvaluatingValue) {
+									final PriorityEvaluatingValue mev = (PriorityEvaluatingValue) toolObject;
+									mev.add(new EvaluatingValue(m, evaluation.minLevel(), evaluation.priority(), opDef));
+								} else {
+									final Value val = new EvaluatingValue(m, evaluation.minLevel(), evaluation.priority(), opDef);
+									opDef.getBody().setToolObject(toolId, val);
+				                    this.defns.put(evaluation.definition(), val);
+								}
+			                    
+								// Print success of loading the module override.
+			                    if (!evaluation.silent()) {
+			                    	MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
+			                    			evaluation.module() + "!" + evaluation.definition(),
+			                    			c.getResource(c.getSimpleName() + ".class").toExternalForm(), "<Java Method: " + m + ">");
+			                    }
+			                    
+			                    // continue with next method (don't try to also load Execution annotation below).
+			                    continue LOOP;
 							}
-
-							final Value val = MethodValue.get(m, opOverrideCandidate.minLevel());
-							System.out.println("candidate method val : " + val);
-							System.out.println("candidate method parameter count : " + m.getParameterCount());
-
-							if (opDef.getArity() != m.getParameterCount()) {
-								if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MISMATCH,
-										opDef.getName().toString(), c.getName(), val.toString());
-								continue LOOP;
-							} else {
-								if (opOverrideCandidate.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
-										opDef.getName().toString(), c.getName(),
-										val instanceof MethodValue ? val.toString() : val.getClass().getName()); // toString of non-MethodValue instances can be expensive.
+							
+							final TLAPlusCallable jev = m.getAnnotation(TLAPlusCallable.class);
+							if (jev != null) {
+								
+								final ModuleNode moduleNode = modSet.get(jev.module());
+								if (moduleNode == null) {
+									if (jev.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
+											jev.module() + "!" + jev.definition(),
+											c.getResource(c.getSimpleName() + ".class").toExternalForm(), "<Java Method: " + m + ">");
+									continue LOOP;
+								}
+								final OpDefNode opDef = moduleNode.getOpDef(jev.definition());
+								if (opDef == null) {
+									if (jev.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
+											jev.module() + "!" + jev.definition(),
+											c.getResource(c.getSimpleName() + ".class").toExternalForm(), "<Java Method: " + m + ">");
+									continue LOOP;
+								}
+								
+								final Value val = new CallableValue(m, jev.minLevel(), opDef);
+								opDef.getBody().setToolObject(toolId, val);
+			                    this.defns.put(jev.definition(), val);
+			                    hasCallableValue = true;
+			                    
+								// Print success of loading the module override.
+								MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
+										jev.module() + "!" + jev.definition(),
+										c.getResource(c.getSimpleName() + ".class").toExternalForm(), val.toString());
+			                    
+			                    // continue with next method (don't try to also load Execution annotation below).
+			                    continue LOOP;
 							}
+							
+							final TLAPlusOperator opOverrideCandidate = m.getAnnotation(TLAPlusOperator.class);
+							if (opOverrideCandidate != null) {
+								final ModuleNode moduleNode = modSet.get(opOverrideCandidate.module());
+								if (moduleNode == null) {
+									if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MODULE_MISMATCH,
+											opOverrideCandidate.identifier(), opOverrideCandidate.module(), m.toString());
+									continue LOOP;
+								}
+								final OpDefNode opDef = moduleNode.getOpDef(opOverrideCandidate.identifier());
+								if (opDef == null) {
+									if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_IDENTIFIER_MISMATCH,
+											opOverrideCandidate.identifier(), opOverrideCandidate.module(), m.toString());
+									continue LOOP;
+								}
 
-							opDef.getBody().setToolObject(toolId, val);
-							 System.out.println("!!!!!!!!!! opOverrideCandidate.identifier() : " + opOverrideCandidate.identifier());
-		                     System.out.println("!!!!!!!!!! val : " + val);
+								final Value val = MethodValue.get(m, opOverrideCandidate.minLevel());
+								if (opDef.getArity() != m.getParameterCount()) {
+									if (opOverrideCandidate.warn()) MP.printWarning(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_MISMATCH,
+											opDef.getName().toString(), c.getName(), val.toString());
+									continue LOOP;
+								} else {
+									if (opOverrideCandidate.warn()) MP.printMessage(EC.TLC_MODULE_VALUE_JAVA_METHOD_OVERRIDE_LOADED,
+											opDef.getName().toString(), c.getName(),
+											val instanceof MethodValue ? val.toString() : val.getClass().getName()); // toString of non-MethodValue instances can be expensive.
+								}
 
-							this.defns.put(opOverrideCandidate.identifier(), val);
+								opDef.getBody().setToolObject(toolId, val);
+								this.defns.put(opOverrideCandidate.identifier(), val);
+							}
 						}
 					}
+				} catch (InstantiationException | IllegalAccessException e) {
+					// TODO Specific error code.
+					Assert.fail(EC.GENERAL);
+					return;
 				}
-				
-				
-		        System.out.println("!!!!!!!!!! this.defns after 2nd loop : " + this.defns.toString());
-
-			} catch (InstantiationException | IllegalAccessException e) {
-				// TODO Specific error code.
-				Assert.fail(EC.GENERAL);
-				return;
-			}
-        }
+	        }
+		}
         
 
         Set<String> overriden = new HashSet<String>();
@@ -816,14 +787,16 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
             }
         }
 
-        // set variables to the static filed in the state
-        if (hasCallableValue) {
-        	TLAPlusExecutorState.setVariables(this.variablesNodes);
-		} else if (Simulator.actionStats) {
-			TLCStateMutSimulation.setVariables(this.variablesNodes);
-        } else {
-            TLCStateMut.setVariables(this.variablesNodes);
-        }
+		// set variables to the static filed in the state
+		if (mode == Mode.Simulation || mode == Mode.MC_DEBUG) {
+			TLCStateMutExt.setVariables(this.variablesNodes);
+		} else if (hasCallableValue) {
+			assert mode == Mode.Executor;
+			TLCStateMutExt.setVariables(this.variablesNodes);
+		} else {
+			assert mode == Mode.MC;
+			TLCStateMut.setVariables(this.variablesNodes);
+		}
 
         // Apply config file overrides to operator definitions:
         for (int i = 0; i < rootOpDefs.length; i++)
@@ -988,13 +961,11 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
         // Postprocess:
         this.invariants = new Action[this.invVec.size()];
         this.invNames = new String[this.invVec.size()];
-        for (int i = 0; i < this.invariants.length; i++)
+        for (int i = 0; i < this.invVec.size(); i++)
         {
             this.invariants[i] = (Action) this.invVec.elementAt(i);
             this.invNames[i] = (String) this.invNameVec.elementAt(i);
         }
-        this.invVec = null;
-        this.invNameVec = null;
 
         this.impliedInits = new Action[this.impliedInitVec.size()];
         this.impliedInitNames = new String[this.impliedInitVec.size()];
@@ -1048,6 +1019,20 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
             Assert.fail(EC.TLC_CONFIG_MISSING_NEXT);
         }
         
+        
+		// Process overrides given by ParameterizedSpecObj *after* the ordinary config
+		// has been processed. A check above expects this.invariants to be empty if
+		// this.initPred is empty.
+        final java.util.List<Action> overrides = specObj.getInvariants();
+
+        final ArrayList<Action> a = new ArrayList<>(Arrays.asList(this.invariants));
+		a.addAll(overrides);
+        this.invariants = a.toArray(Action[]::new);
+
+        final ArrayList<String> b = new ArrayList<>(Arrays.asList(this.invNames));
+        b.addAll(overrides.stream().map(act -> act.getNameOfDefault()).collect(Collectors.toList()));
+        this.invNames = b.toArray(String[]::new);
+        
 		// Process the model constraints in the config. It's done after all
 		// other config processing because it used to be processed lazy upon the
 		// first invocation of getModelConstraints. However, this caused a NPE
@@ -1080,7 +1065,7 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
             {
                 Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "initial predicate", name });
             }
-            this.initPredVec.addElement(new Action(def.getBody(), Context.Empty, def));
+            this.initPredVec.addElement(new Action(def.getBody(), Context.Empty, def, true, false));
         }
 
         name = this.config.getNext();
@@ -1175,7 +1160,7 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
                     ExprNode body = ((OpDefNode) val).getBody();
                     if (symbolNodeValueLookupProvider.getLevelBound(body, c, toolId) == 1)
                     {
-                        this.initPredVec.addElement(new Action(Specs.addSubsts(body, subs), c, ((OpDefNode) val)));
+                        this.initPredVec.addElement(new Action(Specs.addSubsts(body, subs), c, ((OpDefNode) val), true, false));
                     } else
                     {
                         this.processConfigSpec(body, c, subs);
@@ -1520,7 +1505,13 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 	            {
 	                Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "action constraint", name });
 	            }
-	            this.actionConstraints[idx++] = def.getBody();
+	            final ExprNode body = def.getBody();
+				// Remember OpDefNode of body because CostModelCreator needs it to correctly
+				// report state statistics (CostModelCreator#create will later replace it
+	            // with an Action instance).
+	            assert body.getToolObject(toolId) == null;
+	            body.setToolObject(toolId, def);
+	            this.actionConstraints[idx++] = body;
 	        } else if (constr != null)
 	        {
 	            if (!(constr instanceof IBoolValue) || !((BoolValue) constr).val)
@@ -1560,7 +1551,13 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 	            {
 	                Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "constraint", name });
 	            }
-	            this.modelConstraints[idx++] = def.getBody();
+	            final ExprNode body = def.getBody();
+				// Remember OpDefNode of body because CostModelCreator needs it to correctly
+				// report state statistics (CostModelCreator#create will later replace it
+	            // with an Action instance).
+	            assert body.getToolObject(toolId) == null;
+	            body.setToolObject(toolId, def);
+				this.modelConstraints[idx++] = body;
 	        } else if (constr != null)
 	        {
 	            if (!(constr instanceof IBoolValue) || !((BoolValue) constr).val)
@@ -1899,5 +1896,13 @@ public class SpecProcessor implements ValueConstants, ToolGlobals {
 
 	public Defns getUnprocessedDefns() {
 		return snapshot;
+	}
+	
+	public Defns getDefns() {
+		return defns;
+	}
+
+	public java.util.List<ExprNode> getPostConditionSpecs() {
+		return this.specObj.getPostConditionSpecs();
 	}
 }

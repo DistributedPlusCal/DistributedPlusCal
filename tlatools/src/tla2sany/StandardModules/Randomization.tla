@@ -27,7 +27,7 @@ LOCAL INSTANCE FiniteSets
 (* RandomSubset(k, S) equals a randomly chosen subset of S containing k    *)
 (* elements, where 0 < k < Cardinality(S).                                 *)
 (***************************************************************************)
-RandomSubset(k, S) == CHOOSE T \in SUBSET S : Cardinality(T) = T
+RandomSubset(k, S) == CHOOSE T \in SUBSET S : Cardinality(T) = k
 
 (***************************************************************************)
 (* RandomSetOfSubsets(k, n, S) equals a pseudo-randomly chosen set of      *)
@@ -46,7 +46,7 @@ RandomSubset(k, S) == CHOOSE T \in SUBSET S : Cardinality(T) = T
 (* close to k the cardinality of the chosen set of subsets is.             *)
 (***************************************************************************)
 RandomSetOfSubsets(k, n, S) == CHOOSE T \in SUBSET SUBSET S :
-											  Cardinality(T) \leq k
+                                              Cardinality(T) \leq k
 
 (***************************************************************************)
 (* The value of TestRandomSetOfSubsets(k, n, S) is a sequence of five      *)

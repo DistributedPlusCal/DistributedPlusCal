@@ -7,7 +7,10 @@
 package tlc2.value.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import tlc2.tool.FingerprintException;
 import tlc2.tool.coverage.CostModel;
@@ -89,9 +92,11 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
     try {
       SetEnumValue set = obj instanceof Value ? (SetEnumValue) ((Value)obj).toSetEnum() : null;
       if (set == null) {
-        if (obj instanceof ModelValue) return 1;
+        if (obj instanceof ModelValue) {
+            return ((ModelValue) obj).modelValueCompareTo(this);
+        }
         Assert.fail("Attempted to compare the set " + Values.ppr(this.toString()) +
-        " with the value:\n" + Values.ppr(obj.toString()));
+        " with the value:\n" + Values.ppr(obj.toString()), getSource());
       }
       this.normalize();
       set.normalize();
@@ -117,7 +122,7 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
         if (obj instanceof ModelValue)
            return ((ModelValue) obj).modelValueEquals(this) ;
         Assert.fail("Attempted to check equality of the set " + Values.ppr(this.toString()) +
-        " with the value:\n" + Values.ppr(obj.toString()));
+        " with the value:\n" + Values.ppr(obj.toString()), getSource());
       }
       this.normalize();
       set.normalize();
@@ -221,7 +226,7 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
   public final Value takeExcept(ValueExcept ex) {
     try {
       if (ex.idx < ex.path.length) {
-        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".");
+        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".", getSource());
       }
       return ex.value;
     }
@@ -235,7 +240,7 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
   public final Value takeExcept(ValueExcept[] exs) {
     try {
       if (exs.length != 0) {
-        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".");
+        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".", getSource());
       }
       return this;
     }
@@ -452,7 +457,7 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
     int index = 0;
 
     public Enumerator() {
-      normalize();
+    	normalize();
     }
 
     @Override
@@ -479,6 +484,14 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
     		vec.addElement(v);
     	}
     	return new SetEnumValue(vec, false, cm);
+	}
+
+	@Override
+	public ValueEnumeration elements(Ordering ordering) {
+		if (ordering == Ordering.RANDOMIZED) {
+			return elements(size());
+		}
+		return super.elements(ordering);
 	}
 
 	@Override
@@ -527,5 +540,19 @@ public static final SetEnumValue DummyEnum = new SetEnumValue((ValueVec)null, tr
 		final Value res = new SetEnumValue(elems, isNorm);
 		vos.assign(res, index);
 		return res;
+	}
+
+	@Override
+	public List<TLCVariable> getTLCVariables(final TLCVariable prototype, Random rnd) {
+		final List<TLCVariable> nestedVars = new ArrayList<>(this.size());
+		ValueEnumeration elements = this.elements();
+		Value value;
+		while ((value = elements.nextElement()) != null) {
+			final TLCVariable nested = prototype.newInstance(value.toString(), value, rnd);
+			nested.setName(value.toString());
+			nested.setValue(value.toString());
+			nestedVars.add(nested);
+		}
+		return nestedVars;
 	}
 }

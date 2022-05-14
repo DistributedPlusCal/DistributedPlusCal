@@ -7,12 +7,14 @@
 package tlc2.value.impl;
 
 import java.io.IOException;
+import java.util.Random;
 
 import tlc2.tool.FingerprintException;
 import tlc2.util.FP64;
 import tlc2.value.IMVPerm;
 import tlc2.value.IValue;
 import tlc2.value.IValueOutputStream;
+import tlc2.value.RandomEnumerableValues;
 import tlc2.value.Values;
 import util.Assert;
 
@@ -80,7 +82,7 @@ implements Enumerable, Reducible {
            && (   !(elem instanceof ModelValue)
                || (((ModelValue) elem).type != 0)) ) {
         Assert.fail("Attempted to check if the value:\n" + Values.ppr(elem.toString()) +
-        "\nis in the integer interval " + Values.ppr(this.toString()));
+        "\nis in the integer interval " + Values.ppr(this.toString()), getSource());
       }
       return false;
     }
@@ -120,7 +122,7 @@ implements Enumerable, Reducible {
 			return Math.addExact(Math.subtractExact(this.high, this.low), 1);
 		} catch (ArithmeticException e) {
 			Assert.fail("Size of interval value exceeds the maximum representable size (32bits): "
-			      + Values.ppr(this.toString()) + ".");
+			      + Values.ppr(this.toString()) + ".", getSource());
 			return 0; // unreachable, but it satisfies the compiler
 		}
     }
@@ -208,7 +210,7 @@ implements Enumerable, Reducible {
     try {
       if (ex.idx < ex.path.length) {
         Assert.fail("Attempted to apply EXCEPT construct to the interval value " +
-        Values.ppr(this.toString()) + ".");
+        Values.ppr(this.toString()) + ".", getSource());
       }
       return ex.value;
     }
@@ -223,7 +225,7 @@ implements Enumerable, Reducible {
     try {
       if (exs.length != 0) {
         Assert.fail("Attempted to apply EXCEPT construct to the interval value " +
-        Values.ppr(this.toString()) + ".");
+        Values.ppr(this.toString()) + ".", getSource());
       }
       return this;
     }
@@ -336,7 +338,7 @@ implements Enumerable, Reducible {
 			return IntValue.gen(low + idx);
 		}
 		Assert.fail(
-				"Attempted to retrieve out-of-bounds element from the interval value " + Values.ppr(this.toString()) + ".");
+				"Attempted to retrieve out-of-bounds element from the interval value " + Values.ppr(this.toString()) + ".", getSource());
         return null; // make compiler happy
 	}
     
@@ -379,5 +381,18 @@ implements Enumerable, Reducible {
 				return IntValue.gen(low + nextIndex());
 			}
 		};
+	}
+
+	public Value randomElement() {
+	     int sz = size();
+	     int index = (int) Math.floor(RandomEnumerableValues.get().nextDouble() * sz);
+	     return elementAt(index);
+	}
+
+	@Override
+	public TLCVariable toTLCVariable(final TLCVariable variable, Random rnd) {
+		// TODO: This call is expensive for a large interval (it gets enumerated) but I don't
+		// expect this to be a problem initially.
+		return this.toSetEnum().toTLCVariable(variable, rnd);
 	}
 }

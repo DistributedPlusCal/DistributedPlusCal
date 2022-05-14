@@ -97,6 +97,10 @@ public final class Location implements Comparable<Location>
 		this(UniqueString.uniqueStringOf(fName), Integer.valueOf(bl), Integer.valueOf(bc), Integer.valueOf(el),
 				Integer.valueOf(ec));
 	}
+
+	public Location(final String fName, int bl, int bc, int el, int ec) {
+		this(UniqueString.uniqueStringOf(fName), bl, bc, el, ec);
+	}
     
    /**
      * Constructs a location
@@ -116,7 +120,7 @@ public final class Location implements Comparable<Location>
     }
 
     public Location(int bl, int bc, int el, int ec) {
-		this(null, bl, bc, el, ec);
+		this((UniqueString) null, bl, bc, el, ec);
 	}
 
 	
@@ -324,6 +328,10 @@ public final class Location implements Comparable<Location>
         return name != null ? name.toString() : null;
     }
 
+    public final UniqueString sourceAsUniqueString() {
+    	return name;
+    }
+    
     /**
      * This method should be called by all tools to print the location, so
      * users see a consistent method of identifying a location. I        
@@ -448,13 +456,13 @@ public final class Location implements Comparable<Location>
 		if (this.bLine > other.bLine) {
 			return false;
 		}
+		if (this.beginLine() == other.beginLine() && this.beginColumn() > other.beginColumn()) {
+			return false;
+		}
 		if (this.eLine < other.eLine) {
 			return false;
 		}
-		if (this.bColumn > other.bColumn) {
-			return false;
-		}
-		if (this.eColumn < other.eColumn) {
+		if (this.endLine() == other.endLine() && this.endColumn() < other.endColumn()) {
 			return false;
 		}
 		return true;

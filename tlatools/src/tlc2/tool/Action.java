@@ -17,6 +17,8 @@ import util.UniqueString;
 public final class Action implements ToolGlobals, Serializable {
 	private static final UniqueString UNNAMED_ACTION = UniqueString.uniqueStringOf("UnnamedAction");
 
+	public static final Action UNKNOWN = new Action(SemanticNode.nullSN, Context.Empty, UNNAMED_ACTION, false, false);
+
   /* A TLA+ action.   */
 
   /* Fields  */
@@ -24,23 +26,36 @@ public final class Action implements ToolGlobals, Serializable {
   public final Context con;           // Context of the action
   private final UniqueString actionName;
   private OpDefNode opDef = null;
+  private int id;
+  private final boolean isInitPred;
+  private final boolean isInternal;
   public CostModel cm = CostModel.DO_NOT_RECORD;
 
   /* Constructors */
   public Action(SemanticNode pred, Context con) {
-	  this(pred, con, UNNAMED_ACTION);
+	  this(pred, con, false);
+  }
+  
+  public Action(SemanticNode pred, Context con, boolean isInitPred) {
+	  this(pred, con, UNNAMED_ACTION, isInitPred, false);
   }
 
-  private Action(SemanticNode pred, Context con, UniqueString actionName) {
+  private Action(SemanticNode pred, Context con, UniqueString actionName, boolean isInitPred, final boolean isInternal) {
 	  this.pred = pred;
 	  this.con = con;
 	  this.actionName = actionName;
+	  this.isInitPred = isInitPred;
+	  this.isInternal = isInternal;
   }
 
   public Action(SemanticNode pred, Context con, OpDefNode opDef) {
+	  this(pred, con, opDef, false, false);
+  }
+
+  public Action(SemanticNode pred, Context con, OpDefNode opDef, boolean isInitPred, final boolean isInternal) {
+	  this(pred, con, opDef != null ? opDef.getName() : UNNAMED_ACTION, isInitPred, isInternal);
 	  // opDef null when action not declared, i.e. Spec == x = 0 /\ ...
 	  // See test64 and test64a and others.
-	  this(pred, con, opDef != null ? opDef.getName() : UNNAMED_ACTION);
 	  this.opDef = opDef;
   }
 
@@ -51,11 +66,19 @@ public final class Action implements ToolGlobals, Serializable {
 
   public final String getLocation() {
 	  // It is possible that actionName is "Action" but lets ignore it for now.
-	  if (actionName != UNNAMED_ACTION && actionName != null && !"".equals(actionName.toString())) {
+	  if (isNamed()) {
 		  // If known, print the action name instead of the generic string "Action".
-	      return "<" + actionName + " " +  pred.getLocation() + ">";
+	      return getLocation(actionName.toString());
 	  }
-	  return "<Action " + pred.getLocation() + ">";
+	  return getLocation("Action");
+  }
+  
+  public final String getLocation(final String actionName) {
+      return "<" + actionName + " " +  pred.getLocation() + ">";
+  }
+  
+  public final boolean isNamed() {
+	  return actionName != UNNAMED_ACTION && actionName != null && !"".equals(actionName.toString());
   }
   
   /**
@@ -64,6 +87,16 @@ public final class Action implements ToolGlobals, Serializable {
   public final UniqueString getName() {
 	  return actionName;
   }
+  
+	public final String getNameOfDefault() {
+		if (isNamed()) {
+			return getName().toString();
+		}
+		// If we have an unnamed action, action name will be
+		// the string representation of the action (which has information
+		// about line, column etc).
+		return toString();
+	}
   
 	/**
 	 * @return The OpDefNode corresponding to this Action or <code>null</code> if
@@ -94,5 +127,24 @@ public final class Action implements ToolGlobals, Serializable {
 			}
 		}
 		return Location.nullLoc;
+	}
+
+	public final Location getDefinition() {
+	   return pred.getLocation();
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+	public int getId() {
+		return this.id;
+	}
+	
+	public final boolean isInitPredicate() {
+		return isInitPred;
+	}
+
+	public boolean isInternal() {
+		return isInternal;
 	}
 }

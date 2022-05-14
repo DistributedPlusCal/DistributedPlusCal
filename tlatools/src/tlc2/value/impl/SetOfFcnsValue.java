@@ -8,6 +8,7 @@ package tlc2.value.impl;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Random;
 
 import tlc2.TLCGlobals;
 import tlc2.tool.FingerprintException;
@@ -74,7 +75,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
         if (elem instanceof ModelValue)
            return ((ModelValue) elem).modelValueMember(this) ;
         Assert.fail("Attempted to check if \n" + elem + "\nwhich is not a TLC function" +
-        " value, is in the set of functions:\n" + Values.ppr(this.toString()));
+        " value, is in the set of functions:\n" + Values.ppr(this.toString()), getSource());
       }
       if (fcn.intv == null) {
         fcn.normalize();
@@ -120,7 +121,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
     try {
       if (ex.idx < ex.path.length) {
         Assert.fail("Attempted to apply EXCEPT to the set of functions:\n" +
-        Values.ppr(this.toString()));
+        Values.ppr(this.toString()), getSource());
       }
       return ex.value;
     }
@@ -135,7 +136,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
     try {
       if (exs.length != 0) {
         Assert.fail("Attempted to apply EXCEPT to the set of functions:\n" +
-        Values.ppr(this.toString()));
+        Values.ppr(this.toString()), getSource());
       }
       return this;
     }
@@ -155,7 +156,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
         sz *= rsz;
         if (sz < -2147483648 || sz > 2147483647) {
           Assert.fail("Overflow when computing the number of elements in:\n" +
-                Values.ppr(toString()));
+                Values.ppr(toString()), getSource());
         }
       }
       return (int)sz;
@@ -363,6 +364,9 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
   public final ValueEnumeration elements() {
     try {
       if (this.fcnSet == null || this.fcnSet == SetEnumValue.DummyEnum) {
+    	  if (this.domain instanceof IntervalValue) {
+    		  return new DomIVEnumerator();
+    	  }
         return new Enumerator();
       }
       return this.fcnSet.elements();
@@ -373,6 +377,83 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
     }
   }
 
+  final class DomIVEnumerator implements ValueEnumeration {
+	protected ValueEnumeration[] enums;
+	protected Value[] currentElems;
+	protected boolean isDone;
+
+	public DomIVEnumerator() {
+      this.isDone = false;
+      int sz = domain.size();
+      if (range instanceof Enumerable) {
+        this.enums = new ValueEnumeration[sz];
+        this.currentElems = new Value[sz];
+        // SZ Feb 24, 2009: never read locally
+        // ValueEnumeration enumeration = ((Enumerable)domSet).elements();
+        for (int i = 0; i < sz; i++) {
+          this.enums[i] = ((Enumerable)range).elements();
+          this.currentElems[i] = this.enums[i].nextElement();
+          if (this.currentElems[i] == null) {
+            this.enums = null;
+            this.isDone = true;
+            break;
+          }
+        }
+      }
+      else {
+        Assert.fail("Attempted to enumerate a set of the form [D -> R]," +
+              "but the range R:\n" + Values.ppr(range.toString()) +
+              "\ncannot be enumerated.", getSource());
+      }
+	}
+
+    @Override
+    public final void reset() {
+      if (this.enums != null) {
+        for (int i = 0; i < this.enums.length; i++) {
+          this.enums[i].reset();
+          this.currentElems[i] = this.enums[i].nextElement();
+        }
+        this.isDone = false;
+      }
+    }
+    
+	@Override
+    public final Value nextElement() {
+		if (this.isDone) {
+			return null;
+		}
+		if (this.currentElems.length == 0) {
+	    	  if (coverage) { cm.incSecondary(); }
+			this.isDone = true;
+			return new FcnRcdValue((IntervalValue) domain, new Value[this.currentElems.length], cm);
+		} else {
+			// Take and store a snapshot of currentElems as the element to return for
+			// this invocation of nextElement().
+			final Value[] elems = new Value[this.currentElems.length];
+			System.arraycopy(this.currentElems, 0, elems, 0, this.currentElems.length);
+
+			// Eagerly generate the next element which is going to be returned the upon next
+			// invocation of nextElement().
+	    	  if (coverage) { cm.incSecondary(this.currentElems.length); }
+			for (int i = this.currentElems.length - 1; i >= 0; i--) {
+				this.currentElems[i] = this.enums[i].nextElement();
+				if (this.currentElems[i] != null) {
+					break;
+				}
+				if (i == 0) {
+					this.isDone = true;
+					break;
+				}
+				this.enums[i].reset();
+				this.currentElems[i] = this.enums[i].nextElement();
+			}
+			
+			return new FcnRcdValue((IntervalValue) domain, elems, cm);
+		}
+	}
+  }
+  
   final class Enumerator implements ValueEnumeration {
     private Value[] dom;
     private ValueEnumeration[] enums;
@@ -385,7 +466,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
       if (domSet == null)
         Assert.fail("Attempted to enumerate a set of the form [D -> R]," +
               "but the domain D:\n" + Values.ppr(domain.toString()) +
-              "\ncannot be enumerated.");
+              "\ncannot be enumerated.", getSource());
       domSet.normalize();
       ValueVec elems = domSet.elems;
       int sz = elems.size();
@@ -409,7 +490,7 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
       else {
         Assert.fail("Attempted to enumerate a set of the form [D -> R]," +
               "but the range R:\n" + Values.ppr(range.toString()) +
-              "\ncannot be enumerated.");
+              "\ncannot be enumerated.", getSource());
       }
     }
 
@@ -535,5 +616,8 @@ public class SetOfFcnsValue extends SetOfFcnsOrRcdsValue implements Enumerable {
 
 			return new FcnRcdValue(domSet.elems, range, true);
 		}
+	}
+	public TLCVariable toTLCVariable(final TLCVariable variable, Random rnd) {
+		return super.toTLCVariable(variable, rnd);
 	}
 }

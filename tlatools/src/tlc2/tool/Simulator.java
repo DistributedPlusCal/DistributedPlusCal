@@ -18,9 +18,14 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
 
+import tla2sany.semantic.ExprNode;
+import tla2sany.st.Location;
 import tlc2.TLCGlobals;
+import tlc2.module.TLCGetSet;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.output.StatePrinter;
@@ -28,6 +33,7 @@ import tlc2.tool.SimulationWorker.SimulationWorkerError;
 import tlc2.tool.SimulationWorker.SimulationWorkerResult;
 import tlc2.tool.coverage.CostModelCreator;
 import tlc2.tool.impl.FastTool;
+import tlc2.tool.impl.Tool;
 import tlc2.tool.liveness.ILiveCheck;
 import tlc2.tool.liveness.LiveCheck;
 import tlc2.tool.liveness.LiveCheck1;
@@ -35,17 +41,27 @@ import tlc2.tool.liveness.LiveException;
 import tlc2.tool.liveness.NoOpLiveCheck;
 import tlc2.util.DotActionWriter;
 import tlc2.util.RandomGenerator;
+import tlc2.util.Vect;
 import tlc2.util.statistics.DummyBucketStatistics;
 import tlc2.value.IValue;
+import tlc2.value.impl.BoolValue;
+import tlc2.value.impl.FcnRcdValue;
+import tlc2.value.impl.IntValue;
+import tlc2.value.impl.RecordValue;
+import tlc2.value.impl.StringValue;
+import tlc2.value.impl.TupleValue;
+import tlc2.value.impl.Value;
 import util.Assert.TLCRuntimeException;
 import util.FileUtil;
 import util.FilenameToStream;
+import util.UniqueString;
 
 public class Simulator {
 
 	public static boolean EXPERIMENTAL_LIVENESS_SIMULATION = Boolean
 			.getBoolean(Simulator.class.getName() + ".experimentalLiveness");
-	public static boolean actionStats = Boolean.getBoolean(tlc2.tool.Simulator.class.getName() + ".actionStats");
+	private final String traceActions;
+	private final Value config;
 
 	/* Constructors */
 
@@ -53,15 +69,19 @@ public class Simulator {
 	public Simulator(String specFile, String configFile, String traceFile, boolean deadlock, int traceDepth,
 			long traceNum, RandomGenerator rng, long seed, FilenameToStream resolver,
 			int numWorkers) throws IOException {
+		this(new FastTool(extracted(specFile), configFile, resolver, Tool.Mode.Simulation, new HashMap<>()), "", traceFile, deadlock,
+				traceDepth, traceNum, null, rng, seed, resolver, numWorkers);
+	}
+
+	private static String extracted(String specFile) {
 		int lastSep = specFile.lastIndexOf(FileUtil.separatorChar);
-		String specDir = (lastSep == -1) ? "" : specFile.substring(0, lastSep + 1);
-		specFile = specFile.substring(lastSep + 1);
+		return specFile.substring(lastSep + 1);
+	}
 
-		// SZ Feb 24, 2009: setup the user directory
-		// SZ Mar 5, 2009: removed it again because of the bug in simulator
-		// ToolIO.setUserDir(specDir);
-
-		this.tool = new FastTool(specDir, specFile, configFile, resolver);
+	public Simulator(ITool tool, String metadir, String traceFile, boolean deadlock, int traceDepth,
+				long traceNum, String traceActions, RandomGenerator rng, long seed, FilenameToStream resolver,
+				int numWorkers) throws IOException {
+		this.tool = tool;
 
 		this.checkDeadlock = deadlock && tool.getModelConfig().getCheckDeadlock();
 		this.checkLiveness = !this.tool.livenessIsTrue();
@@ -72,10 +92,11 @@ public class Simulator {
 			this.traceDepth = traceDepth;
 		} else {
 			// this.actionTrace = new Action[0]; // SZ: never read locally
-			this.traceDepth = Long.MAX_VALUE;
+			this.traceDepth = Integer.MAX_VALUE;
 		}
 		this.traceFile = traceFile;
 		this.traceNum = traceNum;
+		this.traceActions = traceActions;
 		this.rng = rng;
 		this.seed = seed;
 		this.aril = 0;
@@ -83,21 +104,26 @@ public class Simulator {
 		if (this.checkLiveness) {
 			if (EXPERIMENTAL_LIVENESS_SIMULATION) {
 				final String tmpDir = System.getProperty("java.io.tmpdir");
-				liveCheck = new LiveCheck(this.tool, tmpDir, new DummyBucketStatistics());
+				liveCheck = new LiveCheck(this.tool.getLiveness(), tmpDir, new DummyBucketStatistics());
 			} else {
-				liveCheck = new LiveCheck1(this.tool);
+				liveCheck = new LiveCheck1(this.tool.getLiveness());
 			}
 		} else {
-			liveCheck = new NoOpLiveCheck(tool, specDir);
+			liveCheck = new NoOpLiveCheck(tool, metadir);
 		}
 
 		this.numWorkers = numWorkers;
 		this.workers = new ArrayList<>(numWorkers);
 		for (int i = 0; i < this.numWorkers; i++) {
 			this.workers.add(new SimulationWorker(i, this.tool, this.workerResultQueue, this.rng.nextLong(),
-					this.traceDepth, this.traceNum, this.checkDeadlock, this.traceFile, this.liveCheck,
-					this.numOfGenStates, this.numOfGenTraces));
+					this.traceDepth, this.traceNum, this.traceActions, this.checkDeadlock, this.traceFile,
+					this.liveCheck, this.numOfGenStates, this.numOfGenTraces, this.welfordM2AndMean));
 		}
+	
+		// Eagerly create the config value in case the next-state relation involves
+		// TLCGet("config"). In this case, we would end up locking the
+		// UniqueString#InternTable for every lookup. See AbstractChecker too.
+		this.config = createConfig();
 		
 		if (TLCGlobals.isCoverageEnabled()) {
         	CostModelCreator.create(this.tool);
@@ -123,12 +149,13 @@ public class Simulator {
 	// concurrently, so we use a LongAdder to reduce potential contention.
 	private final LongAdder numOfGenStates = new LongAdder();
 	private final LongAdder numOfGenTraces = new LongAdder();
+	private final AtomicLong welfordM2AndMean = new AtomicLong();
 
 	// private Action[] actionTrace; // SZ: never read locally
 	private final String traceFile;
 
 	// The maximum length of a simulated trace.
-	private final long traceDepth;
+	private final int traceDepth;
 
 	// The maximum number of total traces to generate.
 	private final long traceNum;
@@ -141,14 +168,14 @@ public class Simulator {
 	private long aril;
 
 	// Each simulation worker pushes their results onto this shared queue.
-	private BlockingQueue<SimulationWorkerResult> workerResultQueue = new LinkedBlockingQueue<>();
+	protected final BlockingQueue<SimulationWorkerResult> workerResultQueue = new LinkedBlockingQueue<>();
 	
     /**
      * Timestamp of when simulation started.
      */
 	private final long startTime = System.currentTimeMillis();
 	
-	private final List<SimulationWorker> workers;
+	protected final List<SimulationWorker> workers;
 		 
 	 /**
 	 * Returns whether a given error code is considered "continuable". That is, if
@@ -156,7 +183,7 @@ public class Simulator {
 	 * simulator. These errors are considered "fatal" since they most likely
 	 * indicate an error in the way the spec is written.
 	 */
-	private boolean isNonContinuableError(int ec) {
+	protected boolean isNonContinuableError(int ec) {
 		return ec == EC.TLC_INVARIANT_EVALUATION_FAILED || 
 			   ec == EC.TLC_ACTION_PROPERTY_EVALUATION_FAILED ||
 			   ec == EC.TLC_STATE_NOT_COMPLETELY_SPECIFIED_NEXT;
@@ -175,32 +202,38 @@ public class Simulator {
 	/*
 	 * This method does random simulation on a TLA+ spec.
 	 * 
-	 * It runs until en error is encountered or we have generated the maximum number of traces.
+	 * It runs until an error is encountered or we have generated the maximum number of traces.
 	 * 
    * @return an error code, or <code>EC.NO_ERROR</code> on success
 	 */
 	public int simulate() throws Exception {
+		final int res = this.tool.checkAssumptions();
+		if (res != EC.NO_ERROR) {
+			return res;
+		}
+		
 		TLCState curState = null;
-
-		// The init states are calculated only ever once and never change
-		// in the loops below. Ideally the variable would be final.
-		StateVec initStates = this.tool.getInitStates();
+		//TODO: Refactor to check validity and inModel via IStateFunctor.
+		final StateVec initStates;
 
 		//
 		// Compute the initial states.
 		//
 		try {
-
+			// The init states are calculated only ever once and never change
+			// in the loops below. Ideally the variable would be final.
+			final StateVec inits = this.tool.getInitStates();
+			initStates = new StateVec(inits.size());
 
 			// This counter should always be initialized at zero.
 			assert (this.numOfGenStates.longValue() == 0);
-			this.numOfGenStates.add(initStates.size());
+			this.numOfGenStates.add(inits.size());
 			
 			MP.printMessage(EC.TLC_COMPUTING_INIT_PROGRESS, this.numOfGenStates.toString());
 
 			// Check all initial states for validity.
-			for (int i = 0; i < initStates.size(); i++) {
-				curState = initStates.elementAt(i);
+			for (int i = 0; i < inits.size(); i++) {
+				curState = inits.elementAt(i);
 				if (this.tool.isGoodState(curState)) {
 					for (int j = 0; j < this.invariants.length; j++) {
 						if (!this.tool.isValid(this.invariants[j], curState)) {
@@ -211,6 +244,10 @@ public class Simulator {
 					}
 				} else {
 					return MP.printError(EC.TLC_STATE_NOT_COMPLETELY_SPECIFIED_INITIAL, curState.toString());
+				}
+				
+				if (tool.isInModel(curState)) {
+					initStates.addElement(curState);
 				}
 			}
 		} catch (Exception e) {
@@ -245,6 +282,39 @@ public class Simulator {
 		//
 		this.aril = rng.getAril();
 		
+		int errorCode = simulate(initStates);
+		
+		// see tlc2.tool.Worker.doPostCheckAssumption()
+		final ExprNode[] postConditions = this.tool.getPostConditionSpecs();
+		for (int i = 0; i < postConditions.length; i++) {
+			final ExprNode sn = postConditions[i];
+			try {
+				if (!this.tool.isValid(sn)) {
+					MP.printError(EC.TLC_ASSUMPTION_FALSE, sn.toString());
+				}
+			} catch (Exception e) {
+				// tool.isValid(sn) failed to evaluate...
+				MP.printError(EC.TLC_ASSUMPTION_EVALUATION_ERROR, new String[] { sn.toString(), e.getMessage() });
+			}
+		}
+
+		// Do a final progress report.
+		report.isRunning = false;
+		synchronized (report) {
+			report.notify();
+		}
+		// Wait for the progress reporter thread to finish.
+		report.join();
+
+		if (errorCode == EC.NO_ERROR) {
+			// Do not print the summary again, which has already happened, e.g., when the
+			// simulator printed a behavior above.
+			this.printSummary();
+		}
+		return errorCode;
+	}
+
+	protected int simulate(final StateVec initStates) throws InterruptedException {
 		// Start up multiple simulation worker threads, each with their own unique seed.
 		final Set<Integer> runningWorkers = new HashSet<>();
 		for (int i = 0; i < this.workers.size(); i++) {
@@ -320,24 +390,15 @@ public class Simulator {
 		
 		// Shut down all workers.
 		this.shutdownAndJoinWorkers(workers);
-
-		// Do a final progress report.
-		report.isRunning = false;
-		synchronized (report) {
-			report.notify();
-		}
-		// Wait for the progress reporter thread to finish.
-		report.join();
-
 		return errorCode;
 	}
 
-	private final void printBehavior(final TLCRuntimeException exception, final TLCState state, final StateVec stateTrace) {
+	protected final void printBehavior(final TLCRuntimeException exception, final TLCState state, final StateVec stateTrace) {
 		MP.printTLCRuntimeException(exception);
 		printBehavior(state, stateTrace);
 	}
 
-	private final void printBehavior(SimulationWorkerError error) {
+	protected final void printBehavior(SimulationWorkerError error) {
 		printBehavior(error.errorCode, error.parameters, error.state, error.stateTrace);
 	}
 
@@ -345,7 +406,7 @@ public class Simulator {
 	 * Prints out the simulation behavior, in case of an error. (unless we're at
 	 * maximum depth, in which case don't!)
 	 */
-	private final void printBehavior(final int errorCode, final String[] parameters, final TLCState state, final StateVec stateTrace) {
+	protected final void printBehavior(final int errorCode, final String[] parameters, final TLCState state, final StateVec stateTrace) {
 		MP.printError(errorCode, parameters);
 		printBehavior(state, stateTrace);
 		this.printSummary();
@@ -354,7 +415,7 @@ public class Simulator {
 	private final void printBehavior(final TLCState state, final StateVec stateTrace) {
 		if (this.traceDepth == Long.MAX_VALUE) {
 			MP.printMessage(EC.TLC_ERROR_STATE);
-			StatePrinter.printState(state);
+			StatePrinter.printStandaloneErrorState(state);
 		} else {
 			if (!stateTrace.isLastElement(state)) {
 				// MAK 09/24/2019: this method is called with state being the stateTrace's
@@ -375,10 +436,17 @@ public class Simulator {
 				// Last state's successor is itself.
 				final TLCState sucState = stateTrace.elementAt(Math.min(i + 1, stateTrace.size() - 1));
 				if (lastState != null) {
-					sinfo = this.tool.getState(curState, lastState);
+					// Contrary to BFS/ModelChecker, simulation remembers the action (its id) during
+					// trace exploration to print the error-trace without re-evaluating the
+					// next-state relation for lastStates -> cusState (tool.getState(curState,
+					// lastState)) to determine the action.  This would fail for specs whose next-state
+					// relation is probabilistic (ie. TLC!RandomElement or Randomization.tla). In other
+					// words, tool.getState(curState,lastState) would return for some pairs of states.
+					sinfo = new TLCStateInfo(curState);
 				} else {
-					sinfo = new TLCStateInfo(curState, "<Initial predicate>");
-					StatePrinter.printState(tool.evalAlias(sinfo, sucState), lastState, curState.getLevel());
+					sinfo = new TLCStateInfo(curState);
+					StatePrinter.printInvariantViolationStateTraceState(tool.evalAlias(sinfo, sucState), lastState,
+							curState.getLevel());
 					lastState = curState;
 					continue;
 				}
@@ -403,7 +471,7 @@ public class Simulator {
 				} else {
 					// print the state's actual level and not a monotonically increasing state
 					// number => Numbering will have gaps with difftrace.
-					StatePrinter.printState(tool.evalAlias(sinfo, sucState), lastState, curState.getLevel());
+					StatePrinter.printInvariantViolationStateTraceState(tool.evalAlias(sinfo, sucState), lastState, curState.getLevel());
 				}
 				lastState = curState;
 			}
@@ -429,18 +497,49 @@ public class Simulator {
 		}
 	}
 
+	public List<IValue> getAllValues(int idx) {
+		return workers.stream().map(w -> w.getLocalValue(idx)).collect(Collectors.toList());
+	}
+	
+	public final Value getAllValues() {
+		final IValue[] localValues = workers.get(0).getLocalValues();
+		
+		final Map<Value, Value> m = new HashMap<>(localValues.length);
+		
+		for (int i = 0; i < localValues.length; i++) {
+			final IValue iValue = localValues[i];
+			if (iValue != null) {
+				final Value[] vals = new Value[workers.size()];
+				for (int j = 0; j < vals.length; j++) {
+					vals[j] = (Value) workers.get(j).getLocalValue(i);
+				}
+				m.put(IntValue.gen(i), new TupleValue(vals));
+			}
+		}
+		return new FcnRcdValue(m);
+	}
+
+
 	/**
 	 * Prints the summary
 	 */
-	private final void printSummary() {
+	protected final void printSummary() {
 		this.reportCoverage();
+
+		try {
+			this.writeActionFlowGraph();
+		} catch (Exception e) {
+			// SZ Jul 10, 2009: changed from error to bug
+			MP.printTLCBug(EC.TLC_REPORTER_DIED, null);
+		}
 
 		/*
 		 * This allows the toolbox to easily display the last set of state space
 		 * statistics by putting them in the same form as all other progress statistics.
 		 */
 		if (TLCGlobals.tool) {
-			MP.printMessage(EC.TLC_PROGRESS_SIMU, String.valueOf(numOfGenStates.longValue()));
+			MP.printMessage(EC.TLC_PROGRESS_SIMU, String.valueOf(numOfGenStates.longValue()),
+					String.valueOf(numOfGenTraces.longValue()));
 		}
 
 		MP.printMessage(EC.TLC_STATS_SIMU, new String[] { String.valueOf(numOfGenStates.longValue()),
@@ -452,7 +551,7 @@ public class Simulator {
 	 */
 	public final void reportCoverage() {
 		if (TLCGlobals.isCoverageEnabled()) {
-            CostModelCreator.report(this.tool, this.startTime );
+            CostModelCreator.report(this.tool, this.startTime);
 		}
 	}
 
@@ -474,7 +573,16 @@ public class Simulator {
 					synchronized (this) {
 						this.wait(TLCGlobals.progressInterval);
 					}
-					MP.printMessage(EC.TLC_PROGRESS_SIMU, String.valueOf(numOfGenStates.longValue()));
+					final long genTrace = numOfGenTraces.longValue();
+					final long m2AndMean = welfordM2AndMean.get();
+					final long mean = m2AndMean & 0x00000000FFFFFFFFL; // could be int.
+					final long m2 = m2AndMean >>> 32;
+					MP.printMessage(EC.TLC_PROGRESS_SIMU, 
+							String.valueOf(numOfGenStates.longValue()),
+							String.valueOf(genTrace),
+							String.valueOf(mean),
+							String.valueOf(Math.round(m2 / (genTrace + 1d))), // Var(X),  +1 to prevent div-by-zero.
+							String.valueOf(Math.round(Math.sqrt(m2 / (genTrace + 1d))))); // SD, +1 to prevent div-by-zero.
 					if (count > 1) {
 						count--;
 					} else {
@@ -490,81 +598,280 @@ public class Simulator {
 			}
 		}
 
-		private void writeActionFlowGraph() throws IOException {
-			if (!actionStats) {
-				return;
-			}
-			// The number of actions is expected to be low (dozens commons and hundreds a
-			// rare). This is why the code below isn't optimized for performance.
-			final Action[] actions = Simulator.this.tool.getActions();
-			final int len = actions.length;
-			
-			// Clusters of actions that have the same context:
-			// CONSTANT Proc
-			// ...
-			// A(p) == p \in {...} /\ v' = 42...
-			// Next == \E p \in Proc : A(p)
-			final Map<String, Set<Integer>> clusters = new HashMap<>();
-			for (int i = 0; i < len; i++) {
-				final String con = actions[i].con.toString();
-				if (!clusters.containsKey(con)) {
-				   clusters.put(con, new HashSet<>());	
-				}
-				clusters.get(con).add(i);
-			}
-			
-			// Write clusters to dot file (override previous file).
-			final DotActionWriter dotActionWriter = new DotActionWriter(
-					Simulator.this.tool.getRootName() + "_actions.dot", "");
-			for (Entry<String, Set<Integer>> cluster : clusters.entrySet()) {
-				// key is a unique set of chars accepted/valid as a graphviz cluster id.
-				final String key = Integer.toString(Math.abs(cluster.getKey().hashCode()));
-				dotActionWriter.writeSubGraphStart(key, cluster.getKey().toString());
+	}
 
-				final Set<Integer> ids = cluster.getValue();
-				for (Integer id : ids) {
-					dotActionWriter.write(actions[id], id);
-				}
-				dotActionWriter.writeSubGraphEnd();
-			}					
-
-			// Element-wise sum the statistics from all workers.
-			long[][] aggregateActionStats = new long[len][len];
-			final List<SimulationWorker> workers = Simulator.this.workers;
-			for (SimulationWorker sw : workers) {
-				final long[][] s = sw.actionStats;
-				for (int i = 0; i < len; i++) {
-					for (int j = 0; j < len; j++) {
-						aggregateActionStats[i][j] += s[i][j];
-					}
-				}
+	private void writeActionFlowGraph() throws IOException {
+		if (traceActions == "BASIC") {
+			writeActionFlowGraphBasic();
+		} else if (traceActions == "FULL") {
+			writeActionFlowGraphFull();
+		}
+	}
+	
+	private void writeActionFlowGraphFull() throws IOException {		
+		// The number of actions is expected to be low (dozens commons and hundreds are
+		// rare). This is why the code below isn't optimized for performance.
+		final Vect<Action> initAndNext = tool.getSpecActions();
+		final int len = initAndNext.size();
+		
+		// Clusters of actions that have the same context:
+		// CONSTANT Proc
+		// ...
+		// A(p) == p \in {...} /\ v' = 42...
+		// Next == \E p \in Proc : A(p)
+		final Map<String, Set<Integer>> clusters = new HashMap<>();
+		for (int i = 0; i < len; i++) {
+			final String con = initAndNext.elementAt(i).con.toString();
+			if (!clusters.containsKey(con)) {
+				clusters.put(con, new HashSet<>());	
 			}
+			clusters.get(con).add(i);
+		}
+		
+		// Write clusters to dot file (override previous file).
+		final DotActionWriter dotActionWriter = new DotActionWriter(
+				Simulator.this.tool.getRootName() + "_actions.dot", "");
+		for (Entry<String, Set<Integer>> cluster : clusters.entrySet()) {
+			// key is a unique set of chars accepted/valid as a graphviz cluster id.
+			final String key = Integer.toString(Math.abs(cluster.getKey().hashCode()));
+			dotActionWriter.writeSubGraphStart(key, cluster.getKey().toString());
 			
-			// Write stats to dot file as edges between the action vertices.
+			final Set<Integer> ids = cluster.getValue();
+			for (Integer id : ids) {
+				dotActionWriter.write(initAndNext.elementAt(id), id);
+			}
+			dotActionWriter.writeSubGraphEnd();
+		}					
+		
+		// Element-wise sum the statistics from all workers.
+		long[][] aggregateActionStats = new long[len][len];
+		final List<SimulationWorker> workers = Simulator.this.workers;
+		for (SimulationWorker sw : workers) {
+			final long[][] s = sw.actionStats;
 			for (int i = 0; i < len; i++) {
 				for (int j = 0; j < len; j++) {
-					long l = aggregateActionStats[i][j];
-					if (l > 0L) {
-						// LogLog l (to keep the graph readable) and round to two decimal places (to not
-						// write a gazillion decimal places truncated by graphviz anyway).
-						final double loglogWeight = Math.log10(Math.log10(l+1)); // +1 to prevent negative inf.
-						dotActionWriter.write(actions[i], i, actions[j], j,
-								BigDecimal.valueOf(loglogWeight).setScale(2, RoundingMode.HALF_UP)
-										.doubleValue());
-					} else {
-						dotActionWriter.write(actions[i], i, actions[j], j);
-					}
+					aggregateActionStats[i][j] += s[i][j];
 				}
 			}
+		}
+		
+		// Create a map from id to action name.
+		final Map<Integer, Action> idToActionName = new HashMap<>();
+		for (int i = 0; i < initAndNext.size(); i++) {
+			Action action = initAndNext.elementAt(i);
+			idToActionName.put(action.getId(), action);
+		}
+
+		// Write stats to dot file as edges between the action vertices.
+		for (int i = 0; i < len; i++) {
+			for (int j = 0; j < len; j++) {
+				long l = aggregateActionStats[i][j];
+				if (l > 0L) {
+					// LogLog l (to keep the graph readable) and round to two decimal places (to not
+					// write a gazillion decimal places truncated by graphviz anyway).
+					final double loglogWeight = Math.log10(Math.log10(l+1)); // +1 to prevent negative inf.
+					dotActionWriter.write(i, j,
+							BigDecimal.valueOf(loglogWeight).setScale(2, RoundingMode.HALF_UP)
+							.doubleValue());
+				} else if (!idToActionName.get(j).isInitPredicate()) {
+					// Only draw an unseen arc if the sink is not an initial prediate.
+					dotActionWriter.write(i, j);
+				}
+			}
+		}
+		
+		// Close dot file.
+		dotActionWriter.close();
+	}
+
+	private void writeActionFlowGraphBasic() throws IOException {
+		// The number of actions is expected to be low (dozens commons and hundreds a
+		// rare). This is why the code below isn't optimized for performance.
+		final Vect<Action> initAndNext = tool.getSpecActions();
+		final int len = initAndNext.size();
+		
+		// Element-wise sum the statistics from all workers.
+		long[][] aggregateActionStats = new long[len][len];
+		final List<SimulationWorker> workers = Simulator.this.workers;
+		for (SimulationWorker sw : workers) {
+			final long[][] s = sw.actionStats;
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < len; j++) {
+					aggregateActionStats[i][j] += s[i][j];
+				}
+			}
+		}
+		
+		// Create mappings from distinct ids to action ids and name.
+		final Map<Integer, Action> idToAction = new HashMap<>();
+		final Map<Location, Integer> actionToId = new HashMap<>();
+		for (int i = 0; i < initAndNext.size(); i++) {
+			final Action action = initAndNext.elementAt(i);
 			
-			// Close dot file.
-			dotActionWriter.close();
+			if (!actionToId.containsKey(action.getDefinition())) {
+				int id = idToAction.size();
+				idToAction.put(id, action);
+				actionToId.put(action.getDefinition(), id);
+			}
+		}
+		final Map<Integer, Integer> actionsToDistinctActions = new HashMap<>();
+		for (int i = 0; i < initAndNext.size(); i++) {
+			final Action action = initAndNext.elementAt(i);
+			actionsToDistinctActions.put(action.getId(), actionToId.get(action.getDefinition()));
+		}
+		
+		// Override previous basic file.
+		final DotActionWriter dotActionWriter = new DotActionWriter(
+				Simulator.this.tool.getRootName() + "_actions.dot", "");
+
+		// Identify actions in the dot file.
+		idToAction.forEach((id, a) -> dotActionWriter.write(a, id));
+		
+		// Having the aggregated action stats, reduce it to account for only
+		// the distinct action names.
+		long[][] reducedAggregateActionStats = new long[idToAction.size()][idToAction.size()];
+		for (int i = 0; i < len; i++) {
+			// Find origin id.
+			final int originActionId = actionsToDistinctActions.get(i);
+			for (int j = 0; j < len; j++) {
+				// Find next id.
+				final int nextActionId = actionsToDistinctActions.get(j);
+				reducedAggregateActionStats[originActionId][nextActionId] += aggregateActionStats[i][j];
+			}
+		}
+
+		// Write stats to dot file as edges between the action vertices.
+		for (int i = 0; i < idToAction.size(); i++) {
+			for (int j = 0; j < idToAction.size(); j++) {
+				long l = reducedAggregateActionStats[i][j];
+				if (l > 0L) {
+					// LogLog l (to keep the graph readable) and round to two decimal places (to not
+					// write a gazillion decimal places truncated by graphviz anyway).
+					final double loglogWeight = Math.abs(Math.log10(Math.log10(l + 1))); // +1 to prevent negative inf.
+					dotActionWriter.write(i, j,
+							BigDecimal.valueOf(loglogWeight).setScale(2, RoundingMode.HALF_UP).doubleValue());
+				} else if (!idToAction.get(j).isInitPredicate()) {
+					// Only draw an unseen arc if the sink is not an initial prediate.
+					dotActionWriter.write(i, j);
+				}
+			}
+		}
+		
+		// Close dot file.
+		dotActionWriter.close();
+	}
+
+	public final StateVec getTrace(final TLCState s) {
+		if (Thread.currentThread() instanceof SimulationWorker) {
+			final SimulationWorker w = (SimulationWorker) Thread.currentThread();
+			return w.getTrace(s);
+		} else {
+			assert numWorkers == 1 && workers.size() == numWorkers;
+			return workers.get(0).getTrace(s);
 		}
 	}
 
+	public final StateVec getTrace() {
+		if (Thread.currentThread() instanceof SimulationWorker) {
+			final SimulationWorker w = (SimulationWorker) Thread.currentThread();
+			return w.getTrace();
+		} else {
+			assert numWorkers == 1 && workers.size() == numWorkers;
+			return workers.get(0).getTrace();
+		}
+	}
+
+	public TLCStateInfo[] getTraceInfo(final int level) {
+		if (Thread.currentThread() instanceof SimulationWorker) {
+			final SimulationWorker w = (SimulationWorker) Thread.currentThread();
+			return w.getTraceInfo(level);
+		} else {
+			assert numWorkers == 1 && workers.size() == numWorkers;
+			return workers.get(0).getTraceInfo(level);
+		}
+	}
+	
 	public void stop() {
 		for (SimulationWorker worker : workers) {
+			worker.setStopped();
 			worker.interrupt();
 		}
+	}
+
+	public RandomGenerator getRNG() {
+		if (Thread.currentThread() instanceof SimulationWorker) {
+			final SimulationWorker w = (SimulationWorker) Thread.currentThread();
+			return w.getRNG();
+		} else {
+			return this.rng;
+		}
+	}
+
+	public int getTraceDepth() {
+		return this.traceDepth;
+	}
+
+	public final Value getWorkerStatistics() {
+		if (Thread.currentThread() instanceof SimulationWorker) {
+			final SimulationWorker w = (SimulationWorker) Thread.currentThread();
+			return w.getWorkerStatistics();
+		} else {
+			assert numWorkers == 1 && workers.size() == numWorkers;
+			return workers.get(0).getWorkerStatistics();
+		}	
+	}
+	
+	public final Value getStatistics() {
+		final UniqueString[] n = new UniqueString[4];
+		final Value[] v = new Value[n.length];
+		
+		n[0] = TLCGetSet.TRACES;
+		v[0] = TLCGetSet.narrowToIntValue(numOfGenTraces.longValue());
+		
+		n[1] = TLCGetSet.DURATION;
+		v[1] = TLCGetSet.narrowToIntValue((System.currentTimeMillis() - startTime) / 1000L);
+
+		n[2] = TLCGetSet.GENERATED;
+		v[2] = TLCGetSet.narrowToIntValue(numOfGenStates.longValue());
+
+		n[3] = TLCGetSet.BEHAVIOR;
+		v[3] = getWorkerStatistics();
+		
+		return new RecordValue(n, v, false);
+	}
+
+	public final Value getConfig() {
+		return this.config;
+	}
+
+	private final Value createConfig() {
+		final UniqueString[] n = new UniqueString[8];
+		final Value[] v = new Value[n.length];
+		
+		n[0] = TLCGetSet.MODE;
+		v[0] = Tool.isProbabilistic() ? new StringValue("generate") : new StringValue("simulate");
+
+		n[1] = TLCGetSet.DEPTH;
+		v[1] = IntValue.gen(this.traceDepth == Integer.MAX_VALUE ? -1 : this.traceDepth);
+
+		n[2] = TLCGetSet.TRACES;
+		v[2] = IntValue.gen((int) (this.numWorkers * traceNum));
+
+		n[3] = TLCGetSet.DEADLOCK;
+		v[3] = checkDeadlock ? BoolValue.ValTrue : BoolValue.ValFalse;
+
+		n[4] = TLCGetSet.SEED;
+		v[4] = new StringValue(Long.toString(seed));
+
+		n[5] = TLCGetSet.ARIL;
+		v[5] = new StringValue(Long.toString(aril));
+
+		n[6] = TLCGetSet.WORKER;
+		v[6] = IntValue.gen(numWorkers);
+
+		n[7] = TLCGetSet.INSTALL;
+		v[7] = new StringValue(TLCGlobals.getInstallLocation());
+		
+		return new RecordValue(n, v, false);
 	}
 }

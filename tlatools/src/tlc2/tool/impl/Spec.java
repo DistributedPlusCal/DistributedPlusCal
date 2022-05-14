@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import tla2sany.modanalyzer.ParseUnit;
+import tla2sany.modanalyzer.SpecObj;
 import tla2sany.semantic.APSubstInNode;
 import tla2sany.semantic.ExprNode;
 import tla2sany.semantic.ExprOrOpArgNode;
@@ -21,6 +23,7 @@ import tla2sany.semantic.FormalParamNode;
 import tla2sany.semantic.FrontEnd;
 import tla2sany.semantic.LabelNode;
 import tla2sany.semantic.LetInNode;
+import tla2sany.semantic.ModuleNode;
 import tla2sany.semantic.OpApplNode;
 import tla2sany.semantic.OpDefNode;
 import tla2sany.semantic.SemanticNode;
@@ -35,10 +38,12 @@ import tlc2.tool.BuiltInOPs;
 import tlc2.tool.Defns;
 import tlc2.tool.TLCState;
 import tlc2.tool.ToolGlobals;
+import tlc2.tool.impl.Tool.Mode;
 import tlc2.util.Context;
 import tlc2.util.ObjLongTable;
 import tlc2.util.Vect;
 import tlc2.value.ValueConstants;
+import tlc2.value.impl.EvaluatingValue;
 import tlc2.value.impl.LazyValue;
 import tlc2.value.impl.ModelValue;
 import util.Assert;
@@ -78,7 +83,8 @@ abstract class Spec
     private final SpecProcessor specProcessor;
 
     // SZ Feb 20, 2009: added support to name resolver, to be able to run outside of the tool
-	public Spec(final String specDir, final String specFile, final String configFile, final FilenameToStream resolver) {
+	public Spec(final String specDir, final String specFile, final String configFile, final FilenameToStream resolver,
+			Mode mode, final Map<String, Object> params) {
         this.specDir = specDir;
         this.rootFile = specFile;
         this.defns = new Defns();
@@ -93,7 +99,15 @@ abstract class Spec
         this.config.parse();
         ModelValue.setValues(); // called after seeing all model values
 
-        specProcessor = new SpecProcessor(getRootName(), resolver, toolId, defns, config, this, this, tlaClass);
+        // construct new specification object, if the
+        // passed one was null
+        final SpecObj specObj;
+        if (params.isEmpty()) {
+        	specObj = new SpecObj(this.rootFile, resolver);
+        } else {
+        	specObj = new ParameterizedSpecObj(this, resolver, params);
+        }
+        specProcessor = new SpecProcessor(getRootName(), resolver, toolId, defns, config, this, this, tlaClass, mode, specObj);
         
         this.unprocessedDefns = specProcessor.getUnprocessedDefns();
     }
@@ -210,6 +224,9 @@ abstract class Spec
             Assert.fail(EC.TLC_CONFIG_NO_STATE_TYPE);
         }
 
+        // A true constant-level alias such as such as [ x |-> "foo" ] will be evaluated
+        // eagerly and type be an instance of RecordValue.  It would be good to return a
+        // proper warning.
         Object type = this.defns.get(name);
         if (type == null)
         {
@@ -227,31 +244,53 @@ abstract class Spec
         return def.getBody();
     }
 
-    /* Get the type declaration for the state variables. */
-    public final SemanticNode getTypeConstraintSpec()
+    public final ExprNode[] getPostConditionSpecs()
     {
-        String name = this.config.getTypeConstraint();
-        if (name.length() == 0)
-        {
-            return null;
+    	final List<ExprNode> res = this.specProcessor.getPostConditionSpecs();
+    	
+        String name = this.config.getPostCondition();
+        if (name.length() != 0)
+        {        	
+        	Object type = this.defns.get(name);
+        	if (type == null)
+        	{
+        		Assert.fail(EC.TLC_CONFIG_SPECIFIED_NOT_DEFINED, new String[] { "post condition", name });
+        	}
+        	if (!(type instanceof OpDefNode))
+        	{
+        		Assert.fail(EC.TLC_CONFIG_ID_MUST_NOT_BE_CONSTANT, new String[] { "post condition", name });
+        	}
+        	OpDefNode def = (OpDefNode) type;
+        	if (def.getArity() != 0)
+        	{
+        		Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "post condition", name });
+        		
+        	}
+        	res.add(def.getBody());
         }
+        
+        return res.toArray(ExprNode[]::new);
+    }
 
-        Object type = this.defns.get(name);
+    public final OpDefNode getCounterExampleDef()
+    {
+    	// Defined in TLCExt.tla
+        Object type = this.defns.get("CounterExample");
         if (type == null)
         {
-            Assert.fail(EC.TLC_CONFIG_SPECIFIED_NOT_DEFINED, new String[] { "type constraint", name });
+        	// Not used anywhere in the current spec.
+            return null;
         }
-        if (!(type instanceof OpDefNode))
+        if (!(type instanceof EvaluatingValue))
         {
-            Assert.fail(EC.TLC_CONFIG_ID_MUST_NOT_BE_CONSTANT, new String[] { "type constraint", name });
+            Assert.fail(EC.GENERAL);
         }
-        OpDefNode def = (OpDefNode) type;
+        OpDefNode def = ((EvaluatingValue) type).getOpDef();
         if (def.getArity() != 0)
         {
-            Assert.fail(EC.TLC_CONFIG_ID_REQUIRES_NO_ARG, new String[] { "type constraint", name });
-
+            Assert.fail(EC.GENERAL);
         }
-        return def.getBody();
+        return def;
     }
 
 	public final boolean livenessIsTrue() {
@@ -348,19 +387,27 @@ abstract class Spec
      */
     public final Object lookup(SymbolNode opNode, Context c, TLCState s, boolean cutoff)
     {
-    	Object result = lookup(opNode, c, cutoff, toolId);
-    	if (result != opNode) {
-    		return result;
-    	}
-        result = s.lookup(opNode.getName());
-        if (result != null) {
-        	return result;
+        Object result = lookup(opNode, c, cutoff, toolId);
+        if (result != opNode) {
+            return result;
         }
+
+		// CalvinL/LL/MAK 02/2021: Added conditional as part of Github issue #362 Name
+		// clash between variable in refined spec and operator in instantiated spec. See
+		// releated test in Github362.java.
+        if (opNode.getKind() != UserDefinedOpKind) {
+			result = s.lookup(opNode.getName());
+			if (result != null) {
+				return result;
+			}
+		}
+
         return opNode;
     }
 
-    public final Object lookup(final SymbolNode opNode) {
-    	return lookup(opNode, Context.Empty, false, toolId);
+    public final Object lookup(final SymbolNode opNode)
+    {
+        return lookup(opNode, Context.Empty, false, toolId);
     }
 
     /**
@@ -621,6 +668,10 @@ abstract class Spec
     public int getId() {
     	return toolId;
     }
+
+	public ModuleNode getModule(final String moduleName) {
+		return getSpecProcessor().getSpecObj().getExternalModuleTable().getModuleNode(moduleName);
+	}
 
 	public List<File> getModuleFiles(final FilenameToStream resolver) {
 		final List<File> result = new ArrayList<File>();

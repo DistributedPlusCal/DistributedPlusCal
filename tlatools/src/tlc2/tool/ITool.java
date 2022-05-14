@@ -27,6 +27,7 @@ package tlc2.tool;
 
 import java.io.File;
 import java.util.List;
+import java.util.function.Supplier;
 
 import tla2sany.semantic.ExprNode;
 import tla2sany.semantic.ExprOrOpArgNode;
@@ -34,9 +35,11 @@ import tla2sany.semantic.OpApplNode;
 import tla2sany.semantic.OpDefNode;
 import tla2sany.semantic.SemanticNode;
 import tla2sany.semantic.SymbolNode;
+import tlc2.TLCGlobals;
 import tlc2.tool.coverage.CostModel;
 import tlc2.tool.impl.ModelConfig;
 import tlc2.tool.impl.SpecProcessor;
+import tlc2.tool.impl.Tool.Mode;
 import tlc2.util.Context;
 import tlc2.util.ObjLongTable;
 import tlc2.util.Vect;
@@ -47,6 +50,8 @@ import util.FilenameToStream;
 
 public interface ITool extends TraceApp {
 
+	Mode getMode();
+	
 	/**
 	   * This method returns the set of all possible actions of the
 	   * spec, and sets the actions field of this object. In fact, we
@@ -77,6 +82,12 @@ public interface ITool extends TraceApp {
 	StateVec getNextStates(Action action, TLCState state);
 	
 	boolean getNextStates(final INextStateFunctor functor, final TLCState state);
+
+	boolean getNextStates(final INextStateFunctor functor, final TLCState state, final Action action);
+	
+	IValue eval(SemanticNode expr);
+
+	IValue eval(SemanticNode expr, Context c);
 
 	IValue eval(SemanticNode expr, Context c, TLCState s0);
 
@@ -109,6 +120,8 @@ public interface ITool extends TraceApp {
 	TLCState enabled(SemanticNode pred, IActionItemList acts, Context c, TLCState s0, TLCState s1);
 	TLCState enabled(SemanticNode pred, IActionItemList acts, Context c, TLCState s0, TLCState s1, CostModel cm);
 
+	boolean isValid(ExprNode expr, Context ctxt);
+	
 	/* This method determines if the action predicate is valid in (s0, s1). */
 	boolean isValid(Action act, TLCState s0, TLCState s1);
 
@@ -161,6 +174,12 @@ public interface ITool extends TraceApp {
 	ExprNode[] getAssumptions();
 
 	boolean[] getAssumptionIsAxiom();
+
+	int checkAssumptions();
+	
+	int checkPostCondition();
+	
+	int checkPostConditionWithCounterExample(IValue value);
 
 	String[] getInvNames();
 
@@ -235,6 +254,10 @@ public interface ITool extends TraceApp {
 
 	SemanticNode getViewSpec();
 
+	ExprNode[] getPostConditionSpecs();
+
+	OpDefNode getCounterExampleDef();
+
 	int getId();
 
 	List<File> getModuleFiles(FilenameToStream resolver);
@@ -243,4 +266,31 @@ public interface ITool extends TraceApp {
 
 	SpecProcessor getSpecProcessor();
 
+	ExprNode[] getActionConstraints();
+
+	ExprNode[] getModelConstraints();
+
+	TLCState evalAlias(TLCState curState, TLCState sucState);
+
+	default <T> T eval(Supplier<T> supplier) {
+		return supplier.get();
+	}
+
+	default ITool getDebugger() {
+		if (TLCGlobals.mainChecker != null) {
+			return TLCGlobals.mainChecker.tool;
+		}
+		if (TLCGlobals.simulator != null) {
+			return TLCGlobals.simulator.getTool();
+		}
+		return this;
+	}
+
+	default ITool getLiveness() {
+		return this;
+	}
+
+	default Vect<Action> getSpecActions() {
+		return getInitStateSpec().concat(new Vect<Action>(getActions()));
+	}
 }

@@ -3,6 +3,12 @@
 package util;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 
@@ -37,6 +43,8 @@ public interface FilenameToStream
 		
 		private final boolean isLibraryModule;
 		private transient final FilenameToStream resolver;
+		// may be null.
+		private final URI libraryPath;
 
 		public TLAFile(String pathname, FilenameToStream fts) {
 			this(pathname, false, fts);
@@ -45,7 +53,12 @@ public interface FilenameToStream
 		public TLAFile(String pathname, boolean isLibraryModule, FilenameToStream fts) {
 			super(pathname);
 			this.isLibraryModule = isLibraryModule;
+			this.libraryPath = this.exists() ? this.toURI() : null;
 			this.resolver = fts;
+		}
+
+		public TLAFile(Path path, boolean isLibraryModule, FilenameToStream fts) {
+			this(path.toFile().toString(), isLibraryModule, fts);
 		}
 
 		public TLAFile(String parent, String child, FilenameToStream fts) {
@@ -53,8 +66,34 @@ public interface FilenameToStream
 				  ((ROOT_PATH_PATTERN.matcher(parent).find() && child.startsWith(parent))
 						  ? child.substring(parent.length())
 					      : child));
+			this.libraryPath = this.exists() ? this.toURI() : null;
 			this.isLibraryModule = false;
 			this.resolver = fts;
+		}
+
+		public TLAFile(String pathname, URL location, boolean isLibraryModule, FilenameToStream fts) {
+			super(pathname);
+			// Do not check exists here like in the other ctors because it returns false
+			// before the file is actually read in util.SimpleFilenameToStream.read(String,
+			// URL, InputStream). Instead, assume that the file exists if we get here. After
+			// all, we know that its inputstream exists.
+			// If the conversion from URL to URI fails, we continue with null an hope that
+			// everything goes fine.
+			this.libraryPath = toNullOrURI(location);
+			this.isLibraryModule = isLibraryModule;
+			this.resolver = fts;
+		}
+
+		public TLAFile(Path path, URL location, boolean isLibraryModule, FilenameToStream fts) {
+			this(path.toFile().toString(), location, isLibraryModule, fts);
+		}
+
+		private static URI toNullOrURI(URL location) {
+	  		try {
+	  			return location.toURI();
+	  		} catch (URISyntaxException e) {
+	  			return null;
+	        }
 		}
 
 		public boolean isLibraryModule() {
@@ -71,6 +110,18 @@ public interface FilenameToStream
 				return moduleOverride;
 			}
 			return null;
+		}
+
+		/**
+		 * This method enables us to keep track of the original path (or library) 
+		 * of the module.
+		 */
+		public URI getLibraryPath() {
+			return libraryPath;
+		}
+
+		public boolean hasLibraryPath() {
+			return libraryPath != null;
 		}
 	}
 	
@@ -102,14 +153,22 @@ public interface FilenameToStream
 	default boolean isLibraryModule(String moduleName) {
 		return isStandardModule(moduleName);
 	}
-   
-	static final String TMPDIR = System.getProperty("java.io.tmpdir");
-
+ 	
 	static boolean isInJar(final String aString) {
 		return aString.startsWith("jar:") || aString.endsWith(".jar");
 	}
 
 	static boolean isArchive(String aString) {
 		return isInJar(aString) || aString.endsWith(".zip");
+	}
+	
+	static Path getTempDirectory() {
+  		try {
+			return Files.createTempDirectory("tlc-");
+		} catch (IOException e) {
+			// This is unfortunately how we handle things over here. :-(
+			e.printStackTrace();
+		}
+  		return null;
 	}
 }

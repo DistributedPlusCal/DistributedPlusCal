@@ -62,12 +62,12 @@
 * it in the Java Reference Manual.                                         *
 ***************************************************************************/
 package pcal;
+import java.util.Vector;
+//For Distributed PlusCal	
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
-
 import pcal.exception.ParseAlgorithmException;
-
+// end For Distributed PlusCal	
 
 public class AST
   { public static AST.Uniprocess   UniprocessObj   ;
@@ -80,13 +80,12 @@ public class AST
     public static AST.While        WhileObj        ;
     public static AST.Assign       AssignObj       ;
     public static AST.SingleAssign SingleAssignObj ;
-    
-    /*********************************************************************
-     * We added an explicit SINGLEASSIGN type to represent a single       *
-     * assignment within a multi-assignment.  We did this because Java    *
-     * doesn't allow a record (struct) to be constructed as anything      *
-     * other than an object of some class.                                *
-     *********************************************************************/
+      /*********************************************************************
+      * We added an explicit SINGLEASSIGN type to represent a single       *
+      * assignment within a multi-assignment.  We did this because Java    *
+      * doesn't allow a record (struct) to be constructed as anything      *
+      * other than an object of some class.                                *
+      *********************************************************************/
     public static AST.Lhs          LhsObj          ;
     public static AST.If           IfObj           ;
     public static AST.Either       EitherObj       ;
@@ -115,9 +114,10 @@ public class AST
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
     public static AST.ChannelClearCall ChannelClearObj;
-    
+
     public static final String SELF = "slf";
-    
+    // end For Distributed PlusCal	
+
     public int col ;
     public int line ;
       /*********************************************************************
@@ -232,10 +232,11 @@ public class AST
         GotoObj         = new AST.Goto() ;
         MacroObj        = new AST.Macro() ;
         MacroCallObj    = new AST.MacroCall() ;
-        
+        // For Distributed PlusCal	
         ChannelSenderObj =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
         ChannelClearObj = new AST.ChannelClearCall();
+        // end For Distributed PlusCal	
       }
 
 
@@ -414,8 +415,9 @@ public class AST
         public TLAExpr   id    = null ;
         public Vector    decls = null ; // of VarDecl
         public Vector    body  = null ; // of LabeledStmt
+        // For Distributed PlusCal	
         public Vector<Thread> threads = null;
-
+        // end For Distributed PlusCal	
         public Process() { };
         public String toString() 
           { 
@@ -431,14 +433,16 @@ public class AST
                  Indent(" decls  |-> ") + 
                     VectorToSeqString(decls) + "," + 
                  EndIndent() + NewLine() +
+                 Indent(" body   |-> ") + 
+                    VectorToSeqString(body) + "]" + 
+                 // For Distributed PlusCal	
                  // Indent(" body   |-> ") + 
-                    // VectorToSeqString(body) + "]" +
-                Indent(" body   |-> ") + 
-                ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
-                // For Distributed PlusCal	
-                Indent(",  threads   |-> ") +
-                ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
-                // end For Distributed PlusCal	
+                     // VectorToSeqString(body) + "]" +
+                 Indent(" body   |-> ") + 
+                 ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
+                 Indent(",  threads   |-> ") +
+                 ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
+                 // end For Distributed PlusCal	
                  EndIndent() + 
               EndIndent() ;
             } 
@@ -458,13 +462,14 @@ public class AST
                Indent(" decls  |-> ") + 
                   VectorToSeqString(decls) + "," + 
                EndIndent() + NewLine() +
+               // For Distributed PlusCal	
                // Indent(" body   |-> ") + 
                   // VectorToSeqString(body) + "]" +
-              Indent(" body   |-> ") + 
-              ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
-              // For Distributed PlusCal	
-              Indent(",  threads   |-> ") +
-              ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
+               Indent(" body   |-> ") + 
+               ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
+               Indent(",  threads   |-> ") +
+               ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
+               // end For Distributed PlusCal	
                EndIndent() + 
              EndIndent() ;
           }
@@ -575,7 +580,6 @@ public class AST
     public static class SingleAssign extends AST
       { public Lhs       lhs  = new Lhs() ; 
         public TLAExpr   rhs  = null ; 
-        
         public SingleAssign() { };
         public String toString()
           { return 
@@ -1074,8 +1078,8 @@ public class AST
          } ;
        return result + " >>" + EndIndent();
      }
-   
-   
+
+
    //classes For Distributed PlusCal
       
    //For Distributed PlusCal	
@@ -2236,5 +2240,6 @@ public class AST
 
 	  }
   }
-
+  // end For Distributed PlusCal	
+    
  }

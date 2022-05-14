@@ -34,6 +34,7 @@ public final class TLAConstants {
 	
 	public final class KeyWords {
 		public static final String ACTION_CONSTRAINT = "ACTION_CONSTRAINT";
+		public static final String ASSUME = "ASSUME";
 	    public static final String CONSTANT = "CONSTANT";
 	    public static final String CONSTANTS = CONSTANT + 'S';
 	    public static final String EXTENDS = "EXTENDS";
@@ -47,6 +48,8 @@ public final class TLAConstants {
 	    public static final String TRUE = "TRUE";
 	    public static final String UNION = "\\union";
 	    public static final String VARIABLE = "VARIABLE";
+	    public static final String ENABLED = "ENABLED";
+	    public static final String VIEW = "VIEW";
 	}
 	
 	public final class LoggingAtoms {
@@ -65,15 +68,17 @@ public final class TLAConstants {
 		public static final String INVARIANT_SCHEME = "inv";
 		public static final String PROP_SCHEME = "prop";
 		public static final String VIEW_SCHEME = "view";
+		public static final String POST_CONDITION_SCHEME = "postcondition";
+		public static final String ALIAS_SCHEME = "alias";
 		public static final String CONSTANTEXPR_SCHEME = "const_expr";
 		public static final String TRACE_EXPR_VAR_SCHEME = "__trace_var";
 		public static final String TRACE_EXPR_DEF_SCHEME = "trace_def";
 	}
 	
 	public final class TraceExplore {
-	    public static final String TRACE_EXPRESSION_MODULE_NAME = "SpecTE";
+	    public static final String TRACE_EXPRESSION_MODULE_NAME = "TTrace";
 	    public static final String ERROR_STATES_MODULE_NAME = "TraceDef";
-	    public static final String EXPLORATION_MODULE_NAME = "TE";
+	    public static final String EXPLORATION_MODULE_NAME = "TEExpression";
 		public static final String ACTION = "_TEAction";
 		public static final String POSITION = "_TEPosition";
 		public static final String TRACE = "_TETrace";
@@ -96,6 +101,18 @@ public final class TLAConstants {
 	     * The tuple of ordered sub-action names representing the trace states. 
 	     */
 	    public static final String TRACE_EXPLORE_ACTION_CONSTRAINT = "traceExploreActionConstraint";
+	    public static final String SPEC_TE_TRACE_EXPRESSION = "expression";
+	    public static final String SPEC_TE_TTRACE_EXPRESSION = "_expression";
+		public static final String SPEC_TETRACE_TRACE_DEF = "trace";
+		public static final String SPEC_TETRACE_TRACE = "_trace";
+		public static final String SPEC_TETRACE_NAME = "TETrace";
+		public static final String SPEC_TECONSTANTS_NAME = "TEConstants";
+		public static final String SPEC_TE_INIT = "_init";
+		public static final String SPEC_TE_CONSTRAINT = "_constraint";
+		public static final String SPEC_TE_NEXT = "_next";
+		public static final String SPEC_TETRACE_LASSO_START = "_TTraceLassoStart";
+		public static final String SPEC_TETRACE_LASSO_END = "_TTraceLassoEnd";
+		public static final String VIEW = "_view";
 	}
 
 	
@@ -116,7 +133,8 @@ public final class TLAConstants {
     public static final String RECORD_ARROW = " |-> ";
     public static final String DEFINES = " == ";
     public static final String DEFINES_CR = " ==\n";
-    public static final String COMMENT = "\\* ";
+    public static final String COMMENT_NS = "\\*";
+    public static final String COMMENT = COMMENT_NS + SPACE;
     public static final String ATTRIBUTE = "@";
     public static final String COLON = ":";
     public static final String EMPTY_STRING = "";
@@ -137,6 +155,7 @@ public final class TLAConstants {
     public static final String L_SQUARE_BRACKET = "[";
     public static final String R_SQUARE_BRACKET = "]";
     public static final String FALSE = "FALSE";
+    public static final String TRUE = "TRUE";
 
     public static final String INDENTED_CONJUNCTIVE = TLAConstants.INDENT + TLAConstants.TLA_AND + TLAConstants.SPACE;
     public static final String INDENTED_DISJUNCTIVE = TLAConstants.INDENT + TLAConstants.TLA_OR + TLAConstants.SPACE;

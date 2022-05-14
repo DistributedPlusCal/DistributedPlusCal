@@ -6,8 +6,8 @@
 package tlc2.tool.liveness;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
-import tlc2.TLCGlobals;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.output.StatePrinter;
@@ -485,8 +485,8 @@ public class LiveCheck1 implements ILiveCheck {
 	 * Checks if the behavior graph constructed from a state trace contains any
 	 * "bad" cycle.
 	 */
-	public synchronized void checkTrace(ITool tool, final StateVec trace) {
-		stateTrace = trace;
+	public synchronized void checkTrace(ITool tool, final Supplier<StateVec> trace) {
+		stateTrace = trace.get();
 		for (int soln = 0; soln < solutions.length; soln++) {
 			OrderOfSolution os = solutions[soln];
 			Vect<BEGraphNode> initNodes = constructBEGraph(tool, os);
@@ -654,13 +654,14 @@ public class LiveCheck1 implements ILiveCheck {
 		}
 
 		// Print the prefix:
-		TLCState lastState = null;
+		TLCState cycleState = null;
 		for (int i = 0; i < stateNum; i++) {
-			StatePrinter.printState(states[i], lastState, i + 1);
-			lastState = states[i].state;
+			StatePrinter.printInvariantViolationStateTraceState(states[i], cycleState, i + 1);
+			cycleState = states[i].state;
 		}
 
 		// Print the cycle:
+		TLCState lastState = cycleState;
 		int cyclePos = stateNum;
 		long[] fps = new long[cycleStack.size()];
 		int idx = fps.length;
@@ -675,20 +676,19 @@ public class LiveCheck1 implements ILiveCheck {
 				if (sinfo == null) {
 					throw new EvalException(EC.TLC_FAILED_TO_RECOVER_NEXT);
 				}
-				StatePrinter.printState(sinfo, lastState, ++stateNum);
+				StatePrinter.printInvariantViolationStateTraceState(sinfo, lastState, ++stateNum);
 				lastState = sinfo.state;
 			}
 		}
 		if (node.stateFP == lastState.fingerPrint()) {
 			StatePrinter.printStutteringState(stateNum);
 		} else {
-			if (TLCGlobals.tool) {
-				// The parser in Tool mode is picky and does not detect the Back to State unless it's printed via MP.printState.
-				// See LiveWorker#printTrace(..)
-				MP.printState(EC.TLC_BACK_TO_STATE, new String[] { "" + cyclePos }, (TLCState) null, -1);
-			} else {
-				MP.printMessage(EC.TLC_BACK_TO_STATE, "" + cyclePos);
-			}
+			sinfo = myTool.getState(cycleState.fingerPrint(), sinfo);
+			// The print stmts below claim there is a cycle, thus assert that
+			// there is indeed one. Index-based lookup into states array is
+			// reduced by one because cyclePos is human-readable.
+			assert cycleState.equals(sinfo.state);
+			StatePrinter.printBackToState(sinfo, cyclePos);
 		}
 	}
 

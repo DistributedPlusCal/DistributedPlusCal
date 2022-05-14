@@ -5,9 +5,15 @@
 
 package tlc2.util;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Function;
 
 import tla2sany.semantic.SymbolNode;
+import tlc2.value.impl.StringValue;
+import tlc2.value.impl.Value;
+import util.UniqueString;
 
 // Context is used two times:
 // 1) To determine the level boundedness of the expression appearing in the spec
@@ -25,7 +31,7 @@ import tla2sany.semantic.SymbolNode;
 //
 // The contrived spec at the bottom exhibits this problem. Increasing the level,
 // the number of lookups go through the roof.
-public final class Context {
+public final class Context implements Iterator<Context> {
 	/**
 	 * A link list of name and value pairs. When adding <name, value> to the
 	 * context, we assume that name != null.
@@ -136,6 +142,27 @@ public final class Context {
 		return null; // On Empty Context (end of chain), return null value
 	}
 
+	public final Map<UniqueString, Value> toMap() {
+		if (this.name == null) {
+			if (this == Empty) {
+				return new HashMap<>();
+			}
+			return this.next.toMap();
+		}
+		final Map<UniqueString, Value> res = new HashMap<>();
+		res.put(this.name.getName(),
+				this.value instanceof Value ? (Value) this.value : new StringValue(this.value.toString()));
+
+		Context cur;
+		for (cur = this.next; cur.name != null; cur = cur.next) {
+			res.put(cur.name.getName(),
+					cur.value instanceof Value ? (Value) cur.value : new StringValue(cur.value.toString()));
+		}
+		res.putAll(cur.toMap());
+
+		return res;
+	}
+	
 	public final StringBuffer toString(StringBuffer sb) {
 		if (this.name == null) {
 			if (this == Empty) {
@@ -162,6 +189,52 @@ public final class Context {
 		sb = this.toString(sb);
 		sb.append("]");
 		return sb.toString();
+	}
+
+	@Override
+	public boolean hasNext() {
+		return this.next != null;
+	}
+
+	@Override
+	public Context next() {
+		return this.next;
+	}
+
+	public final SymbolNode getName() {
+		return name;
+	}
+
+	public final Object getValue() {
+		return value;
+	}
+	
+	public final boolean isEmpty() {
+		return this == Empty;
+	}
+
+	public final boolean isDeepEmpty() {
+		if (this.isEmpty() || this == BaseBranch) {
+			return true;
+		}
+		return false;
+	}
+
+	public final int depth() {
+		int depth = 1;
+		Context child = next();
+		while (child.hasNext()) {
+			depth++;
+			child = child.next();
+		}
+		return depth;
+	}
+
+	public Context deepCopy() {
+		if (this == Empty) {
+			return this;
+		}
+		return new Context(this.name, this.value, this.next.deepCopy());
 	}
 }
 /*

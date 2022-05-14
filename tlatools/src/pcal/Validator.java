@@ -1,19 +1,24 @@
 package pcal;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.CRC32;
 
 import pcal.exception.ParseAlgorithmException;
+import pcal.exception.RemoveNameConflictsException;
+import tla2sany.modanalyzer.ParseUnit;
+import tla2sany.st.Location;
 import util.TLAConstants;
 
 /**
@@ -21,6 +26,7 @@ import util.TLAConstants;
  * blocks.
  */
 public class Validator {
+
 	public enum ValidationResult {
 		/** No PlusCal algorithm exists in the specification */
 		NO_PLUSCAL_EXISTS,
@@ -28,11 +34,11 @@ public class Validator {
 		/** No translation exists - BUT THERE IS PLUSCAL IN THE SPECIFICATION! */
 		NO_TRANSLATION_EXISTS,
 		
-		/** PlusCal and a translation block exist, but there are no checksums calculated. */
-		NO_CHECKSUMS_EXIST,
+		NO_TLA_CHECKSUMS_EXIST,
+		NO_PCAL_CHECKSUMS_EXIST,
 		
-		/** One or both Checksum in the spec do not match the checksums calculated for what was found in the spec. */
-		DIVERGENCE_EXISTS,
+		TLA_DIVERGENCE_EXISTS,
+		PCAL_DIVERGENCE_EXISTS,
 		
 		/** A Java error was encountered while attempting to validate. */
 		ERROR_ENCOUNTERED,
@@ -41,73 +47,71 @@ public class Validator {
 		NO_DIVERGENCE;
 	}
 	
+	static final String PCAL_CHECKSUM = "pcalchecksum";
+	static final String TLA_CHECKSUM = "tlachecksum";
 	
-	static protected boolean PRE_TRIM_VALIDATION_CONTENT = true;
+	static final String FAIR = "fair";
 	
-	private static final String MATCH_GROUP = "hash";
-	static final Pattern PCAL_CHECKSUM_PATTERN = Pattern.compile(PcalParams.PCAL_CHECKSUM_KEYWORD + "(?<" + MATCH_GROUP + ">[0-9a-f]+)");
-	static final Pattern TRANSLATED_PCAL_CHECKSUM_PATTERN
-									= Pattern.compile(PcalParams.TRANSLATED_PCAL_CHECKSUM_KEYWORD + "(?<" + MATCH_GROUP + ">[0-9a-f]+)");
+	static final String CHECKSUM_TEMPLATE_IGNORE = "(chksum(pcal) \\in STRING /\\ chksum(tla) \\in STRING)";
+	static final String CHECKSUM_TEMPLATE = "(chksum(pcal) = \"%s\" /\\ chksum(tla) = \"%s\")";
+	
+	static final Pattern CHECKSUM_PATTERN = Pattern
+			.compile("\\\\\\* BEGIN TRANSLATION\\s+\\(\\s*((?i)ch(ec)?ksum\\(p(lus)?cal\\)(?-i))\\s*(=\\s*\\\"(?<"
+					+ PCAL_CHECKSUM + ">[0-9A-Fa-f]*)\\\"|\\\\in\\s*"
+					+ "STRING)\\s*\\/\\\\\\s*((?i)ch(ec)?ksum\\(tla\\+?\\)(?-i))\\s*(=\\s*\\\"(?<" + TLA_CHECKSUM
+					+ ">[0-9A-Fa-f]*)\\\"|\\\\in\\s*STRING)\\s*\\)");
 
-	private static final Pattern MODULE_PREFIX_PATTERN = Pattern.compile(TLAConstants.MODULE_OPENING_PREFIX_REGEX);
 	private static final Pattern MODULE_CLOSING_PATTERN = Pattern.compile(TLAConstants.MODULE_CLOSING_REGEX);
-	
-	/*
-	 * This regex is appropriate for only pre-MODULE-lines; the PlusCal specification states that the options line
-	 *  	may exist before the module, after the module, or within the module in a comment line or block. For our
-	 *  	purposes, we only care if it exists before the module and therefore the following regex.
-	 */
-	private static final Pattern PLUSCAL_OPTIONS = Pattern.compile("^[\\s]*PlusCal[\\s]+options",
-																   Pattern.CASE_INSENSITIVE);
 
-	/**
-	 * This method is a convenience wrapped around {@link #validate(List)}.
-	 * 
-	 * @param inputStream an stream to the entire specification to be validated; this stream is not closed.
-	 * @return the result of the validation, as enumerated by the inner enum of this class.
-	 */
-	public static ValidationResult validate(final InputStream inputStream)
+	public static Set<ValidationResult> validate(ParseUnit parseUnit, InputStream inputStream)
 			throws IOException {
-        final String specContents;
-    	final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    	final byte[] buffer = new byte[4096];
-    	final BufferedInputStream bis = (inputStream instanceof BufferedInputStream)
-    											? (BufferedInputStream)inputStream
-    											: new BufferedInputStream(inputStream);
-    	
-        int bytesRead;
-        while ((bytesRead = bis.read(buffer)) != -1) {
-        	baos.write(buffer, 0, bytesRead);
-        }
-        
-    	specContents = new String(baos.toByteArray(), "UTF-8");
-
-		final String[] lines = specContents.split("\\r?\\n");
-		int startLine = -1;
-		if (PRE_TRIM_VALIDATION_CONTENT) {
-			for (int i = 0; i < lines.length; i++) {
-				final Matcher m = MODULE_PREFIX_PATTERN.matcher(lines[i]);
-				if (m.find()) {
-					startLine = i;
-					break;
-				} else {
-					final Matcher m2 = PLUSCAL_OPTIONS.matcher(lines[i]);
-					if (m2.find()) {
-						startLine = i;
-						break;
-					}
+		final BufferedReader reader = new BufferedReader(
+				new InputStreamReader((inputStream instanceof BufferedInputStream) ? (BufferedInputStream) inputStream
+						: new BufferedInputStream(inputStream)));
+		return validate(parseUnit, reader);
+	}
+	
+	public static Set<ValidationResult> validate(final ParseUnit parseUnit, final BufferedReader reader) throws IOException {
+		// Instead of matching the module start and end markers, whe while loop use SANY's
+		// parse tree that has the location of the start and end markers.
+		final Location loc = parseUnit.getParseTree().getLocation();
+		
+		// Pre-allocate the number of lines we will read below.
+		final List<String> lines = new ArrayList<>(loc.endLine() - loc.beginLine());
+		
+		// TODO It would be faster to let SANY look for a PlusCal algorithm when it
+		// parses the TLA+ spec (although SANY probably doesn't parse comments, it
+		// could look for the "--algorithm" or "--fair algorithm" tokens).
+		boolean seenAlgo = false;
+		int cnt = 1; // Location is 1-indexed.
+		String line;
+		while ((line = reader.readLine()) != null) {
+			// Skip lines that are not within the range given by location.
+			// This implies that this loop will miss "pluscal options" before
+			// or after the module's start and end markers.  While it is legal to
+			// put options there, I've decided we don't want to pay the price
+			// of parsing the lines preceding or after a module.  Users can
+			// put the options into a comment inside the module, which I
+			// believe to be the choice for most users anyway.
+			if (loc.beginLine() <= cnt && cnt <= loc.endLine()) {
+				if (line.indexOf(PcalParams.BeginAlg.substring(2)) > 0) {
+					seenAlgo = true;
 				}
+				lines.add(line);
+			} else if (cnt >= loc.endLine()) {
+				break;
 			}
+			cnt++;
 		}
-		if (startLine < 1) {
-			return validate(Arrays.asList(lines));
-		} else {
-			final int reducedLength = lines.length - startLine;
-			final String[] reducedLines = new String[reducedLength];
-
-			System.arraycopy(lines, startLine, reducedLines, 0, reducedLength);
-			return validate(Arrays.asList(reducedLines));
+		
+		if (!seenAlgo) {
+			// No "algorithm" string in the input => No PlusCal algorithm.
+			// The appearance of "algorithm", however, might be a false
+			// positive of which validate will take care of (I don't have
+			// time to move the logic up here).
+			return setOf(ValidationResult.NO_PLUSCAL_EXISTS);
 		}
+		return validate(lines);
 	}
 	
 	/**
@@ -117,7 +121,7 @@ public class Validator {
 	 * @param specificationText the entire specification, line by line - for historical reasons.
 	 * @return the result of the validation, as enumerated by the inner enum of this class.
 	 */
-	private static ValidationResult validate(final List<String> specificationText) {
+	private static Set<ValidationResult>  validate(final List<String> specificationText) {
         final Vector<String> deTabbedSpecification = trans.removeTabs(specificationText);
 		
         final IntPair searchLoc = new IntPair(0, 0);
@@ -188,104 +192,108 @@ public class Validator {
             	} 
             }
         }
-		if (!foundBegin) {
-			return ValidationResult.NO_PLUSCAL_EXISTS;
-		}
+	       
+		final Set<ValidationResult> res = new HashSet<>();
 
+		
+		// TLA+ translation
 		final int translationLine = trans.findTokenPair(deTabbedSpecification, 0,
 														PcalParams.BeginXlation1, PcalParams.BeginXlation2);
-        final String pcalMD5;
-        final String translatedMD5;
 		if (translationLine == -1) {
-            return ValidationResult.NO_TRANSLATION_EXISTS;
-		} else {
-			final int endTranslationLine = trans.findTokenPair(deTabbedSpecification, translationLine + 1,
-															   PcalParams.EndXlation1, PcalParams.EndXlation2);
-			if (endTranslationLine == -1) {
-                return ValidationResult.NO_TRANSLATION_EXISTS;
-            }
-
-			final String beginLine = deTabbedSpecification.get(translationLine);
-        	Matcher m = Validator.PCAL_CHECKSUM_PATTERN.matcher(beginLine);
-        	if (m.find()) {
-        		pcalMD5 = m.group(MATCH_GROUP);
-        	} else {
-        		return ValidationResult.NO_CHECKSUMS_EXIST;
-        	}
-        	final String endLine = deTabbedSpecification.get(endTranslationLine);
-        	m = Validator.TRANSLATED_PCAL_CHECKSUM_PATTERN.matcher(endLine);
-        	if (m.find()) {
-        		translatedMD5 = m.group(MATCH_GROUP);
-
-            	final Vector<String> translation = new Vector<>(specificationText.subList((translationLine + 1),
-            																			   endTranslationLine));
-            	final String calculatedMD5 = calculateMD5(translation);
-            	if (!translatedMD5.equals(calculatedMD5)) {
-            		return ValidationResult.DIVERGENCE_EXISTS;
-            	}
-        	} else {
-        		translatedMD5 = null;
-        	}
-        }
-        
-		try {
-			ParseAlgorithm.uncomment(deTabbedSpecification, algLine, algCol);
-		} catch (ParseAlgorithmException e) {
-            PcalDebug.reportError(e);
-            return ValidationResult.ERROR_ENCOUNTERED;
-        }
-
-		// This seems like crazy poor design - we're already passing around algLine and algCol, but if we don't make
-		//	this arbitrary object, throw it into a global public static setting, and also assign values to it there,
-		//	then the ParseAlgorithm won't pick up the values..
-        final TLAtoPCalMapping mapping = new TLAtoPCalMapping() ;
-        mapping.algColumn = algCol;
-        mapping.algLine = algLine;
-        PcalParams.tlaPcalMapping = mapping;
-		
-		final PcalCharReader reader = new PcalCharReader(deTabbedSpecification, algLine, algCol,
-				specificationText.size(), 0);
-		final AST ast;
-		try {
-			ast = ParseAlgorithm.getAlgorithm(reader, foundFairBegin);
-		} catch (ParseAlgorithmException e) {
-			PcalDebug.reportError(e);
-			return ValidationResult.ERROR_ENCOUNTERED;
+			res.add(ValidationResult.NO_TRANSLATION_EXISTS);
 		}
-        
-        final String calculatedMD5 = Validator.calculateMD5(ast.toString());
-    	if (!pcalMD5.equals(calculatedMD5)) {
-    		return ValidationResult.DIVERGENCE_EXISTS;
-    	}
+		
+		final int endTranslationLine = trans.findTokenPair(deTabbedSpecification, translationLine + 1,
+				PcalParams.EndXlation1, PcalParams.EndXlation2);
+		if (endTranslationLine == -1) {
+			res.add(ValidationResult.NO_TRANSLATION_EXISTS);
+		}
+		if (translationLine == -1 && endTranslationLine == -1) {
+			return res;
+		}
 
-		return ValidationResult.NO_DIVERGENCE;
+		// PlusCal algorithm
+		if (!foundBegin) {
+			res.add(ValidationResult.NO_PLUSCAL_EXISTS);
+		} else {
+
+	    	// Get the PlusCal AST by parsing it.
+			try {
+				ParseAlgorithm.uncomment(deTabbedSpecification, algLine, algCol);
+			} catch (ParseAlgorithmException e) {
+	            PcalDebug.reportError(e);
+	            return setOf(ValidationResult.ERROR_ENCOUNTERED);
+	        }
+			
+	        final TLAtoPCalMapping mapping = new TLAtoPCalMapping() ;
+	        mapping.algColumn = algCol;
+	        mapping.algLine = algLine;
+	        PcalParams.tlaPcalMapping = mapping;
+			
+			AST ast = new AST();
+			try {
+				final PcalCharReader reader = new PcalCharReader(deTabbedSpecification, algLine, algCol,
+						specificationText.size(), 0);
+				ast = ParseAlgorithm.getAlgorithm(reader, foundFairBegin);
+				
+				// The call translate mutates the ast in pcal.PcalTranslate.Explode(AST, PcalSymTab).
+				// I'm ignoring the PcalParams.tlcTranslation() alternative in trans.java
+				// because I doubt the "-spec" feature is used widely (if at all).
+		        final PCalTLAGenerator pcalTLAGenerator = new PCalTLAGenerator(ast);
+	            pcalTLAGenerator.removeNameConflicts();
+                pcalTLAGenerator.translate();
+			} catch (ParseAlgorithmException | RemoveNameConflictsException e) {
+				PcalDebug.reportError(e);
+				// The PlusCal algorithm doesn't parse because of a syntax error. This indicates
+				// that the algorithm has been modified since it wouldn't have been possible to
+				// calculate a checksum earlier. ast will be empty string and, thus, not match below.
+			}
+	        
+			// Calculate the checksum value for the PlusCal's AST and compare unless no
+			// checksum to compare it with is given (or it has been disabled).
+			final Matcher m = Validator.CHECKSUM_PATTERN.matcher(deTabbedSpecification.get(translationLine));
+	    	if (m.find()) {
+	    		if (m.group(Validator.PCAL_CHECKSUM) != null) {
+
+	    			final String chksumPCalAST = Validator.checksum(foundFairBegin ? FAIR : "" + ast.toString());
+	    			if (!m.group(Validator.PCAL_CHECKSUM).equals(chksumPCalAST)) {
+	    				// Mismatch between the PlusCal algorithm and its checksum.
+	    				res.add(ValidationResult.PCAL_DIVERGENCE_EXISTS);
+	    			}
+	    		}
+	    		if (m.group(Validator.TLA_CHECKSUM) != null) {
+					final Vector<String> translation = new Vector<>(
+							specificationText.subList((translationLine + 1), endTranslationLine));
+					final String chksumTLATranslation = Validator.checksum(translation);
+	    			
+	    			if (!m.group(Validator.TLA_CHECKSUM).equals(chksumTLATranslation)) {
+	    				// Mismatch between the TLA+ translation and its checksum.
+	    				res.add(ValidationResult.TLA_DIVERGENCE_EXISTS);
+	    			}
+	    		}
+	    	} else {
+	    		res.add(ValidationResult.NO_PCAL_CHECKSUMS_EXIST);
+	    	}
+		}
+		return res.isEmpty() ? setOf(ValidationResult.NO_DIVERGENCE) : res;
 	}
     
-    static String calculateMD5(final Vector<String> lines) {
+    public static String checksum(final Vector<String> lines) {
     	final StringBuilder sb = new StringBuilder();
     	for (final String str : lines) {
     		sb.append(str);
     	}
     	
-    	return calculateMD5(sb.toString());
+    	return checksum(sb.toString());
     }
     
-    static String calculateMD5(final String string) {
-    	try {
-        	final MessageDigest digest = MessageDigest.getInstance("MD5");
-        	final byte[] hash = digest.digest(string.getBytes(StandardCharsets.UTF_8));
-        	final StringBuffer hexString = new StringBuffer();
-			for (int i = 0; i < hash.length; i++) {
-				final String hex = Integer.toHexString(0xff & hash[i]);
-				if (hex.length() == 1) {
-					hexString.append('0');
-				}
-				hexString.append(hex);
-			}
-            return hexString.toString();
-    	} catch (final NoSuchAlgorithmException e) {
-    		PcalDebug.reportError("Unable to calculate MD5: " + e.getMessage());
-    		return null;
-    	}
+    static String checksum(final String string) {
+    	final CRC32 crc32 = new CRC32();
+    	crc32.update(string.getBytes());
+    	return Long.toHexString(crc32.getValue());
+    }
+
+    private static Set<ValidationResult> setOf(ValidationResult... res) {
+    	return new HashSet<>(Arrays.asList(res));
     }
 }

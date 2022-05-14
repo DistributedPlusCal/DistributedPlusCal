@@ -106,17 +106,19 @@
 ***************************************************************************/
 package pcal;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import pcal.AST.VarDecl;
 import pcal.exception.ParseAlgorithmException;
 import pcal.exception.TLAExprException;
 import pcal.exception.TokenizerException;
 import pcal.exception.UnrecoverableException;
 import tla2tex.Debug;
 
+//For Distributed PlusCal
+import java.util.ArrayList;
+import pcal.AST.VarDecl;
+// end For Distributed PlusCal	
 
 public class ParseAlgorithm
 { 
@@ -236,12 +238,15 @@ public class ParseAlgorithm
    public static boolean pSyntax;
    public static boolean cSyntax;
 
+  
+  //For Distributed PlusCal
   /**********************************************************************
     * Constants for the types of channels                               *
     **********************************************************************/
    private static final String CHANNEL_TYPE_UNORDERED = "Unordered";
    private static final String CHANNEL_TYPE_FIFO = "FIFO";
-
+  // end For Distributed PlusCal
+  
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
     * methods, including setting charReader.  It is called only by        *
@@ -332,21 +337,15 @@ public class ParseAlgorithm
     	   }
     	   PcalParams.FairAlgorithm = true;    	   
        }
-       
-       String name = GetAlgToken();
-       if (PeekAtAlgToken(1).equals("{")) {
-    	   cSyntax = true;
-    	   MustGobbleThis("{");
-       } else {
-    	   pSyntax = true;
-       }
-
-	   Vector vdecls = new Vector();
-
-       if (PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")) {
-    	   vdecls = GetVarDecls();
-       }
-       
+       String name = GetAlgToken() ;
+       if (PeekAtAlgToken(1).equals("{"))
+         { cSyntax = true ;
+           MustGobbleThis("{") ; } 
+       else {pSyntax = true ; } ;
+       Vector vdecls = new Vector() ;
+       if ( PeekAtAlgToken(1).equals("variable")
+           || PeekAtAlgToken(1).equals("variables"))
+         { vdecls = GetVarDecls() ; } ;
        //For Distributed PlusCal
        if (PcalParams.distpcalFlag)  {
          if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("channels") ) {
@@ -356,287 +355,261 @@ public class ParseAlgorithm
            vdecls.addAll(GetChannelDecls("fifo",CHANNEL_TYPE_FIFO));
          }
        }
-
-       TLAExpr defs = new TLAExpr();
-		if (PeekAtAlgToken(1).equals("define")) {
-			MustGobbleThis("define");
-
-			if (cSyntax) {
-				GobbleThis("{");
-			}
-
-			defs = GetExpr();
-			if (pSyntax) {
-				GobbleThis("end");
-				GobbleThis("define");
-			} else {
-				GobbleThis("}");
-			}
-
-			GobbleThis(";");
-		}
-
-		Vector macros = new Vector();
-		while (PeekAtAlgToken(1).equals("macro")) {
-			macros.addElement(GetMacro(macros));
-		}
-
-		while (PeekAtAlgToken(1).equals("procedure")) {
-			procedures.addElement(GetProcedure());
-			// if there's a procedure, we assume that it's
-			// called, so we must not omit the pc variable.
-			omitPC = false;
-		}
-			// PLUSCAL multi-process part begin
-			if ((PeekAtAlgToken(1).equals("fair") 
-					&& ((PeekAtAlgToken(2).equals("process") || (PeekAtAlgToken(2).equals("+")
-							&& PeekAtAlgToken(3).equals("process")
-							)
-							))
-					)
-					|| PeekAtAlgToken(1).equals("process")){
-				AST.Multiprocess multiproc = new AST.Multiprocess() ;
-				TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
-				PCalLocation multiprocBegin = new PCalLocation(map.algLine, map.algColumn);
-				multiproc.name   = name ;
-				multiproc.decls  = vdecls ;
-				multiproc.defs   = defs ;
-				multiproc.macros = macros ;
-				multiproc.prcds  = procedures ;
-				multiproc.procs  = new Vector() ;
-				while (PeekAtAlgToken(1).equals("fair") ||
-						PeekAtAlgToken(1).equals("process"))
-				{ int fairness = AST.UNFAIR_PROC;
-				if (PeekAtAlgToken(1).equals("fair")) {
-					MustGobbleThis("fair");
-					if (PeekAtAlgToken(1).equals("+")) {
-						MustGobbleThis("+");
-						fairness = AST.SF_PROC;
-					} else {
-						fairness = AST.WF_PROC;
-					}
-				} else 
-				{ if (PcalParams.FairnessOption.equals("wf")) {
-					fairness = AST.WF_PROC;
-				} else if (PcalParams.FairnessOption.equals("sf")) {
-					fairness = AST.SF_PROC;
-				}
-				};        	   
-
-        AST.Process proc =  GetProcess() ;
-        proc.fairness = fairness ;
-        multiproc.procs.addElement(proc) ; 
-        }
-        
-				if (pSyntax)
-				{ GobbleThis("end") ;
-				GobbleThis("algorithm") ; }
-				else { GobbleThis("}") ; } ;
-				CheckForDuplicateMacros(multiproc.macros) ;
-				int i = 0 ;
-				// LL comment added 11 Mar 2006
-				// It should be possible to exchange the order of the next
-				// two while loops, which would cause printing of added labels
-				// in the correct order, but it doesn't seem to be worth the
-				// risk that something I haven't thought of will break.
-
-				// See the comment to the checkBody method to see
-				// why omitStutteringWhenDoneValue is being set
-				// to the correct value of omitStutteringWhenDone.
-				// (Added by LL on 30 Mar 2012.)
-				boolean omitStutteringWhenDoneValue = false;
-
-				while (i < multiproc.procs.size())
-				{
-
-          AST.Process proc = 
-            (AST.Process) multiproc.procs.elementAt(i);
-          //For Distributed PlusCal
-          if(PcalParams.distpcalFlag) {
-            omitStutteringWhenDone = true;
-            int j = 0;
-            while (j < proc.threads.size()) {
-              AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
-              
-              ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
-              ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
-              AddLabelsToStmtSeq(thread.body);
-              thread.body = MakeLabeledStmtSeq(thread.body);
-              
-              checkBody(thread.body);
-              omitStutteringWhenDoneValue =
-                omitStutteringWhenDoneValue || omitStutteringWhenDone;
-              j++;
-            }
-            if(proc.threads.size() > 1) {
-              omitPC = false;
-            }
-          } else {
-            ExpandMacrosInStmtSeq(proc.body, multiproc.macros) ;
-            AddLabelsToStmtSeq(proc.body) ;
-            proc.body = MakeLabeledStmtSeq(proc.body);
-            
-            omitStutteringWhenDone = true;
-            checkBody(proc.body);
-            omitStutteringWhenDoneValue = 
-              omitStutteringWhenDoneValue || omitStutteringWhenDone;
-          }
-          i = i + 1 ;
-				} ;
-				omitStutteringWhenDone = omitStutteringWhenDoneValue;
-				i = 0 ;
-				while (i < multiproc.prcds.size())
-				{ AST.Procedure prcd = 
-				(AST.Procedure) multiproc.prcds.elementAt(i) ;
-				currentProcedure = prcd.name ;
-				ExpandMacrosInStmtSeq(prcd.body, multiproc.macros);
-        //For Distributed PlusCal
-        if(PcalParams.distpcalFlag) {
-					//to expand the channel callers that are within a procedures body
-					ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
-        }
-        AddLabelsToStmtSeq(prcd.body);
-				prcd.body = MakeLabeledStmtSeq(prcd.body);
-				i = i + 1 ;
-				}
-        
-				/****************************************************************
-				 * Check for added labels, report an error if there shouldn't    *
-				 * be any, and print them out if the -reportLabels was           *
-				 * specified.                                                    *
-				 ****************************************************************/
-				if (addedLabels.size() > 0)
-				{ if (! PcalParams.LabelFlag) { AddedMessagesError() ; } ;
-				if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
-				else
-					// SZ March 11, 2009: info reporting using PcalDebug added
-				{ PcalDebug.reportInfo("Labels added.") ; } ;
-				} ;
-				if (gotoDoneUsed) {
-					omitPC = false;
-					omitStutteringWhenDone = false;
-				}
-				if (gotoUsed) {
-					omitPC = false;
-				}
-				multiproc.setOrigin(new Region(multiprocBegin, 
-						GetLastLocationEnd())) ;
-				return multiproc ;
-			} else
-			{ 
-			AST.Uniprocess uniproc = new AST.Uniprocess() ;
-			TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
-			PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
-			uniproc.name   = name ;
-			uniproc.decls  = vdecls ;
-			uniproc.defs  = defs ;
-			uniproc.macros = macros ;
-			uniproc.prcds  = procedures ;
-			// Version 1.5 allowed "fair" to appear here
-			// to specify fairness for a sequential algorithm
-			if (PcalParams.inputVersionNumber == PcalParams.VersionToNumber("1.5")) {
-				if (PeekAtAlgToken(1).equals("fair")) {
-					GobbleThis("fair");
-					if (PeekAtAlgToken(1).equals("+")) {
-						GobbleThis("+");
-					} 
-					PcalParams.FairnessOption = "wf";
-				}
-			}
-
-			// Following if statement added by LL on 5 Oct 2011
-			// to fix bug in which --fair uniprocess algorithm
-			// wasn't producing fairness condition.
-			if (fairAlgorithm) {
-				if (!PcalParams.FairnessOption.equals("") 
-						&& !PcalParams.FairnessOption.equals("wf")
-						&& !PcalParams.FairnessOption.equals("wfNext")) {
-					PcalDebug.reportWarning("Option `" + PcalParams.FairnessOption + "' specified for --fair algorithm.");
-				}
-				PcalParams.FairnessOption = "wf";
-			} ;
-
-			GobbleBeginOrLeftBrace() ;
-			uniproc.body = GetStmtSeq() ;
-			CheckForDuplicateMacros(uniproc.macros) ;
-			ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
-      //For Distributed PlusCal
-      if(PcalParams.distpcalFlag) {
-        ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
-      }
-			// LL comment added 11 Mar 2006.
-			// I moved the following to after processing the procedures
-			// so added labels are printed in correct order-- e.g., with 
-			// -reportLabels option 
-			//           AddLabelsToStmtSeq(uniproc.body) ;
-			//           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
-			int i = 0 ;
-			while (i < uniproc.prcds.size())
-			{  AST.Procedure prcd =
-			(AST.Procedure) uniproc.prcds.elementAt(i) ;
-			currentProcedure = prcd.name ;
-			ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
-      //For Distributed PlusCal
-      if(PcalParams.distpcalFlag) {
-        //to expand the channel callers that are within a procedures body
-        ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
-      }
-			AddLabelsToStmtSeq(prcd.body);
-			prcd.body = MakeLabeledStmtSeq(prcd.body);
-			i = i + 1 ;
-			}
-			if (cSyntax) 
-			{ GobbleThis("}") ; 
-			GobbleThis("}") ; } 
-			else 
-			{ GobbleThis("end") ;
-			GobbleThis("algorithm") ;} ;
-			AddLabelsToStmtSeq(uniproc.body) ;
-			uniproc.body = MakeLabeledStmtSeq(uniproc.body);
-			/****************************************************************
-			 * Check for added labels, report an error if there shouldn't    *
-			 * be any, and print them out if the -reportLabels was           *
-			 * specified.                                                    *
-			 ****************************************************************/
-			if (addedLabels.size() > 0)
-			{ if (hasLabel && ! PcalParams.LabelFlag) 
-			{ AddedMessagesError() ; } ;
-			if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
-			else
-				// SZ March 11, 2009: info reporting using PcalDebug added
-			{ PcalDebug.reportInfo("Labels added.") ; } ;
-			} ;
-
-			if (gotoUsed) {
-				omitPC = false;
-			}
-			if (gotoDoneUsed) {
-				omitPC = false;
-				omitStutteringWhenDone = false;
-			} else {
-				checkBody(uniproc.body);
-			}
-			uniproc.setOrigin(new Region(uniprocBegin, 
-					GetLastLocationEnd())) ;
-			return uniproc ;
-			}
-		
-
+       // end For Distributed PlusCal	
+       TLAExpr defs = new TLAExpr() ;
+       if (PeekAtAlgToken(1).equals("define"))
+         { MustGobbleThis("define") ;
+           if (cSyntax) {GobbleThis("{") ;} ;
+           defs = GetExpr() ;
+           if (pSyntax) 
+             { GobbleThis("end") ;
+               GobbleThis("define") ; }
+           else
+             { GobbleThis("}") ; } ;
+           GobbleThis(";") ; 
+         }
+       Vector macros = new Vector() ;
+       while (PeekAtAlgToken(1).equals("macro"))
+         { macros.addElement(GetMacro(macros)) ; } ;
+       while (PeekAtAlgToken(1).equals("procedure"))
+         { procedures.addElement(GetProcedure()) ;
+           // if there's a procedure, we assume that it's
+           // called, so we must not omit the pc variable.
+           omitPC = false;
+         } ;
+       if (     (   PeekAtAlgToken(1).equals("fair") 
+                 && (   PeekAtAlgToken(2).equals("process")
+                     || (   PeekAtAlgToken(2).equals("+")
+                         && PeekAtAlgToken(3).equals("process")
+                        )
+                    )
+                )
+    		 || PeekAtAlgToken(1).equals("process")   )
+         { AST.Multiprocess multiproc = new AST.Multiprocess() ;
+           TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
+           PCalLocation multiprocBegin = new PCalLocation(map.algLine, map.algColumn);
+           multiproc.name   = name ;
+           multiproc.decls  = vdecls ;
+           multiproc.defs   = defs ;
+           multiproc.macros = macros ;
+           multiproc.prcds  = procedures ;
+           multiproc.procs  = new Vector() ;
+           while (PeekAtAlgToken(1).equals("fair") ||
+        		   PeekAtAlgToken(1).equals("process"))
+             { int fairness = AST.UNFAIR_PROC;
+              if (PeekAtAlgToken(1).equals("fair")) {
+        		   MustGobbleThis("fair");
+        		   if (PeekAtAlgToken(1).equals("+")) {
+        		       MustGobbleThis("+");
+        		       fairness = AST.SF_PROC;
+        		   } else {
+        		   fairness = AST.WF_PROC;
+        		   }
+                } else 
+                { if (PcalParams.FairnessOption.equals("wf")) {
+                	fairness = AST.WF_PROC;
+                    } else if (PcalParams.FairnessOption.equals("sf")) {
+                    	fairness = AST.SF_PROC;
+                    }
+                };        	   
+        	   AST.Process proc =  GetProcess() ;
+        	   proc.fairness = fairness ;
+        	   multiproc.procs.addElement(proc) ; 
+             } ;
+           if (pSyntax)
+             { GobbleThis("end") ;
+               GobbleThis("algorithm") ; }
+           else { GobbleThis("}") ; } ;
+           CheckForDuplicateMacros(multiproc.macros) ;
+           int i = 0 ;
+// LL comment added 11 Mar 2006
+// It should be possible to exchange the order of the next
+// two while loops, which would cause printing of added labels
+// in the correct order, but it doesn't seem to be worth the
+// risk that something I haven't thought of will break.
+           
+           // See the comment to the checkBody method to see
+           // why omitStutteringWhenDoneValue is being set
+           // to the correct value of omitStutteringWhenDone.
+           // (Added by LL on 30 Mar 2012.)
+           boolean omitStutteringWhenDoneValue = false;
+           while (i < multiproc.procs.size())
+             { AST.Process proc = 
+                   (AST.Process) multiproc.procs.elementAt(i);
+               //For Distributed PlusCal
+               if(PcalParams.distpcalFlag) {
+                 omitStutteringWhenDone = true;
+                 int j = 0;
+                 while (j < proc.threads.size()) {
+                   AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
+                   
+                   ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
+                   ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
+                   AddLabelsToStmtSeq(thread.body);
+                   thread.body = MakeLabeledStmtSeq(thread.body);
+                   
+                   checkBody(thread.body);
+                   omitStutteringWhenDoneValue =
+                     omitStutteringWhenDoneValue || omitStutteringWhenDone;
+                   j++;
+                 }
+                 if(proc.threads.size() > 1) {
+                   omitPC = false;
+                 }
+               } else {  // end For Distributed PlusCal	
+                 ExpandMacrosInStmtSeq(proc.body, multiproc.macros) ;
+                 AddLabelsToStmtSeq(proc.body) ;
+                 proc.body = MakeLabeledStmtSeq(proc.body);
+               
+                 omitStutteringWhenDone = true;
+                 checkBody(proc.body);
+                 omitStutteringWhenDoneValue = 
+                   omitStutteringWhenDoneValue || omitStutteringWhenDone;
+               }
+               i = i + 1 ;
+             } ;
+           omitStutteringWhenDone = omitStutteringWhenDoneValue;
+           i = 0 ;
+           while (i < multiproc.prcds.size())
+             { AST.Procedure prcd = 
+                  (AST.Procedure) multiproc.prcds.elementAt(i) ;
+               currentProcedure = prcd.name ;
+               ExpandMacrosInStmtSeq(prcd.body, multiproc.macros);
+               //For Distributed PlusCal
+               if(PcalParams.distpcalFlag) {
+                 //to expand the channel callers that are within a procedures body
+                 ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
+               } // end For Distributed PlusCal	
+               AddLabelsToStmtSeq(prcd.body);
+               prcd.body = MakeLabeledStmtSeq(prcd.body);
+               i = i + 1 ;
+             }
+           /****************************************************************
+           * Check for added labels, report an error if there shouldn't    *
+           * be any, and print them out if the -reportLabels was           *
+           * specified.                                                    *
+           ****************************************************************/
+           if (addedLabels.size() > 0)
+             { if (! PcalParams.LabelFlag) { AddedMessagesError() ; } ;
+               if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
+               else
+                   // SZ March 11, 2009: info reporting using PcalDebug added
+                { PcalDebug.reportInfo("Labels added.") ; } ;
+              } ;
+           if (gotoDoneUsed) {
+                  omitPC = false;
+                  omitStutteringWhenDone = false;
+              }
+           if (gotoUsed) {
+               omitPC = false;
+           }
+           multiproc.setOrigin(new Region(multiprocBegin, 
+                   GetLastLocationEnd())) ;
+           return multiproc ;
+         }
+       else
+         { AST.Uniprocess uniproc = new AST.Uniprocess() ;
+           TLAtoPCalMapping map = PcalParams.tlaPcalMapping ;
+           PCalLocation uniprocBegin = new PCalLocation(map.algLine, map.algColumn);
+           uniproc.name   = name ;
+           uniproc.decls  = vdecls ;
+           uniproc.defs  = defs ;
+           uniproc.macros = macros ;
+           uniproc.prcds  = procedures ;
+           // Version 1.5 allowed "fair" to appear here
+           // to specify fairness for a sequential algorithm
+           if (PcalParams.inputVersionNumber == PcalParams.VersionToNumber("1.5")) {
+        	   if (PeekAtAlgToken(1).equals("fair")) {
+                   GobbleThis("fair");
+                   if (PeekAtAlgToken(1).equals("+")) {
+                       GobbleThis("+");
+                   } 
+                   PcalParams.FairnessOption = "wf";
+                 }
+           }
+           
+           // Following if statement added by LL on 5 Oct 2011
+           // to fix bug in which --fair uniprocess algorithm
+           // wasn't producing fairness condition.
+           if (fairAlgorithm) {
+        	   if (!PcalParams.FairnessOption.equals("") 
+        		      && !PcalParams.FairnessOption.equals("wf")
+        		      && !PcalParams.FairnessOption.equals("wfNext")) {
+        		  PcalDebug.reportWarning("Option `" + PcalParams.FairnessOption + "' specified for --fair algorithm.");
+        	   }
+        	   PcalParams.FairnessOption = "wf";
+           } ;
+           
+           GobbleBeginOrLeftBrace() ;
+           uniproc.body = GetStmtSeq() ;
+           CheckForDuplicateMacros(uniproc.macros) ;
+           ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
+           //For Distributed PlusCal
+           if(PcalParams.distpcalFlag) {
+             ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
+           } // end For Distributed PlusCal
+// LL comment added 11 Mar 2006.
+// I moved the following to after processing the procedures
+// so added labels are printed in correct order-- e.g., with 
+// -reportLabels option 
+//           AddLabelsToStmtSeq(uniproc.body) ;
+//           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+           int i = 0 ;
+           while (i < uniproc.prcds.size())
+             {  AST.Procedure prcd =
+                  (AST.Procedure) uniproc.prcds.elementAt(i) ;
+               currentProcedure = prcd.name ;
+               ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
+               //For Distributed PlusCal
+               if(PcalParams.distpcalFlag) {
+                 //to expand the channel callers that are within a procedures body
+                 ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
+               } // end For Distributed PlusCal
+               AddLabelsToStmtSeq(prcd.body);
+               prcd.body = MakeLabeledStmtSeq(prcd.body);
+               i = i + 1 ;
+             }
+           if (cSyntax) 
+             { GobbleThis("}") ; 
+               GobbleThis("}") ; } 
+           else 
+             { GobbleThis("end") ;
+               GobbleThis("algorithm") ;} ;
+           AddLabelsToStmtSeq(uniproc.body) ;
+           uniproc.body = MakeLabeledStmtSeq(uniproc.body);
+           /****************************************************************
+           * Check for added labels, report an error if there shouldn't    *
+           * be any, and print them out if the -reportLabels was           *
+           * specified.                                                    *
+           ****************************************************************/
+           if (addedLabels.size() > 0)
+             { if (hasLabel && ! PcalParams.LabelFlag) 
+                        { AddedMessagesError() ; } ;
+               if (PcalParams.ReportLabelsFlag) { ReportLabels() ; } 
+               else
+                   // SZ March 11, 2009: info reporting using PcalDebug added
+                { PcalDebug.reportInfo("Labels added.") ; } ;
+              } ;
+           
+           if (gotoUsed) {
+                  omitPC = false;
+              }
+           if (gotoDoneUsed) {
+               omitPC = false;
+               omitStutteringWhenDone = false;
+           } else {
+               checkBody(uniproc.body);
+           }
+           uniproc.setOrigin(new Region(uniprocBegin, 
+                             GetLastLocationEnd())) ;
+           return uniproc ;
+         }
        } catch (final RuntimeException e) {
 			// Catch generic/unhandled errors (ArrayIndexOutOfbounds/NullPointers/...) that
 			// the nested code might throw at us. Not converting them into a
 			// ParseAlgorithmException means the Toolbox silently fails to translate an
 			// algorithm (see Github issue at https://github.com/tlaplus/tlaplus/issues/313)
-    	   
-    	   
-    	    System.out.println("error position : " + e.getStackTrace()[0]);
-    	    System.out.println("error position : " + e.getStackTrace()[1]);
-
-    	    System.out.println("error class : " + e.getClass());
-
 	    	ParsingError("Unknown error at or before");
-	    	System.out.println(e.getMessage());
-
     	    return null;
        }
      }
@@ -679,15 +652,13 @@ public class ParseAlgorithm
            omitStutteringWhenDone = false;
            return;
        } ;
-
        //For Distributed PlusCal
        // HC: doublecheck
        if (PcalParams.distpcalFlag) {
            omitPC = false;
            omitStutteringWhenDone = false;
            return;
-       }
-
+       } // end For Distributed PlusCal
        AST.LabeledStmt lblStmt = (AST.LabeledStmt) body.elementAt(0);
        if ( (lblStmt.stmts == null) || (lblStmt.stmts.size() == 0)) {
            // Again, this shouldn't happen.
@@ -708,7 +679,6 @@ public class ParseAlgorithm
            return;
        }
        Vector line = (Vector) tokens.elementAt(0);
-
        if (line.size() != 1) {
            omitPC = false;
            omitStutteringWhenDone = false;
@@ -796,7 +766,7 @@ public class ParseAlgorithm
            lookForComma = true ;
          }
        MustGobbleThis(")") ;
-       if (PeekAtAlgToken(1).equals("begin")
+       if (   PeekAtAlgToken(1).equals("begin")
            || PeekAtAlgToken(1).equals("{"))
          { result.decls = new Vector(1) ; }
        else
@@ -832,7 +802,6 @@ public class ParseAlgorithm
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
-       
        //For Distributed PlusCal, when using p-syntax
        // HC: doublecheck if (with subprocess)
        if (PcalParams.distpcalFlag)  {
@@ -901,18 +870,16 @@ public class ParseAlgorithm
            }
          }
          result.threads = threads;
-       } else {
+       } else { // end For Distributed PlusCal
          if (   PeekAtAlgToken(1).equals("begin")
                 || PeekAtAlgToken(1).equals("{"))
            { result.decls = new Vector(1) ; }
          else
            { result.decls = GetVarDecls() ; } ;
-         
          GobbleBeginOrLeftBrace() ;
          result.body = GetStmtSeq() ;
          GobbleEndOrRightBrace("process") ;
        }
-       
        PCalLocation endLoc = GetLastLocationEnd() ;
        if (PeekAtAlgToken(1).equals(";"))
          { String tok = GetAlgToken() ; } ;
@@ -939,7 +906,7 @@ public class ParseAlgorithm
        * The <PVarDecls> nonterminal is terminated by a "begin"            *
        * (p-syntax) or "{" (c-syntax) for the procedure.                   *
        ********************************************************************/
-       while (! (PeekAtAlgToken(1).equals("begin")
+       while (! (   PeekAtAlgToken(1).equals("begin")
                  || PeekAtAlgToken(1).equals("{") 
                  //For Distributed PlusCal, when using p-syntax
                  || PeekAtAlgToken(1).equals("subprocess")) )
@@ -992,7 +959,7 @@ public class ParseAlgorithm
        * - At the beginning of a <Algorithm>, where it is terminated by    *
        *   "define", "macro", "procedure", "begin" or "{", or "process" .  *
        ********************************************************************/
-       while (!(PeekAtAlgToken(1).equals("begin")
+       while (! (   PeekAtAlgToken(1).equals("begin")
                  || PeekAtAlgToken(1).equals("{")
                  || PeekAtAlgToken(1).equals("procedure")
                  || PeekAtAlgToken(1).equals("process")  
@@ -1001,13 +968,13 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("macro")  
                  //For Distributed PlusCal
                  || PeekAtAlgToken(1).equals("node")
- 				 || PeekAtAlgToken(1).equals("channel") 
- 				 || PeekAtAlgToken(1).equals("channels") 
- 				 || PeekAtAlgToken(1).equals("fifos") 
- 				 || PeekAtAlgToken(1).equals("fifo")
- 				 || PeekAtAlgToken(1).equals("subprocess")))
+                 || PeekAtAlgToken(1).equals("channel") 
+                 || PeekAtAlgToken(1).equals("channels") 
+                 || PeekAtAlgToken(1).equals("fifos") 
+                 || PeekAtAlgToken(1).equals("fifo")
+                 || PeekAtAlgToken(1).equals("subprocess") ) )
          { result.addElement(GetVarDecl());
-          }
+          } ;
         return result ;
      }
 
@@ -1256,74 +1223,38 @@ public class ParseAlgorithm
       }
 
 
-	public static AST GetStmt() throws ParseAlgorithmException {
-		String nextTok = PeekAtAlgToken(1);
-
-		if (nextTok.equals("if")) {
-			return GetIf(0);
-		}
-		
-		if (nextTok.equals("either")) {
-			return GetEither();
-		}
-		
-		if (nextTok.equals("with")) {
-			return GetWith(0);
-		}
-		
-		if (nextTok.equals("when")) {
-			return GetWhen(true);
-		}
-		
-		if (nextTok.equals("await")) {
-			return GetWhen(false);
-		}
-		
-		if (nextTok.equals("print")) {
-			return GetPrintS();
-		}
-		
-		if (nextTok.equals("assert")) {
-			return GetAssert();
-		}
-		
-		if (nextTok.equals("skip")) {
-			return GetSkip();
-		}
-		
-		if (nextTok.equals("call")) {
-			return GetCallOrCallReturnOrCallGoto();
-		}
-		
-		if (nextTok.equals("return")) {
-			return GetReturn();
-		}
-		
-		if (nextTok.equals("goto")) {
-			return GetGoto();
-		}
-		
-		if (nextTok.equals("while")) {
-			return GetWhile();
-		}
-		
-		if (PeekPastAlgToken(1).charAt(0) == '(') {
-
-			if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getSendToChannelCall(nextTok);
-			} else if(nextTok.equals("receive")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getReceiveFromChannelCall(nextTok);
-			} else if(nextTok.equals("clear")) {
-				PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
-				return getClearChannelCall(nextTok);
-			} else {
-				return GetMacroCall();
-			}
-		}
-		return GetAssign();
-	}
+   public static AST GetStmt() throws ParseAlgorithmException
+     { String nextTok = PeekAtAlgToken(1) ;
+       if (nextTok.equals("if"))     { return GetIf(0) ; }     ;
+       if (nextTok.equals("either")) { return GetEither() ; }     ;
+       if (nextTok.equals("with"))   { return GetWith(0) ; }   ;
+       if (nextTok.equals("when"))   { return GetWhen(true) ; }   ;
+       if (nextTok.equals("await"))  { return GetWhen(false) ; }   ;
+       if (nextTok.equals("print"))  { return GetPrintS() ; } ;
+       if (nextTok.equals("assert")) { return GetAssert() ; } ;
+       if (nextTok.equals("skip"))   { return GetSkip() ; }   ;
+       if (nextTok.equals("call"))   { return GetCallOrCallReturnOrCallGoto() ; }   ;
+       if (nextTok.equals("return")) { return GetReturn() ; }   ;
+       if (nextTok.equals("goto"))   { return GetGoto() ; }   ;
+       if (nextTok.equals("while"))  { return GetWhile() ; } ;
+       if (PeekPastAlgToken(1).charAt(0)=='(')
+         {
+           //For Distributed pluscal
+           if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
+             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+             return getSendToChannelCall(nextTok);
+           } else if(nextTok.equals("receive")) {
+             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+             return getReceiveFromChannelCall(nextTok);
+           } else if(nextTok.equals("clear")) {
+             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
+             return getClearChannelCall(nextTok);
+           } else { // end For Distributed PlusCal
+             return GetMacroCall() ;
+           }
+         }
+       return GetAssign() ;
+     }
 
    public static Vector GetCStmtSeq(String lbl) throws ParseAlgorithmException 
      /**********************************************************************
@@ -3006,8 +2937,8 @@ public class ParseAlgorithm
        */
       if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
+          first.lbl = call.lbl ;
+          first.lblLocation = call.lblLocation ;
           Region callOrigin = call.getOrigin();
           if (callOrigin != null) {
               first.macroOriginBegin = callOrigin.getBegin();
@@ -3375,10 +3306,8 @@ public class ParseAlgorithm
 
               return result;
             } ;
-        }
-
-
-        
+        } // end For Distributed PlusCal
+       
         /*******************************************************************
         * The following statements are ones that may not appear in a macro *
         * definition body.                                                 *
@@ -3596,7 +3525,7 @@ public class ParseAlgorithm
       * column macroCol, where macroLine = -1 if this is not being called  *
       * during macro expansion.                                            *
       *********************************************************************/
-      {
+      { 
         try {
         AST.SingleAssign result = new AST.SingleAssign() ;
         result.setOrigin(assgn.getOrigin());
@@ -3733,7 +3662,7 @@ public class ParseAlgorithm
      * c-syntax.  Gobbles is and sets pSyntax or cSyntax.                  *
      **********************************************************************/
      { if (pSyntax) 
-    		 GobbleThis("begin") ;
+         { GobbleThis("begin") ;}
        else if (cSyntax)
          { GobbleThis("{") ;}
        else {PcalDebug.ReportBug("Syntax not initialized.") ;} ;
@@ -3799,7 +3728,6 @@ public class ParseAlgorithm
                 || nxt.equals("define")
                 || nxt.equals("}")
                 || nxt.equals("{")
-                
                 //For Distributed PlusCal
                 || nxt.equals("node")
                 || nxt.equals("subprocess")
@@ -4316,8 +4244,7 @@ public class ParseAlgorithm
             {
                 argsArray[i] = (String) argsVec.elementAt(i);
             }
-// printArray(argsArray); 
-
+// printArray(argsArray);           
             int status = trans.parseAndProcessArguments(argsArray);
             if (status != trans.STATUS_OK)
             {
@@ -4778,7 +4705,6 @@ public class ParseAlgorithm
        }
    }
 
-  
    //For Distributed PlusCal	
   public static Vector GetChannelDecls(String decl, String type) throws ParseAlgorithmException {
 
@@ -5184,4 +5110,7 @@ public class ParseAlgorithm
 		PcalDebug.reportInfo("found variable declaration name: " + chanVar);
 		return chanVar;
 	}
-}
+  // end For Distributed PlusCal
+
+ }
+

@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import tla2sany.semantic.ExprNode;
 import tla2sany.semantic.OpDeclNode;
 import tlc2.TLCGlobals;
 import tlc2.output.EC;
@@ -191,7 +190,8 @@ public class ModelChecker extends AbstractChecker
                     // SZ Feb 23, 2009: ignore cancel on error reporting
 					this.doInit(cTool, true);
                 } catch (FingerprintException fe){
-                    result = MP.printError(EC.TLC_FINGERPRINT_EXCEPTION, new String[]{fe.getTrace(), fe.getRootCause().getMessage()});
+					result = MP.printError(EC.TLC_FINGERPRINT_EXCEPTION, new String[] {
+							cTool.hasCallStack() ? cTool.toString() : fe.getTrace(), fe.getRootCause().getMessage() });
                 } catch (Throwable e1) {
                     // Assert.printStack(e);
                     result = MP.printError(EC.TLC_NESTED_EXPRESSION, cTool.toString());
@@ -256,7 +256,7 @@ public class ModelChecker extends AbstractChecker
                             MP.format(this.theStateQueue.size()) });
                 	
                     report("checking liveness");
-                    result = liveCheck.finalCheck(tool);
+                    result = liveCheck.finalCheck(tool.getLiveness());
                     report("liveness check complete");
                     if (result != EC.NO_ERROR)
                     {
@@ -281,7 +281,8 @@ public class ModelChecker extends AbstractChecker
 							new Worker(4223, this, this.metadir, tool.getRootName()));
                 } catch (FingerprintException e)
                 {
-                    result = MP.printError(EC.TLC_FINGERPRINT_EXCEPTION, new String[]{e.getTrace(), e.getRootCause().getMessage()});
+					result = MP.printError(EC.TLC_FINGERPRINT_EXCEPTION, new String[] {
+							cTool.hasCallStack() ? cTool.toString() : e.getTrace(), e.getRootCause().getMessage() });
                 } catch (EvalException e) {
                 	// Do not replace the actual error code, such as assert violation, with TLC_NESTED_EXPRESSION.
 	                MP.printError(EC.TLC_NESTED_EXPRESSION, cTool.toString());
@@ -327,24 +328,7 @@ public class ModelChecker extends AbstractChecker
      */
     public int checkAssumptions()
     {
-        ExprNode[] assumps = this.tool.getAssumptions();
-        boolean[] isAxiom = this.tool.getAssumptionIsAxiom();
-        for (int i = 0; i < assumps.length; i++)
-        {
-            try
-            {
-                if ((!isAxiom[i]) && !this.tool.isValid(assumps[i]))
-                {
-                    return MP.printError(EC.TLC_ASSUMPTION_FALSE, assumps[i].toString());
-                }
-            } catch (Exception e)
-            {
-                // Assert.printStack(e);
-                return MP.printError(EC.TLC_ASSUMPTION_EVALUATION_ERROR,
-                        new String[] { assumps[i].toString(), e.getMessage() });
-            }
-        }
-        return EC.NO_ERROR;
+    	return this.tool.checkAssumptions();
     }
 
     /**
@@ -642,6 +626,13 @@ public class ModelChecker extends AbstractChecker
 			} else if (e instanceof EvalException)
 			{
 				ec = ((EvalException) e).getErrorCode();
+			// TODO: 345hv87 Read errorCode from TLCRE into ec. However, too much legacy
+			// code reports TLCRE errors as EC.General, and, thus, this change has the
+			// risk of causing regression (it causes test failures in e.g.:
+			// ETest6, FingerprintExceptionNextTest, tlc2.tool.Github611Test)
+//			} else if (e instanceof TLCRuntimeException)
+//			{
+//				ec = ((TLCRuntimeException) e).errorCode;
 			} else
 			{
 				ec = EC.GENERAL;
@@ -657,6 +648,9 @@ public class ModelChecker extends AbstractChecker
 						// pretty-print it a second time, which is why we pass the original parameters
 						// instead of the EvalException itself.  Exception handling in TLC is a mess!
 						MP.printError(ec, ((EvalException) e).getParameters(), e);
+					//TODO: See note above at label "345hv87".
+//					} else if (e instanceof TLCRuntimeException) {
+//						MP.printError(ec, ((TLCRuntimeException) e).parameters);
 					} else {
 						MP.printError(ec, e);
 					}
@@ -698,7 +692,7 @@ public class ModelChecker extends AbstractChecker
             if (this.checkLiveness && (runtimeRatio < TLCGlobals.livenessRatio || forceLiveCheck))
             {
 				final long preLivenessChecking = System.currentTimeMillis();
-				final int result = liveCheck.check(tool, forceLiveCheck);
+				final int result = liveCheck.check(tool.getLiveness(), forceLiveCheck);
                 if (result != EC.NO_ERROR)
                 {
                     return result;
@@ -865,7 +859,8 @@ public class ModelChecker extends AbstractChecker
                 String.valueOf(this.theFPSet.size()), String.valueOf(this.theStateQueue.size()) });
         // The depth used to only be reported on success, but this seems bogus since TLC reports
         // the number states above.
-        MP.printMessage(EC.TLC_SEARCH_DEPTH, String.valueOf(this.trace.getLevelForReporting()));
+		MP.printMessage(EC.TLC_SEARCH_DEPTH,
+				String.valueOf(getStatesGenerated() == 0L ? 0 : this.trace.getLevelForReporting()));
         if (success)
         {
 			
@@ -1044,7 +1039,6 @@ public class ModelChecker extends AbstractChecker
 	@Override
 	public void stop() {
 		synchronized (this) {
-			this.setDone();
 			this.theStateQueue.finishAll();
 			this.notifyAll();
 		}
@@ -1062,6 +1056,16 @@ public class ModelChecker extends AbstractChecker
 			this.theStateQueue.resumeAll();
 			this.notifyAll();
 		}
+	}
+
+	@Override
+	public TLCStateInfo[] getTraceInfo(TLCState s) throws IOException {
+		return trace.getTrace(s);
+	}
+
+	@Override
+	public TLCStateInfo[] getTraceInfo(final TLCState from, TLCState to) throws IOException {
+		return trace.getTrace(from, to);
 	}
 
 	/* (non-Javadoc)
@@ -1155,7 +1159,7 @@ public class ModelChecker extends AbstractChecker
 
 						// build behavior graph for liveness checking
 						if (checkLiveness) {
-							liveCheck.addInitState(tool, curState, fp);
+							liveCheck.addInitState(tool.getLiveness(), curState, fp);
 						}
 					}
 				}

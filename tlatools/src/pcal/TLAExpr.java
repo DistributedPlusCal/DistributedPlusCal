@@ -454,10 +454,12 @@ public class TLAExpr
 //               else if (tok.type == TLAToken.END_REPLACEMENT) {
 //            	   result = result + "map)" ;
 //               }
+               else if (tok.string.equals("\\/"))
+                 { result = result + String.format("\"(col%s) \\\\/\"", tok.column); }
                else if (tok.string.charAt(0) == '\\')
                  { result = result + "\"\\" + tok.string + "\""; }
                else if (tok.string.equals("/\\"))
-                  { result = result + "\"" + "/\\\\" + "\""; }
+                 { result = result + String.format("\"(col%s) /\\\\\"", tok.column); }
                else
                  { result = result + "\"" + tok.string + "\""; }
                j = j + 1 ;
@@ -862,7 +864,7 @@ public class TLAExpr
     	   * should be unchanged.
     	   */
         TLAToken tok = this.tokenAt(coord) ;
-        Region tokSource = tok.source;
+        Region tokSource= tok.source;
         if (this.isOneToken())
           { TLAExpr cloned = expr.cloneAndNormalize() ;
             if (tokSource != null) {
@@ -1324,6 +1326,7 @@ public class TLAExpr
         PcalDebug.printIntArray(anchorTokCol, name + ".anchorTokCol") ;
       }
 
+
     //For Distributed PlusCal
     /**
      * 
@@ -1358,6 +1361,7 @@ public class TLAExpr
     	}
     	return result;
     }
+    
 /***************************************************************************
 * Appending Vectors:                                                       *
 *                                                                          *

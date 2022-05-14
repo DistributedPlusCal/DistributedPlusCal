@@ -125,7 +125,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
   public final boolean member(Value elem) {
     try {
       Assert.fail("Attempted to check if the value:\n" + Values.ppr(elem.toString()) +
-      "\nis an element of the function " + Values.ppr(this.toString()));
+      "\nis an element of the function " + Values.ppr(this.toString()), getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -138,7 +138,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
   public final boolean isFinite() {
     try {
       Assert.fail("Attempted to check if the function:\n" + Values.ppr(this.toString()) +
-      "\nis a finite set.");
+      "\nis a finite set.", getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -187,7 +187,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
           if (!domains[0].member(args)) {
             Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
             ",\nthe first argument is:\n" + Values.ppr(args.toString()) +
-            "\nwhich is not in its domain.\n");
+            "\nwhich is not in its domain.\n", getSource());
           }
           if (isTuples[0]) {
             FormalParamNode[] ids = formals[0];
@@ -195,7 +195,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
             if (argVal == null) {
               Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
               ",\nthe first argument is:\n" + Values.ppr(args.toString()) +
-              "\nwhich does not match its formal parameter.\n");
+              "\nwhich does not match its formal parameter.\n", getSource());
             }
             if (argVal.size() != ids.length) return null;
             Value [] elems = argVal.elems;
@@ -212,7 +212,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
           if (tv == null) {
             Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                   ",\nthe argument list is:\n" + Values.ppr(args.toString()) +
-                  "\nwhich does not match its formal parameter.\n");
+                  "\nwhich does not match its formal parameter.\n", getSource());
           }
           Value[] elems = tv.elems;
           int argn = 0;
@@ -224,14 +224,14 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
                 Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                 ",\nthe argument number " + (argn+1) + " is:\n" +
                 Values.ppr(elems[argn].toString()) +
-                "\nwhich is not in its domain.\n");
+                "\nwhich is not in its domain.\n", getSource());
               }
               TupleValue tv1 = (TupleValue) elems[argn++].toTuple();
               if (tv1 == null || tv1.size() != ids.length) {
                 Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                 ",\nthe argument number " + argn + " is:\n" +
                 Values.ppr(elems[argn-1].toString()) +
-                "\nwhich does not match its formal parameter.\n");
+                "\nwhich does not match its formal parameter.\n", getSource());
               }
               Value [] avals = tv1.elems;
               for (int j = 0; j < ids.length; j++) {
@@ -243,7 +243,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
                 if (!domain.member(elems[argn])) {
                   Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                         ",\nthe argument number " + (argn+1) + " is:\n" +
-                        Values.ppr(elems[argn].toString()) + "\nwhich is not in the function's domain " + this.getDomain().toString() +".\n");
+                        Values.ppr(elems[argn].toString()) + "\nwhich is not in the function's domain " + this.getDomain().toString() +".\n", getSource());
                 }
                 c1 = c1.cons(ids[j], elems[argn++]);
               }
@@ -325,7 +325,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
             if (argVal == null) {
               Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
               ",\nthe first argument is:\n" + Values.ppr(arg.toString()) +
-              "\nwhich does not match its formal parameter.\n");
+              "\nwhich does not match its formal parameter.\n", getSource());
             }
             if (argVal.size() != ids.length) return null;
             Value [] elems = argVal.elems;
@@ -342,7 +342,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
           if (tv == null) {
             Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                   ",\nthe argument list is:\n" + Values.ppr(arg.toString()) +
-                  "\nwhich does not match its formal parameter.\n");
+                  "\nwhich does not match its formal parameter.\n", getSource());
           }
           Value[] elems = tv.elems;
           int argn = 0;
@@ -356,7 +356,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
                 Assert.fail("In applying the function\n" + Values.ppr(this.toString()) +
                 ",\nthe argument number " + argn + " is:\n" +
                 Values.ppr(elems[argn-1].toString()) +
-                "\nwhich does not match its formal parameter.\n");
+                "\nwhich does not match its formal parameter.\n", getSource());
               }
               if (tv1.size() != ids.length) return null;
               Value [] avals = tv1.elems;
@@ -627,7 +627,7 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
         SetEnumValue eSet = (SetEnumValue) dom.toSetEnum();
         if (eSet == null)
           Assert.fail("To convert a function of form [x \\in S |-> f(x)] " +
-                "to a tuple, the set S must be enumerable.");
+                "to a tuple, the set S must be enumerable.", getSource());
         eSet.normalize();
         int len = eSet.size();
         Value [] elems = new Value [len];
@@ -689,6 +689,12 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
             }
             values[idx++] = (Value) this.tool.eval(this.body, c1, this.state, this.pstate, this.control);
           }
+	      if (this.params.domains[0] instanceof IntervalValue) {
+	      	final IntervalValue iv = (IntervalValue) this.params.domains[0];
+	      	this.fcnRcd = new FcnRcdValue(iv, values, cm);
+	      } else {
+	        this.fcnRcd = new FcnRcdValue(domain, values, false, cm);
+	      }
         }
         else {
           while ((arg = Enum.nextElement()) != null) {
@@ -712,11 +718,20 @@ public class FcnLambdaValue extends Value implements Applicable, IFcnLambdaValue
             }
             values[idx++] = (Value) this.tool.eval(this.body, c1, this.state, this.pstate, this.control);
           }
+          this.fcnRcd = new FcnRcdValue(domain, values, false, cm);
         }
         if (coverage) {cm.incSecondary(sz);}
-        this.fcnRcd = new FcnRcdValue(domain, values, false, cm);
         if (this.excepts != null) {
-          this.fcnRcd = (FcnRcdValue)fcnRcd.takeExcept(this.excepts);
+        	// TODO:
+			// tlc2.tool.simulation.NQSpecTest is the only test in our test suite that
+			// exercises this code path--it works fine. In the general case, however,
+			// it is not clear why the cast to FRV should be safe. As a matter of fact,
+			// this threw a ClassCastException when working on the TLA+ debugger, where
+			// toFcnRcd is called from toString below. Given that the API contract of
+			// Value#toFcnRcd allows null, the cast could be secured with a conditional
+			// and null returned otherwise. In case of null, toString returns the symbolic
+			// value.
+	        this.fcnRcd = (FcnRcdValue)fcnRcd.takeExcept(this.excepts);
         }
       }
       return this.fcnRcd;

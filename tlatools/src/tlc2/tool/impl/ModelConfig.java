@@ -10,9 +10,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import tla2sany.parser.SimpleCharStream;
 import tla2sany.parser.TLAplusParserConstants;
@@ -67,7 +69,7 @@ public class ModelConfig implements ValueConstants, Serializable {
     private static final String Prop = TLAConstants.KeyWords.PROPERTY;
     private static final String Props = "PROPERTIES";
     private static final String Alias = "ALIAS";
-    private static final String TypeConstraint = "TYPE_CONSTRAINT";
+    private static final String PostCondition = "POSTCONDITION";
     public static final String CheckDeadlock = "CHECK_DEADLOCK";
 
     private static final long serialVersionUID = 1L;
@@ -77,7 +79,7 @@ public class ModelConfig implements ValueConstants, Serializable {
      */
     public final static String[] ALL_KEYWORDS = { Constant, Constants, Constraint, Constraints, ActionConstraint,
             ActionConstraints, Invariant, Invariants, Init, Next, View, Symmetry, Spec, Prop, Props, Alias,
-            TypeConstraint, CheckDeadlock };
+            PostCondition, CheckDeadlock };
 
     private Hashtable configTbl;
     private Hashtable<String, String> overrides;
@@ -131,7 +133,7 @@ public class ModelConfig implements ValueConstants, Serializable {
         this.configTbl.put(Prop, temp);
         this.configTbl.put(Props, temp);
         this.configTbl.put(Alias, "");
-        this.configTbl.put(TypeConstraint, "");
+        this.configTbl.put(PostCondition, "");
         this.configTbl.put(CheckDeadlock, "undef");
         
         this.modConstants = new Hashtable<>();
@@ -253,19 +255,19 @@ public class ModelConfig implements ValueConstants, Serializable {
                         throw new ConfigFileException(EC.CFG_TWICE_KEYWORD, new String[] { String.valueOf(loc), Alias });
                     }
                     tt = getNextToken(tmgr);
-                } else if (tval.equals(TypeConstraint))
+                } else if (tval.equals(PostCondition))
                 {
                     tt = getNextToken(tmgr);
                     if (tt.kind == TLAplusParserConstants.EOF)
                     {
                         throw new ConfigFileException(EC.CFG_MISSING_ID, new String[] { String.valueOf(loc),
-                                TypeConstraint });
+                                PostCondition });
                     }
-                    String old = (String) this.configTbl.put(TypeConstraint, tt.image);
+                    String old = (String) this.configTbl.put(PostCondition, tt.image);
                     if (old.length() != 0)
                     {
                         throw new ConfigFileException(EC.CFG_TWICE_KEYWORD, new String[] { String.valueOf(loc),
-                                TypeConstraint });
+                                PostCondition });
                     }
                     tt = getNextToken(tmgr);
                 } else if (tval.equals(Constant) || tval.equals(Constants))
@@ -350,7 +352,7 @@ public class ModelConfig implements ValueConstants, Serializable {
                                 while (true)
                                 {
                                     tt = getNextToken(tmgr, buf);
-                                    IValue arg = this.parseValue(tt, scs, tmgr);
+                                    IValue arg = this.parseValue(tt, scs, tmgr, buf);
                                     line.addElement(arg);
                                     tt = getNextToken(tmgr, buf);
                                     if (!tt.image.equals(","))
@@ -385,7 +387,7 @@ public class ModelConfig implements ValueConstants, Serializable {
                                             String.valueOf(scs.getBeginLine()), "]" });
                                 }
                                 tt = getNextToken(tmgr, buf);
-                                line.addElement(this.parseValue(tt, scs, tmgr));
+                                line.addElement(this.parseValue(tt, scs, tmgr, buf));
                                 Vect mConsts = (Vect) this.modConstants.get(modName);
                                 if (mConsts == null)
                                 {
@@ -396,7 +398,7 @@ public class ModelConfig implements ValueConstants, Serializable {
                             } else
                             {
                                 // This is a main module override:
-                                line.addElement(this.parseValue(tt, scs, tmgr));
+                                line.addElement(this.parseValue(tt, scs, tmgr, buf));
                                 constants.addElement(line);
                             }
                         }
@@ -470,7 +472,7 @@ public class ModelConfig implements ValueConstants, Serializable {
     /**
      * Parses a value (number, string, boolean and set)
      */
-    private Value parseValue(Token tt, SimpleCharStream scs, TLAplusParserTokenManager tmgr) throws IOException
+    private Value parseValue(Token tt, SimpleCharStream scs, TLAplusParserTokenManager tmgr, final StringBuffer buf) throws IOException
     {
         if (tt.kind == TLAplusParserConstants.NUMBER_LITERAL)
         {
@@ -489,17 +491,17 @@ public class ModelConfig implements ValueConstants, Serializable {
         } else if (tt.image.equals("{"))
         {
             ValueVec elems = new ValueVec();
-            tt = getNextToken(tmgr);
+            tt = getNextToken(tmgr, buf);
             if (!tt.image.equals("}"))
             {
                 while (true)
                 {
-                	Value elem = this.parseValue(tt, scs, tmgr);
+                	Value elem = this.parseValue(tt, scs, tmgr, buf);
                     elems.addElement(elem);
-                    tt = getNextToken(tmgr);
+                    tt = getNextToken(tmgr, buf);
                     if (!tt.image.equals(","))
                         break;
-                    tt = getNextToken(tmgr);
+                    tt = getNextToken(tmgr, buf);
                 }
             }
             if (!tt.image.equals("}"))
@@ -554,6 +556,80 @@ public class ModelConfig implements ValueConstants, Serializable {
     public synchronized final List<String> getRawConstants()
     {
         return this.rawConstants;
+    }
+
+    /**
+     * Like `getRawConstants`, but it returns the constants as a list where each
+     * element of the list is also a list of one or two elements (instead of raw strings).
+     * If one element, it has the form `["field->value"]`, which is a replacement, otherwise
+     * it has the form `["field", "value"]`, which is an assignment (which are the lines in a
+     * config file for the CONSTANT(s) section where you have `field = value`).
+     */
+    public synchronized final List<List<String>> getConstantsAsList() {
+        /**
+         * `getRawConstants` returns a list of strings where each element has the
+         * following form (fields and values are example letters):
+         *
+         * CONSTANT
+         * a = b
+         * c = d
+         * e <- f
+         * CONSTANTS
+         * g <- h
+         * i = j
+         *
+         * We will use the example above to document the stream below (we are only showing
+         * one element, but ).
+         */
+        return this.getRawConstants()
+            // Convert the list a stream so we can transform the input raw strings.
+            .stream()
+            /**
+             * Split by lines so each element will have the following form ([] represents a list):
+             *
+             * ["CONSTANT",
+             *  "a = b",
+             *  "c = d",
+             *  "e <- f",
+             *  "CONSTANTS",
+             *  "g <- h",
+             *  "i = j"]
+             */
+            .map(s -> s.split("\n"))
+            /**
+             * Flatten both lists, so `[["CONSTANT", "a = b"], ["g <- h"]]` becomes
+             * `["CONSTANT", "a = b", "g <- h"]`.
+             */
+            .flatMap(Stream::of)
+            /**
+             * Then we trim just to make sure we don't have whitespaces surrounding any element.
+             */
+            .map(s -> s.trim())
+            /**
+             * Ignore `CONSTANT` or `CONSTANTS`:
+             *
+             * ["a = b",
+             *  "c = d",
+             *  "e <- f",
+             *  "g <- h",
+             *  "i = j"]
+             */
+            .filter(s -> !(s.equals(Constant) || s.equals(Constants)))
+            /**
+             * We split only `=` as `<-` means a replacement and we don't need to analyze
+             * its field separately.
+             *
+             * [["a", "b"],
+             *  ["c", "d"],
+             *  ["e <- f"],
+             *  ["g <- h"],
+             *  ["i", "j"]]
+             */
+            .map(s -> Arrays.asList(s.split(" = ")))
+            /**
+             * Convert the stream to a java List, we are finished processing it.
+             */
+            .collect(Collectors.toList());
     }
 
     public synchronized final Vect getConstants()
@@ -636,9 +712,9 @@ public class ModelConfig implements ValueConstants, Serializable {
         return (String) this.configTbl.get(Alias);
     }
 
-    public synchronized final String getTypeConstraint()
+    public synchronized final String getPostCondition()
     {
-        return (String) this.configTbl.get(TypeConstraint);
+        return (String) this.configTbl.get(PostCondition);
     }
 
     public synchronized final boolean getCheckDeadlock()

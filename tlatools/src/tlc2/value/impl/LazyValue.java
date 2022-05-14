@@ -11,8 +11,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import tla2sany.semantic.SemanticNode;
+import tlc2.tool.EvalControl;
 import tlc2.tool.FingerprintException;
+import tlc2.tool.TLCState;
 import tlc2.tool.coverage.CostModel;
+import tlc2.tool.impl.Tool;
 import tlc2.util.Context;
 import tlc2.value.IMVPerm;
 import tlc2.value.IValue;
@@ -85,7 +88,7 @@ public class LazyValue extends Value {
   public final int compareTo(Object obj) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to compare lazy values.");
+        Assert.fail("Error(TLC): Attempted to compare lazy values.", getSource());
       }
       return this.val.compareTo(obj);
     }
@@ -98,7 +101,7 @@ public class LazyValue extends Value {
   public final boolean equals(Object obj) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to check equality of lazy values.");
+        Assert.fail("Error(TLC): Attempted to check equality of lazy values.", getSource());
       }
       return this.val.equals(obj);
     }
@@ -112,7 +115,7 @@ public class LazyValue extends Value {
   public final boolean member(Value elem) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to check set membership of lazy values.");
+        Assert.fail("Error(TLC): Attempted to check set membership of lazy values.", getSource());
       }
       return this.val.member(elem);
     }
@@ -126,7 +129,7 @@ public class LazyValue extends Value {
   public final boolean isFinite() {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to check if a lazy value is a finite set.");
+        Assert.fail("Error(TLC): Attempted to check if a lazy value is a finite set.", getSource());
       }
       return this.val.isFinite();
     }
@@ -140,7 +143,7 @@ public class LazyValue extends Value {
   public final Value takeExcept(ValueExcept ex) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to apply EXCEPT construct to lazy value.");
+        Assert.fail("Error(TLC): Attempted to apply EXCEPT construct to lazy value.", getSource());
       }
       return this.val.takeExcept(ex);
     }
@@ -154,7 +157,7 @@ public class LazyValue extends Value {
   public final Value takeExcept(ValueExcept[] exs) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to apply EXCEPT construct to lazy value.");
+        Assert.fail("Error(TLC): Attempted to apply EXCEPT construct to lazy value.", getSource());
       }
       return this.val.takeExcept(exs);
     }
@@ -168,7 +171,7 @@ public class LazyValue extends Value {
   public final int size() {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-         Assert.fail("Error(TLC): Attempted to compute size of lazy value.");
+         Assert.fail("Error(TLC): Attempted to compute size of lazy value.", getSource());
       }
       return this.val.size();
     }
@@ -184,7 +187,7 @@ public class LazyValue extends Value {
 
   private void writeObject(ObjectOutputStream oos) throws IOException {
     if (this.val == null || this.val == UndefValue.ValUndef) {
-      Assert.fail("Error(TLC): Attempted to serialize lazy value.");
+      Assert.fail("Error(TLC): Attempted to serialize lazy value.", getSource());
     }
     oos.writeObject(this.val);
   }
@@ -194,7 +197,7 @@ public class LazyValue extends Value {
   public final boolean isNormalized() {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to normalize lazy value.");
+        Assert.fail("Error(TLC): Attempted to normalize lazy value.", getSource());
       }
       return this.val.isNormalized();
     }
@@ -208,7 +211,7 @@ public class LazyValue extends Value {
   public final Value normalize() {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to normalize lazy value.");
+        Assert.fail("Error(TLC): Attempted to normalize lazy value.", getSource());
       }
       this.val.normalize();
       return this;
@@ -238,7 +241,7 @@ public class LazyValue extends Value {
   public final boolean assignable(Value val) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to call assignable on lazy value.");
+        Assert.fail("Error(TLC): Attempted to call assignable on lazy value.", getSource());
       }
       return this.val.assignable(val);
     }
@@ -253,7 +256,7 @@ public class LazyValue extends Value {
   public final long fingerPrint(long fp) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to fingerprint a lazy value.");
+        Assert.fail("Error(TLC): Attempted to fingerprint a lazy value.", getSource());
       }
       return this.val.fingerPrint(fp);
     }
@@ -267,7 +270,7 @@ public class LazyValue extends Value {
   public final IValue permute(IMVPerm perm) {
     try {
       if (this.val == null || this.val == UndefValue.ValUndef) {
-        Assert.fail("Error(TLC): Attempted to apply permutation to lazy value.");
+        Assert.fail("Error(TLC): Attempted to apply permutation to lazy value.", getSource());
       }
       return this.val.permute(perm);
     }
@@ -292,4 +295,20 @@ public class LazyValue extends Value {
     }
   }
 
+  public IValue eval(Tool tool) {
+		return eval(tool, TLCState.Empty);
+	}
+
+  public IValue eval(Tool tool, TLCState s0) {
+		return eval(tool, s0, null);
+	}
+
+  public IValue eval(Tool tool, TLCState s0, TLCState s1) {
+		final Value eval = tool.eval(expr, con, s0, s1, EvalControl.Clear, cm);
+		if (!eval.hasSource()) {
+			// See comment at tlc2.debug.TLCStackFrame.getVariable(IValue, SymbolNode)
+			eval.setSource(this.expr);
+		}
+		return eval;
+	}
 }

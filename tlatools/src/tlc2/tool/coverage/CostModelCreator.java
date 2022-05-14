@@ -254,13 +254,10 @@ public class CostModelCreator extends ExplorerVisitor {
 			if (operator instanceof OpDefNode) {
 				final OpDefNode odn = (OpDefNode) operator;
 				if (odn.getInRecursive()) {
-					final OpApplNodeWrapper recursive = (OpApplNodeWrapper) stack.stream()
+					stack.stream()
 							.filter(w -> w.getNode() != null && w.getNode() instanceof OpApplNode
 									&& ((OpApplNode) w.getNode()).getOperator() == odn)
-							.findFirst().orElse(null);
-					if (recursive != null) {
-						oan.setRecursive(recursive);
-					}
+							.findFirst().ifPresent(cmn -> oan.setRecursive(cmn));
 				}
 			}
 
@@ -287,7 +284,7 @@ public class CostModelCreator extends ExplorerVisitor {
 			// specification took approximately 60 seconds. With the safeguard, it is down
 			// to a second or two.
 			//
-			// To summarize, this is a clutch that has been hacked to work good enough!
+			// To summarize, this is a clutch that has been hacked to be good enough!
 			// 
 			// if-branches 1., 2., and 3. below are evaluated in three distinct
 			// invocation of outer preVisit for different ExploreNodes.
@@ -390,7 +387,26 @@ public class CostModelCreator extends ExplorerVisitor {
 		}
 
 		for (Action invariant : tool.getInvariants()) {
-			invariant.cm = collector.getCM(invariant, Relation.PROP);
+			if (!invariant.isInternal()) {
+				invariant.cm = collector.getCM(invariant, Relation.PROP);
+			}
+		}
+		
+		// action constraints
+		final ExprNode[] actionConstraints = tool.getActionConstraints();
+		for (ExprNode exprNode : actionConstraints) {
+			final OpDefNode odn = (OpDefNode) exprNode.getToolObject(tool.getId());
+			final Action act = new Action(exprNode, Context.Empty, odn);
+			act.cm = collector.getCM(act, Relation.CONSTRAINT);
+			exprNode.setToolObject(tool.getId(), act);
+		}
+		// state constraints
+		final ExprNode[] modelConstraints = tool.getModelConstraints();
+		for (ExprNode exprNode : modelConstraints) {
+			final OpDefNode odn = (OpDefNode) exprNode.getToolObject(tool.getId());
+			final Action act = new Action(exprNode, Context.Empty, odn);
+			act.cm = collector.getCM(act, Relation.CONSTRAINT);
+			exprNode.setToolObject(tool.getId(), act);
 		}
 		
         // https://github.com/tlaplus/tlaplus/issues/413#issuecomment-577304602
@@ -436,9 +452,24 @@ public class CostModelCreator extends ExplorerVisitor {
 		}
         
         for (Action invariant : tool.getInvariants()) {
-        	//TODO May need to be ordered similar to next-state actions above.
-        	invariant.cm.report();
-		}	
+			if (!invariant.isInternal()) {
+	        	//TODO May need to be ordered similar to next-state actions above.
+	        	invariant.cm.report();
+			}
+		}
+        
+		// action constraints
+		final ExprNode[] actionConstraints = tool.getActionConstraints();
+		for (ExprNode exprNode : actionConstraints) {
+			final Action act = (Action) exprNode.getToolObject(tool.getId());
+			act.cm.report();
+		}
+		// state constraints
+		final ExprNode[] modelConstraints = tool.getModelConstraints();
+		for (ExprNode exprNode : modelConstraints) {
+			final Action act = (Action) exprNode.getToolObject(tool.getId());
+			act.cm.report();
+		}
         
         // https://github.com/tlaplus/tlaplus/issues/413#issuecomment-577304602
         if (Boolean.getBoolean(CostModelCreator.class.getName() + ".implied")) {

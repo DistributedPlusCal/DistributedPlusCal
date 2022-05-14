@@ -68,7 +68,9 @@ package pcal;
 
 import java.util.Vector;
 
+//For Distributed PlusCal
 import pcal.AST.Thread;
+// end For Distributed PlusCal
 import pcal.exception.PcalSymTabException;
 
 public class PcalSymTab {
@@ -81,7 +83,7 @@ public class PcalSymTab {
 
     // Symbol types. The order  determines priority in terms of constructing a
     // disambiguous name.
-    public static final int num_vtypes = 8;
+    public static final int num_vtypes = 7;
     public static final int GLOBAL = 0;   
     public static final int LABEL = 1;
     public static final int PROCEDURE = 2;
@@ -89,11 +91,11 @@ public class PcalSymTab {
     public static final int PROCESSVAR = 4;
     public static final int PROCEDUREVAR = 5;
     public static final int PARAMETER = 6;
-    
+
     // The following two arrays need to be ordered wrt the constants above.
 
     // Prepend this type-specific string to name before disambiguation.
-    private static String typePrefix[ ] = { "", "", "", "", "", "", "" , "" };
+    private static String typePrefix[ ] = { "", "", "", "", "", "", "" };
 
     // For toString method.
     public static String vtypeName[ ] = {
@@ -175,7 +177,7 @@ public class PcalSymTab {
 
         //For Distributed PlusCal
         public Vector<Thread> threads;
-
+      
         public ProcessEntry(AST.Process p) {
             this.name = p.name;
             this.isEq = p.isEq;
@@ -184,6 +186,7 @@ public class PcalSymTab {
             this.ast = p;
             //For Distributed PlusCal
             this.threads = p.threads;
+            // end For Distributed PlusCal
 
             //For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
@@ -206,7 +209,7 @@ public class PcalSymTab {
                 }
                 this.iPC = liPC.toString();
               }
-            } else { 
+            } else { // end For Distributed PlusCal
               if (p.body.size() == 0) this.iPC = null;
               else {
                 AST.LabeledStmt ls = (AST.LabeledStmt) p.body.elementAt(0);
@@ -233,7 +236,6 @@ public class PcalSymTab {
         procs = new Vector();
         processes = new Vector();
         errorReport = "";
-                
 // Following line removed by LL on 3 Feb 2006
 //        InsertSym(LABEL, "Done", "", "", 0, 0);
 
@@ -256,17 +258,14 @@ public class PcalSymTab {
         int i;
         if (type == PROCEDUREVAR || type == PROCESSVAR || type == PARAMETER) {
             i = FindSym(GLOBAL, id, "");
-            
             if (i < symtab.size()) return false; /* GLOBAL with same id exists */
             i = FindSym(id, context);
-
             if (i < symtab.size()) return false; /* id in same context exists */
         }
         else {
             i = FindSym(type, id, context);
             if (i < symtab.size()) return false;
         }
-        
         SymTabEntry se = new SymTabEntry(type, id, context, cType, line, col);
         symtab.addElement(se);
         return true;
@@ -607,7 +606,7 @@ public class PcalSymTab {
               ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
             }
           }
-        } else {
+        } else { // end For Distributed PlusCal
           for (int i = 0; i < ast.body.size(); i++)
               ExtractLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i),
                                ast.name,
@@ -617,7 +616,7 @@ public class PcalSymTab {
         
     private void ExtractVarDecl(AST.VarDecl ast, String context) {
         int vtype = (context == "") ? GLOBAL : PROCESSVAR;
-        if (!InsertSym(vtype, ast.var, context, "process", ast.line, ast.col))
+        if (! InsertSym(vtype, ast.var, context, "process", ast.line, ast.col))
             errorReport = errorReport + "\n" + vtypeName[vtype] + " " + ast.var +
             " redefined at line " + ast.line + ", column " + ast.col;
     }
@@ -768,6 +767,5 @@ public class PcalSymTab {
        { throw new PcalSymTabException(errors) ; } ;
      return ;
     }
-   
 
 }

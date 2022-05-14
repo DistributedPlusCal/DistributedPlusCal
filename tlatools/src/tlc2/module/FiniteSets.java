@@ -21,14 +21,11 @@ public class FiniteSets implements ValueConstants
 
     public static IBoolValue IsFiniteSet(Value val)
     {
-    	System.out.println("########### IsFiniteSet : " + val);
         return val.isFinite() ? BoolValue.ValTrue : BoolValue.ValFalse;
     }
 
     public static IntValue Cardinality(Value val)
     {
-    	System.out.println("########### Cardinality : " + val);
-
         if (val instanceof Enumerable)
         {
             return IntValue.gen(val.size());

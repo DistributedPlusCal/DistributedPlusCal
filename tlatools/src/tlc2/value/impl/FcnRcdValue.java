@@ -7,8 +7,11 @@
 package tlc2.value.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import tlc2.tool.EvalControl;
 import tlc2.tool.FingerprintException;
@@ -24,14 +27,24 @@ import tlc2.value.ValueInputStream;
 import tlc2.value.Values;
 import util.Assert;
 import util.TLAConstants;
+import util.ToolIO;
 import util.UniqueString;
 
 public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
+	
+	// -Dtlc2.value.impl.FcnRcdValue.threshold=16
+	private static final int LINEAR_SEARCH_THRESHOLD = Integer.getInteger(FcnRcdValue.class.getName() + ".threshold", 32);
+	static {
+		if (LINEAR_SEARCH_THRESHOLD != 32) {
+			ToolIO.out.println("FcnRcdValue#threshold is: " + LINEAR_SEARCH_THRESHOLD);
+		}
+	}
+	
   public final Value[] domain;
   public final IntervalValue intv;
   public final Value[] values;
   private boolean isNorm;
-  private int[] indexTbl;  // speed up function application
+//  private int[] indexTbl;  // speed up function application
   public static final Value EmptyFcn = new FcnRcdValue(new Value[0], new Value[0], true);
 
   /* Constructor */
@@ -40,7 +53,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     this.values = values;
     this.intv = null;
     this.isNorm = isNorm;
-    this.indexTbl = null;
+//    this.indexTbl = null;
   }
 
   public FcnRcdValue(IntervalValue intv, Value[] values) {
@@ -48,7 +61,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     this.values = values;
     this.domain = null;
     this.isNorm = true;
-    this.indexTbl = null;
+//    this.indexTbl = null;
   }
 
   public FcnRcdValue(IntervalValue intv, Value[] values, CostModel cm) {
@@ -61,7 +74,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     this.intv = fcn.intv;
     this.values = values;
     this.isNorm = fcn.isNorm;
-    this.indexTbl = fcn.indexTbl;
+//    this.indexTbl = fcn.indexTbl;
   }
 
   public FcnRcdValue(ValueVec elems, Value[] values, boolean isNorm) {
@@ -78,47 +91,59 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
 	  this.cm = cm;
   }
 
+	public FcnRcdValue(final List<Value> vals) {
+		this(new IntervalValue(1, vals.size()), vals.toArray(Value[]::new));
+	}
+
+  public FcnRcdValue(final Map<Value, Value> pairs) {
+	  this(pairs, false);
+  }
+
+  public FcnRcdValue(final Map<Value, Value> pairs, final boolean isNorm) {
+	  this(pairs.keySet().toArray(Value[]::new), pairs.values().toArray(Value[]::new), isNorm);
+  }
+
   @Override
   public final byte getKind() { return FCNRCDVALUE; }
 
-  /* We create an index only when the domain is not very small. */
-  private final void createIndex() {
-    if (this.domain != null && this.domain.length > 10) {
-      int len = this.domain.length * 2 + 1;
-
-      int[] tbl = new int[len];
-      Arrays.fill(tbl, -1);
-
-      synchronized(this) {
-        for (int i = 0; i < this.domain.length; i++) {
-          int loc = (this.domain[i].hashCode() & 0x7FFFFFFF) % len;
-          while (tbl[loc] != -1) {
-            loc = (loc + 1) % len;
-          }
-          tbl[loc] = i;
-        }
-      }
-
-      synchronized(this) { this.indexTbl = tbl; }
-    }
-  }
-
-  private final int lookupIndex(Value arg) {
-    int len = this.indexTbl.length;
-    int loc = (arg.hashCode() & 0x7FFFFFFF) % len;
-    while (true) {
-      int idx = this.indexTbl[loc];
-      if (idx == -1) {
-        Assert.fail("Attempted to apply function:\n" + Values.ppr(this.toString()) +
-              "\nto argument " + Values.ppr(arg.toString()) +
-              ", which is not in the domain of the function.");
-      }
-      if (this.domain[idx].equals(arg)) {
-        return idx;
-      }
-      loc = (loc + 1) % len;
-    }
-  }
+//  /* We create an index only when the domain is not very small. */
+//  private final void createIndex() {
+//    if (this.domain != null && this.domain.length > 10) {
+//      int len = this.domain.length * 2 + 1;
+//
+//      int[] tbl = new int[len];
+//      Arrays.fill(tbl, -1);
+//
+//      synchronized(this) {
+//        for (int i = 0; i < this.domain.length; i++) {
+//          int loc = (this.domain[i].hashCode() & 0x7FFFFFFF) % len;
+//          while (tbl[loc] != -1) {
+//            loc = (loc + 1) % len;
+//          }
+//          tbl[loc] = i;
+//        }
+//      }
+//
+//      synchronized(this) { this.indexTbl = tbl; }
+//    }
+//  }
+//
+//  private final int lookupIndex(Value arg) {
+//    int len = this.indexTbl.length;
+//    int loc = (arg.hashCode() & 0x7FFFFFFF) % len;
+//    while (true) {
+//      int idx = this.indexTbl[loc];
+//      if (idx == -1) {
+//        Assert.fail("Attempted to apply function:\n" + Values.ppr(this.toString()) +
+//              "\nto argument " + Values.ppr(arg.toString()) +
+//              ", which is not in the domain of the function.", getSource());
+//      }
+//      if (this.domain[idx].equals(arg)) {
+//        return idx;
+//      }
+//      loc = (loc + 1) % len;
+//    }
+//  }
 
   @Override
   public final int compareTo(Object obj) {
@@ -126,10 +151,11 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
 
 			final FcnRcdValue fcn = obj instanceof Value ? (FcnRcdValue) ((Value) obj).toFcnRcd() : null;
 			if (fcn == null) {
-				if (obj instanceof ModelValue)
-					return 1;
+				if (obj instanceof ModelValue) {
+				      return ((ModelValue) obj).modelValueCompareTo(this);
+				}
 				Assert.fail("Attempted to compare the function " + Values.ppr(this.toString()) + " with the value:\n"
-						+ Values.ppr(obj.toString()));
+						+ Values.ppr(obj.toString()), getSource());
 			}
 			this.normalize();
 			fcn.normalize();
@@ -159,12 +185,14 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
 			final Value dElem = this.domain[i];
 			if (!(dElem instanceof IntValue)) {
 				Assert.fail(
-						"Attempted to compare integer with non-integer\n" + Values.ppr(dElem.toString()) + ".");
+						"Attempted to compare integer with non-integer\n" + Values.ppr(dElem.toString()) + ".", getSource());
 			}
 			result = ((IntValue) dElem).val - (fcn.intv.low + i);
 			if (result != 0) {
 				return result;
 			}
+		}
+		for (int i = 0; i < this.domain.length; i++) {
 			result = this.values[i].compareTo(fcn.values[i]);
 			if (result != 0) {
 				return result;
@@ -176,6 +204,8 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
 			if (result != 0) {
 				return result;
 			}
+		}
+		for (int i = 0; i < this.domain.length; i++) {
 			result = this.values[i].compareTo(fcn.values[i]);
 			if (result != 0) {
 				return result;
@@ -203,12 +233,14 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
   			final Value dElem = fcn.domain[i];
   			if (!(dElem instanceof IntValue)) {
   				Assert.fail(
-  						"Attempted to compare integer with non-integer:\n" + Values.ppr(dElem.toString()) + ".");
+  						"Attempted to compare integer with non-integer:\n" + Values.ppr(dElem.toString()) + ".", getSource());
   			}
   			result = this.intv.low + i - ((IntValue) dElem).val;
   			if (result != 0) {
   				return result;
   			}
+  		}
+  		for (int i = 0; i < fcn.domain.length; i++) {
   			result = this.values[i].compareTo(fcn.values[i]);
   			if (result != 0) {
   				return result;
@@ -226,7 +258,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
         if (obj instanceof ModelValue)
            return ((ModelValue) obj).modelValueEquals(this) ;
         Assert.fail("Attempted to check equality of the function " + Values.ppr(this.toString()) +
-        " with the value:\n" + Values.ppr(obj.toString()));
+        " with the value:\n" + Values.ppr(obj.toString()), getSource());
       }
       this.normalize();
       fcn.normalize();
@@ -245,12 +277,16 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
             Value dElem = fcn.domain[i];
             if (!(dElem instanceof IntValue)) {
               Assert.fail("Attempted to compare an integer with non-integer:\n" +
-              Values.ppr(dElem.toString()) + ".");
+              Values.ppr(dElem.toString()) + ".", getSource());
             }
-            if (((IntValue)dElem).val != (this.intv.low + i) ||
-                !this.values[i].equals(fcn.values[i])) {
+            if (((IntValue)dElem).val != (this.intv.low + i)) {
               return false;
             }
+          }
+          for (int i = 0; i < fcn.values.length; i++) {
+              if (!this.values[i].equals(fcn.values[i])) {
+                return false;
+              }
           }
         }
       }
@@ -261,20 +297,28 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
             Value dElem = this.domain[i];
             if (!(dElem instanceof IntValue)) {
               Assert.fail("Attempted to compare an integer with non-integer:\n" +
-              Values.ppr(dElem.toString()) + ".");
+              Values.ppr(dElem.toString()) + ".", getSource());
             }
-            if (((IntValue)dElem).val != (fcn.intv.low + i) ||
-                !this.values[i].equals(fcn.values[i])) {
+            if (((IntValue)dElem).val != (fcn.intv.low + i)) {
               return false;
             }
+          }
+          for (int i = 0; i < this.values.length; i++) {
+              if (!this.values[i].equals(fcn.values[i])) {
+                return false;
+              }
           }
         }
         else {
           for (int i = 0; i < this.domain.length; i++) {
-            if (!this.domain[i].equals(fcn.domain[i]) ||
-                !this.values[i].equals(fcn.values[i])) {
+            if (!this.domain[i].equals(fcn.domain[i])) {
               return false;
             }
+          }
+          for (int i = 0; i < this.values.length; i++) {
+              if (!this.values[i].equals(fcn.values[i])) {
+                return false;
+              }
           }
         }
       }
@@ -291,7 +335,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
   public final boolean member(Value elem) {
     try {
       Assert.fail("Attempted to check if the value:\n" + Values.ppr(elem.toString()) +
-      "\nis an element of the function " + Values.ppr(this.toString()));
+      "\nis an element of the function " + Values.ppr(this.toString()), getSource());
       return false;  // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -310,7 +354,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
       if (result == null) {
         Assert.fail("Attempted to apply function:\n" + Values.ppr(this.toString()) +
         "\nto argument " + Values.ppr(arg.toString()) + ", which is" +
-        " not in the domain of the function.");
+        " not in the domain of the function.", getSource());
       }
       return result;
     }
@@ -337,89 +381,119 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     try {
 
       if (this.intv != null) {
-        // domain is represented as an integer interval:
-        if (!(arg instanceof IntValue)) {
-          Assert.fail("Attempted to apply function with integer domain to" +
-                " the non-integer argument " + Values.ppr(arg.toString()));
-        }
-        int idx = ((IntValue)arg).val;
-        if ((idx >= this.intv.low) && (idx <= this.intv.high)) {
-          return this.values[idx - this.intv.low];
-        }
+          // domain is represented as an integer interval:
+          if (!(arg instanceof IntValue)) {
+            Assert.fail("Attempted to apply function with integer domain to" +
+                  " the non-integer argument " + Values.ppr(arg.toString()), getSource());
+          }
+          int idx = ((IntValue)arg).val;
+          if ((idx >= this.intv.low) && (idx <= this.intv.high)) {
+            return this.values[idx - this.intv.low];
+          }
+          return null;
       }
       else {
-        // domain is represented as an array of values:
-        if (this.indexTbl != null) {
-          return this.values[this.lookupIndex(arg)];
-        }
-        if (this.isNorm) this.createIndex();
+    	  return selectBinarySearch(arg);
+      }
+    }
+    catch (RuntimeException | OutOfMemoryError e) {
+      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
+      else { throw e; }
+    }
+  }
+  
+  // This implementation has a concurrency bug: https://github.com/tlaplus/tlaplus/issues/439
+//  final Value selectIndexTable(final Value arg) {
+//    // domain is represented as an array of values:
+//    if (this.indexTbl != null) {
+//      return this.values[this.lookupIndex(arg)];
+//    }
+//    if (this.isNorm) {
+//    	this.createIndex();
+//    }
+//    if (this.indexTbl != null) {
+//      return this.values[this.lookupIndex(arg)];
+//    }
+//    else {
+//	  return selectLinearSearch(arg);
+//    }
+//  }
 
-        if (this.indexTbl != null) {
-          return this.values[this.lookupIndex(arg)];
-        }
-        else {
-          int len = this.domain.length;
-          for (int i = 0; i < len; i++) {
-            if (this.domain[i].equals(arg)) {
-              return this.values[i];
-            }
-          }
+  final Value selectLinearSearch(final Value arg) {
+      // domain is represented as an array of values:
+      int len = this.domain.length;
+      for (int i = 0; i < len; i++) {
+        if (this.domain[i].equals(arg)) {
+          return this.values[i];
         }
       }
       return null;
-
-    }
-    catch (RuntimeException | OutOfMemoryError e) {
-      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
-      else { throw e; }
-    }
   }
 
-  public final boolean assign(Value[] args, Value val) {
-    try {
-
-      if (this.intv != null) {
-        // domain is represented as an integer interval:
-        if (args.length != 1) {
-          Assert.fail("Wrong number of function arguments.");
-        }
-        if (args[0] instanceof IntValue) {
-          int idx = ((IntValue)args[0]).val;
-          if ((idx >= this.intv.low) && (idx <= this.intv.high)) {
-            int vIdx = idx - this.intv.low;
-            if (this.values[vIdx] == UndefValue.ValUndef ||
-                this.values[vIdx].equals(val)) {
-              this.values[vIdx] = val;
-              return true;
-            }
-            return false;
-          }
-        }
-      }
-      else {
+  final Value selectBinarySearch(final Value arg) {
+	  // The value 32 has been determined empirically (see FcnRcdBenachmark).
+	  // In older versions of TLC this the threshold was 10.
+      if (this.isNorm && this.domain.length >= LINEAR_SEARCH_THRESHOLD) {
         // domain is represented as an array of values:
-        Value argv = new TupleValue(args);
-        int len = this.domain.length;
-        for (int i = 0; i < len; i++) {
-          if (this.domain[i].equals(argv)) {
-            if (this.values[i] == UndefValue.ValUndef ||
-                this.values[i].equals(val)) {
-              this.values[i] = val;
-              return true;
-            }
-            return false;
-          }
-        }
-      }
-      Assert.fail("Function initialization out of domain.");
-      return false;    // make compiler happy
-
-    }
-    catch (RuntimeException | OutOfMemoryError e) {
-      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
-      else { throw e; }
-    }
+    	// iff normalized, use binary search to speedup lookups.
+    	int idx = Arrays.binarySearch(this.domain, arg, Value::compareTo);
+		if (idx >= 0 && this.domain[idx].equals(arg)) {
+			// Check equality and cmp here to not introduce subtle bugs should Value#compareTo
+			// behaving slightly differently for some types. Linear search and the old,
+			// hash-based lookup use/used Value#equals.
+			return this.values[idx];
+    	}
+		return null;
+	  } else {
+		return selectLinearSearch(arg);
+	  }
   }
+
+//  public final boolean assign(Value[] args, Value val) {
+//    try {
+//
+//      if (this.intv != null) {
+//        // domain is represented as an integer interval:
+//        if (args.length != 1) {
+//          Assert.fail("Wrong number of function arguments.", getSource());
+//        }
+//        if (args[0] instanceof IntValue) {
+//          int idx = ((IntValue)args[0]).val;
+//          if ((idx >= this.intv.low) && (idx <= this.intv.high)) {
+//            int vIdx = idx - this.intv.low;
+//            if (this.values[vIdx] == UndefValue.ValUndef ||
+//                this.values[vIdx].equals(val)) {
+//              this.values[vIdx] = val;
+//              return true;
+//            }
+//            return false;
+//          }
+//        }
+//      }
+//      else {
+//        // domain is represented as an array of values:
+//        Value argv = new TupleValue(args);
+//        int len = this.domain.length;
+//        for (int i = 0; i < len; i++) {
+//          if (this.domain[i].equals(argv)) {
+//            if (this.values[i] == UndefValue.ValUndef ||
+//                this.values[i].equals(val)) {
+//              this.values[i] = val;
+//              return true;
+//            }
+//            return false;
+//          }
+//        }
+//      }
+//      Assert.fail("Function initialization out of domain.", getSource());
+//      return false;    // make compiler happy
+//
+//    }
+//    catch (RuntimeException | OutOfMemoryError e) {
+//      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
+//      else { throw e; }
+//    }
+//  }
 
   @Override
   public final Value takeExcept(ValueExcept ex) {
@@ -441,7 +515,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
           if ((idx >= this.intv.low) && (idx <= this.intv.high)) {
             int vidx = idx - this.intv.low;
             ex.idx++;
-            newValues[idx] = this.values[vidx].takeExcept(ex);
+            newValues[vidx] = this.values[vidx].takeExcept(ex);
           }
           return new FcnRcdValue(this.intv, newValues);
         }
@@ -604,7 +678,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
           int cmp = this.domain[0].compareTo(this.domain[i]);
           if (cmp == 0) {
             Assert.fail("The value\n" + this.domain[i] +
-                  "\noccurs multiple times in the function domain.");
+                  "\noccurs multiple times in the function domain.", getSource());
           }
           else if (cmp > 0) {
         	  Value tv = this.domain[0];
@@ -627,7 +701,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
           }
           if (cmp == 0) {
             Assert.fail("The value\n" + this.domain[i] +
-                  "\noccurs multiple times in the function domain.");
+                  "\noccurs multiple times in the function domain.", getSource());
           }
           this.domain[j] = d;
           this.values[j] = v;
@@ -684,6 +758,11 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     	Value[] vals = new Value[this.values.length];
       for (int i = 0; i < vals.length; i++) {
         vals[i] = (Value) this.values[i].deepCopy();
+      }
+      // WRT Arrays.copyOf, see comment in tlc2.value.impl.RecordValue.deepCopy() introduced
+      // by git commit 09cfee2d47f98cf9d76b906e1a8cda7cfd06eccc.
+      if (this.intv == null) {
+    	  return new FcnRcdValue(Arrays.copyOf(this.domain, this.domain.length), vals, false);
       }
       return new FcnRcdValue(this, vals);
     }
@@ -774,7 +853,7 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
     try {
 
       this.normalize();
-      int flen = this.domain.length;
+      int flen = this.size();
       Value[] vals = new Value[flen];
 
       boolean vchanged = false;
@@ -888,14 +967,15 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
         sb.append(">>");
       }
       else {
+    	final Value[] domainAsValues = getDomainAsValues();
         sb = sb.append("(");
-        sb = this.domain[0].toString(sb, offset, swallow);
+        sb = domainAsValues[0].toString(sb, offset, swallow);
         sb.append(" :> ");
         sb = this.values[0].toString(sb, offset, swallow);
 
         for (int i = 1; i < len; i++) {
           sb.append(" @@ ");
-          sb = this.domain[i].toString(sb, offset, swallow);
+          sb = domainAsValues[i].toString(sb, offset, swallow);
           sb.append(" :> ");
           sb = this.values[i].toString(sb, offset, swallow);
         }
@@ -960,5 +1040,20 @@ public class FcnRcdValue extends Value implements Applicable, IFcnRcdValue {
 		}
 		vos.assign(res, index);
 		return res;
+	}
+
+	@Override
+	public List<TLCVariable> getTLCVariables(final TLCVariable prototype, Random rnd) {
+		final List<TLCVariable> nestedVars = new ArrayList<>(values.length);
+		final Value[] domains = getDomainAsValues();
+		for (int i = 0; i < domains.length; i++) {
+			Value dom = domains[i];
+			Value value = values[i];
+			final TLCVariable nested = prototype.newInstance(dom.toString(), value, rnd);
+			nested.setValue(value.toString());
+			nested.setType(value.getTypeString());
+			nestedVars.add(nested);
+		}
+		return nestedVars;
 	}
 }

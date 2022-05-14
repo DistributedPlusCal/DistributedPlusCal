@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
 
+import pcal.ValidationCallBack.Generate;
 import pcal.exception.FileToStringVectorException;
 import pcal.exception.ParseAlgorithmException;
 import pcal.exception.PcalResourceFileReaderException;
@@ -290,9 +291,9 @@ class trans {
     static final int STATUS_EXIT_WITH_ERRORS = -1;
     
     private static final String PCAL_TRANSLATION_COMMENT_LINE_PREFIX
-    		= "\\* " + PcalParams.BeginXlation1 + " " + PcalParams.BeginXlation2 + " " + PcalParams.BeginXlation3;
+    		= "\\* " + PcalParams.BeginXlation1 + " " + PcalParams.BeginXlation2;
     private static final String TLA_TRANSLATION_COMMENT_LINE_PREFIX
-    		= "\\* " + PcalParams.EndXlation1 + " " + PcalParams.EndXlation2 + " " + PcalParams.EndXlation3;
+    		= "\\* " + PcalParams.EndXlation1 + " " + PcalParams.EndXlation2;
     
     
     /**
@@ -340,7 +341,6 @@ class trans {
          * by the previous run  
          */
         PcalParams.resetParams();
-        
         /*********************************************************************
         * Get and process arguments.                                         
         *********************************************************************/
@@ -382,24 +382,26 @@ class trans {
         *********************************************************************/
         // if (!PcalParams.fromPcalFile)
         // {
-        File file;
-        try
-        {
-            file = new File(PcalParams.TLAInputFile + ".old");
-            if (file.exists())
-            {
-                file.delete();
-            }
-            ;
-            file = new File(PcalParams.TLAInputFile + TLAConstants.Files.TLA_EXTENSION);
-            file.renameTo(new File(PcalParams.TLAInputFile + ".old"));
-        } catch (Exception e)
-        {
-            PcalDebug.reportError("Could not rename input file " + PcalParams.TLAInputFile + TLAConstants.Files.TLA_EXTENSION + " to "
-                    + PcalParams.TLAInputFile + ".old");
-            return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
+        boolean renameToOld = !PcalParams.NoOld;
+        if (renameToOld) {
+        	File file;
+        	try
+        	{
+        		file = new File(PcalParams.TLAInputFile + ".old");
+        		if (file.exists())
+        		{
+        			file.delete();
+        		}
+        		;
+        		file = new File(PcalParams.TLAInputFile + TLAConstants.Files.TLA_EXTENSION);
+        		file.renameTo(new File(PcalParams.TLAInputFile + ".old"));
+        	} catch (Exception e)
+        	{
+        		PcalDebug.reportError("Could not rename input file " + PcalParams.TLAInputFile + TLAConstants.Files.TLA_EXTENSION + " to "
+        				+ PcalParams.TLAInputFile + ".old");
+        		return exitWithStatus(STATUS_EXIT_WITH_ERRORS);
+        	}
         }
-        
         // }
 
         /*********************************************************************
@@ -571,6 +573,10 @@ class trans {
     // For some reason this method used to both mutate the argument, and then also returns that argument... ?
     //		Now we copy the argument, mutate the copy, and return that.
     public static List<String> performTranslation(final List<String> specificationText) {
+    	return performTranslation(specificationText, new ValidationCallBack.Noop());
+    }
+    
+    public static List<String> performTranslation(final List<String> specificationText, ValidationCallBack cb) {
         /**
          * Create the new TLAtoPCalMapping object, call it mapping
          * here and set PcalParams.tlaPcalMapping to point to it.
@@ -615,12 +621,9 @@ class trans {
             {
                 ParseAlgorithm.FindToken("PlusCal", untabInputVec, searchLoc, "");
                 String line = ParseAlgorithm.GotoNextNonSpace(untabInputVec, searchLoc);
-
                 String restOfLine = line.substring(searchLoc.two);
-
                 if (restOfLine.startsWith("options"))
                 {
-
                     // The first string after "PlusCal" not starting with a
                     // space character is "options"
                     if (ParseAlgorithm.NextNonIdChar(restOfLine, 0) == 7)
@@ -683,9 +686,10 @@ class trans {
     	final ArrayList<String> output = new ArrayList<>(specificationText);
 
         translationLine = findTokenPair(untabInputVec, 0, PcalParams.BeginXlation1, PcalParams.BeginXlation2);
+        int endTranslationLine = -1;
         if (translationLine != -1)
         {
-            int endTranslationLine = findTokenPair(untabInputVec, translationLine + 1,
+            endTranslationLine = findTokenPair(untabInputVec, translationLine + 1,
             									   PcalParams.EndXlation1, PcalParams.EndXlation2);
             if (endTranslationLine == -1)
             {
@@ -693,12 +697,13 @@ class trans {
                 return null;
             }
 
-            endTranslationLine--;
-            while (translationLine < endTranslationLine)
+            
+            int etl = endTranslationLine - 1;
+            while (translationLine < etl)
             {
-            	output.remove(endTranslationLine);
-                untabInputVec.remove(endTranslationLine);
-                endTranslationLine--;
+            	output.remove(etl);
+                untabInputVec.remove(etl);
+                etl--;
             }
         }
 
@@ -748,7 +753,7 @@ class trans {
          */
         mapping.algColumn = algCol;
         mapping.algLine = algLine;
-        
+
         if (translationLine == -1) 
         {
            /****************************************************************
@@ -840,7 +845,8 @@ class trans {
                 return null ;
             } ;
             
-			output.add((ecLine + 1), (PCAL_TRANSLATION_COMMENT_LINE_PREFIX + " "));
+			output.add((ecLine + 1), (PCAL_TRANSLATION_COMMENT_LINE_PREFIX + " "
+					+ String.format(Validator.CHECKSUM_TEMPLATE, "ffffffff", "ffffffff")));
             untabInputVec.insertElementAt(PCAL_TRANSLATION_COMMENT_LINE_PREFIX, (ecLine + 1));
             output.add((ecLine + 2), (TLA_TRANSLATION_COMMENT_LINE_PREFIX + " "));
             untabInputVec.insertElementAt(TLA_TRANSLATION_COMMENT_LINE_PREFIX, (ecLine + 2));
@@ -849,26 +855,18 @@ class trans {
 //System.out.println(ecLine + ", " + ecCol);
 //Debug.printVector(inputVec, "foo");
         }
-        else {
-        	// if it has an existing checksum suffix then get rid of it
-        	final String originalBeginLine = output.remove(translationLine);
-        	Matcher m = Validator.PCAL_CHECKSUM_PATTERN.matcher(originalBeginLine);
-        	String outputLine;
-        	if (m.find()) {
-        		outputLine = PCAL_TRANSLATION_COMMENT_LINE_PREFIX + " ";
-        	} else {
-        		outputLine = originalBeginLine + " ";
-        	}
-			output.add(translationLine, outputLine);
-			
-        	final String originalEndLine = output.remove(translationLine + 1);
-        	m = Validator.TRANSLATED_PCAL_CHECKSUM_PATTERN.matcher(originalEndLine);
-        	if (m.find()) {
-        		outputLine = TLA_TRANSLATION_COMMENT_LINE_PREFIX + " ";
-        	} else {
-        		outputLine = originalEndLine + " ";
-        	}
-			output.add((translationLine + 1), outputLine);
+        else {			
+			// Check if the existing TLA+ translation has been modified by the user and
+			// raise a warning (via cb) if translation should be cancelled to not
+			// lose/overwrite the user changes.
+			final Matcher m = Validator.CHECKSUM_PATTERN.matcher(output.get(translationLine));
+			if (m.find() && m.group(Validator.TLA_CHECKSUM) != null) {
+				final String checksumTLATranslation = Validator
+						.checksum(new Vector<>(specificationText.subList((translationLine + 1), endTranslationLine)));
+				if (!m.group(Validator.TLA_CHECKSUM).equals(checksumTLATranslation) && cb.shouldCancel()) {
+					return null;
+				}
+			}
         }
         
         /*
@@ -910,7 +908,7 @@ class trans {
         try
         {
             ast = ParseAlgorithm.getAlgorithm(reader, foundFairBegin);
-            System.out.println(ast.toString());
+// System.out.println(ast.toString());
 // For testing, we print out when the new code for eliminating the 
 // suttering-on-done and pc is used.
 // if (ParseAlgorithm.omitPC || ParseAlgorithm.omitStutteringWhenDone) {
@@ -926,7 +924,6 @@ class trans {
         }
         PcalDebug.reportInfo("Parsing completed.");
         
-        final String pcalMD5 = Validator.calculateMD5(ast.toString());
 // tla-pcal debugging
 //System.out.println("Translation Output:");
 //System.out.println(ast.toString());
@@ -999,13 +996,35 @@ class trans {
                 return null ; // added for testing
             }
         }
-        
-        final String beginLine = output.remove(mapping.tlaStartLine - 1);
-        output.add((mapping.tlaStartLine - 1), (beginLine + PcalParams.PCAL_CHECKSUM_KEYWORD + pcalMD5));
-        
-        final String translationMD5 = Validator.calculateMD5(translation);
-        final String endLine = output.remove(mapping.tlaStartLine);
-		output.add(mapping.tlaStartLine, (endLine + PcalParams.TRANSLATED_PCAL_CHECKSUM_KEYWORD + translationMD5));
+
+		final Matcher m = Validator.CHECKSUM_PATTERN.matcher(output.get(mapping.tlaStartLine - 1));
+		ValidationCallBack.Generate g = null;
+		if (m.find()) {
+			// Do TLA_CHECKSUM first because doing PCAL_CHECKSUM (at the front of the
+			// string) invalidates start end enf of the TLA_CHECKSUM match.
+			if (m.group(Validator.TLA_CHECKSUM) != null) {
+				output.set(mapping.tlaStartLine - 1,
+						new StringBuilder(output.get(mapping.tlaStartLine - 1)).replace(m.start(Validator.TLA_CHECKSUM),
+								m.end(Validator.TLA_CHECKSUM), Validator.checksum(translation)).toString());
+			}
+			if (m.group(Validator.PCAL_CHECKSUM) != null) {
+				output.set(mapping.tlaStartLine - 1,
+						new StringBuilder(output.get(mapping.tlaStartLine - 1))
+						.replace(m.start(Validator.PCAL_CHECKSUM), m.end(Validator.PCAL_CHECKSUM),
+								// --fair algorithm is not reflected in the AST, which is why we prepend it here.
+								Validator.checksum(foundFairBegin ? Validator.FAIR : "" + ast.toString()))
+						.toString());
+			}
+		} else if ((g = cb.shouldGenerate()) != Generate.NOT_NOW) {
+			if (g == Generate.DO_IT) {
+				output.set(mapping.tlaStartLine - 1,
+						output.get(mapping.tlaStartLine - 1) + " " + String.format(Validator.CHECKSUM_TEMPLATE,
+								Validator.checksum(foundFairBegin ? Validator.FAIR : "" + ast.toString()), Validator.checksum(translation)));
+			} else {
+				output.set(mapping.tlaStartLine - 1,
+						output.get(mapping.tlaStartLine - 1) + " " + Validator.CHECKSUM_TEMPLATE_IGNORE);
+			}
+		}
 
         /*********************************************************************
         * Add the translation to outputVec.                                  *
@@ -1581,7 +1600,10 @@ class trans {
                 System.setProperty("line.separator", "\n");
             } else if (option.equals("-termination") || (inFile && option.equals("termination")))
             {
-                PcalParams.CheckTermination = true;                
+                PcalParams.CheckTermination = true;
+            } else if (option.equals("-noold"))
+            {
+                PcalParams.NoOld = true;
             } else if (option.equals("-nocfg"))
             {
                 PcalParams.Nocfg = true;
@@ -1652,13 +1674,11 @@ class trans {
                     return CommandLineError("Label root must follow `-labelRoot' option");
                 }
                 PcalParams.LabelRoot = args[nextArg];
-                
-            //For Distributed PlusCal
             } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
+              //For Distributed PlusCal
             	PcalParams.distpcalFlag = true;
                 PcalDebug.reportInfo("Distributed pluscal option enabled");
             }
-            
             // else if (option.equals("-readOnly") || (pcal && option.equals("readOnly"))) {
             // PcalParams.readOnly = true;
             // }
@@ -1708,7 +1728,7 @@ class trans {
                     return CommandLineError("Unknown or illegal option in options statement: " + option);
                 }
             }
-
+            ;
             nextArg = nextArg + 1;
         } // END while (nextArg < maxArg)
 
@@ -1934,6 +1954,14 @@ class trans {
                 }
                 next = next + 1;
             }
+            // The following line is a hack to eliminate a rare bug that caused 
+            // the translation to loop forever if a line ended with a symbol
+            // that is the prefix of a legal BUILT_IN token and that is not
+            // a legal token but has a prefix that is a legal token--for
+            // example "(+" and "::" (since ::= is a legal operator).
+            // It was added by LL on 13 May 2020            
+            newLine = newLine + " ";
+            
             newVec.add(newLine);
         }
 

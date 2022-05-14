@@ -5,6 +5,7 @@
 
 package tlc2.tool.liveness;
 
+import tla2sany.semantic.LevelConstants;
 import tlc2.tool.ITool;
 import tlc2.tool.TLCState;
 
@@ -36,11 +37,16 @@ public abstract class LiveExprNode {
 	 * getLevel() = 0 --> constant getLevel() = 1 --> state expression
 	 * getLevel() = 2 --> action expression getLevel() = 3 --> temporal
 	 * expression
+	 * @see {@link LevelConstants}
 	 */
 	public abstract int getLevel();
 
 	/* Returns true iff the expression contains action. */
 	public abstract boolean containAction();
+
+	boolean isPositiveForm() {
+		return true;
+	}
 
 	/**
 	 * @param s1 First state
@@ -83,9 +89,17 @@ public abstract class LiveExprNode {
 		return true;
 	}
 
-	/* This method pushes a negation all the way down to the atoms. */
+	/* This method pushes a negation all the way down to the atoms.
+	 * It uses the subset of rewriting rules on p. 452 of Manna & Pnueli that apply
+	 * to operators that exist in TLA.
+	 * @see tlc2.tool.liveness.LiveExprNodeTest
+	 */
 	public LiveExprNode pushNeg() {
 		// for the remaining types, simply negate:
+		// Note that this causes a StackOverflow if pushing negation into ~()P to ()~P
+		// (see tests in LiveExprNodeTests). This is no problem though, because LNNext
+		// nodes are created after negation has been pushed as part of the conversion to
+		// disjunct normal form (DNF) with LiveExprNode#toDNF.
 		return new LNNeg(this);
 	}
 
@@ -102,8 +116,26 @@ public abstract class LiveExprNode {
 
 
 	/**
-	 * The method simplify does some simple simplifications before starting any
-	 * real work. It will get rid of any boolean constants (of type LNBool).
+	 * The method simplify does some simple simplifications before starting any real
+	 * work. It will get rid of any boolean constants (of type LNBool).
+	 * <p>
+	 * MAK 04/15/2021: The comment above claims to get rid of LNBools, but this is
+	 * not always true.  A property such as `<>[]TRUE => TRUE` is indeed simplified
+	 * to FALSE, but a property such as `FALSE /\ P ~> Q` is not simplified
+	 * to `P ~> Q`; the `(FALSE /\ P)` part is represented by an OpApplNode (SANY)
+	 * instance, which is nested in a LNStateAST.  Also, the current TLC test suite
+	 * has only a single test (tlc2.tool.liveness.EmptyOrderOfSolutionsTest) that
+	 * fails if the simplification is skipped.  All of this isn't too interesting,
+	 * however, the trivial property `<>TRUE`, obviously, cannot be and is not
+	 * simplified for the LNBool to be removed (and is also not identified as a
+	 * tautology in Liveness.processLiveness). Perhaps, an earlier stage of the
+	 * liveness implementation made this assumption. This would explain the bug
+	 * that TLC produces a bogus counterexample for `<>TRUE`, unless LNBool
+	 * instances are added to the statePredicates (in addition to LNState) in
+	 * TBGraphNode::new. Another example is `TRUE ~> Q` where Q is either constant-
+	 * or state-level.
+	 * 
+	 * See Github issue #604 and the test Github604.tla
 	 */
 	public LiveExprNode simplify() {
 		// for the remaining types, simply negate:
@@ -144,6 +176,9 @@ public abstract class LiveExprNode {
 	 * tags in its depth-first traversal.
 	 */
 	public int tagExpr(int tag) {
+		// Non-trivially overridden in:
+		// - LNState
+		// - LNAction
 		return tag;
 	}
 
@@ -157,11 +192,30 @@ public abstract class LiveExprNode {
 	 */
 	public void extractPromises(TBPar promises) {
 		// Finally, for the remaining kinds, there is nothing to do.
+		// Except for LNEven, all LiveExprNode sub-classes have either trivial overrides
+		// or none at all.
 		return;
 	}
 
 	public String toDotViz() {
 		// By default just return the regular toString rep.
 		return toString();
+	}
+
+	/**
+	 * This doesn't mutate the LiveExprNode hierarchy it is called on. This is the
+	 * entry point for callers. @see LiveExprNode#extractPromises(TBPar) for details
+	 * what actually happens.
+	 */
+	public final LNEven[] extractPromises() {
+		final TBPar promises = new TBPar(10);
+		extractPromises(promises);
+		
+		final LNEven[] prms = new LNEven[promises.size()];
+		for (int j = 0; j < promises.size(); j++) {
+			prms[j] = (LNEven) promises.exprAt(j);
+		}
+
+		return prms;
 	}
 }

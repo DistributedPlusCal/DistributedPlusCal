@@ -3,11 +3,17 @@ package tlc2.tool;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 import tlc2.TLC;
 import tlc2.TLCGlobals;
+import tlc2.module.TLCGetSet;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.tool.coverage.CostModelCreator;
@@ -16,13 +22,23 @@ import tlc2.tool.liveness.ILiveCheck;
 import tlc2.tool.liveness.LiveCheck;
 import tlc2.tool.liveness.Liveness;
 import tlc2.tool.liveness.NoOpLiveCheck;
+import tlc2.util.FP64;
 import tlc2.util.IStateWriter;
 import tlc2.util.IdThread;
 import tlc2.util.statistics.ConcurrentBucketStatistics;
 import tlc2.util.statistics.DummyBucketStatistics;
 import tlc2.util.statistics.IBucketStatistics;
 import tlc2.value.IValue;
+import tlc2.value.RandomEnumerableValues;
+import tlc2.value.impl.BoolValue;
+import tlc2.value.impl.FcnRcdValue;
+import tlc2.value.impl.IntValue;
+import tlc2.value.impl.RecordValue;
+import tlc2.value.impl.StringValue;
+import tlc2.value.impl.TupleValue;
+import tlc2.value.impl.Value;
 import util.DebugPrinter;
+import util.UniqueString;
 
 /**
  * The abstract checker
@@ -54,6 +70,7 @@ public abstract class AbstractChecker
     protected final IStateWriter allStateWriter;
     protected IWorker[] workers;
 	protected final ILiveCheck liveCheck;
+	private final Value config;
     /**
      * Timestamp of when model checking started.
      */
@@ -101,9 +118,13 @@ public abstract class AbstractChecker
         		// raise warning...
 				MP.printWarning(EC.TLC_FEATURE_UNSUPPORTED_LIVENESS_SYMMETRY);
         	}
-        	if (tool.hasStateOrActionConstraints()) {
-				MP.printWarning(EC.TLC_FEATURE_LIVENESS_CONSTRAINTS);
-        	}
+    		// LL: "[this message is] rather silly because it can obviously also cause TLC
+    		// to fail to find violations of a safety property. I suggest removing that
+    		// warning.
+        	// Also see org.lamport.tla.toolbox.tool.tlc.ui.editor.page.advanced.AdvancedModelPage.validatePage(boolean)
+//        	if (tool.hasStateOrActionConstraints()) {
+//				MP.printWarning(EC.TLC_FEATURE_LIVENESS_CONSTRAINTS);
+//        	}
             // Initialization for liveness checking:
             report("initializing liveness checking");
 			IBucketStatistics stats = new DummyBucketStatistics();
@@ -120,6 +141,11 @@ public abstract class AbstractChecker
         } else {
         	this.liveCheck = new NoOpLiveCheck(this.tool, this.metadir);
         }
+        
+		// Eagerly create the config value in case the next-state relation involves
+		// TLCGet("config"). In this case, we would end up locking the
+		// UniqueString#InternTable for every lookup. See Simulator too.
+        this.config = createConfig();
         
         scheduleTermination(new TimerTask() {
 			@Override
@@ -484,10 +510,32 @@ public abstract class AbstractChecker
 		}
 	}
 
+	public final List<IValue> getAllValue(final int idx) {
+		return Arrays.asList(workers).stream().map(w -> w.getLocalValue(idx)).collect(Collectors.toList());
+	}
+
 	public final IValue getValue(int i, int idx) {
 		return workers[i].getLocalValue(idx);
 	}
-
+	
+	public final Value getAllValues() {
+		final IValue[] localValues = ((IdThread) workers[0]).getLocalValues();
+		
+		final Map<Value, Value> m = new HashMap<>(localValues.length);
+		
+		for (int i = 0; i < localValues.length; i++) {
+			final IValue iValue = localValues[i];
+			if (iValue != null) {
+				final Value[] vals = new Value[workers.length];
+				for (int j = 0; j < vals.length; j++) {
+					vals[j] = (Value) workers[j].getLocalValue(i);
+				}
+				m.put(IntValue.gen(i), new TupleValue(vals));
+			}
+		}
+		return new FcnRcdValue(m);
+	}
+	
     /**
      * Debugging support
      * @param message
@@ -565,6 +613,14 @@ public abstract class AbstractChecker
 		}
 	}
 	
+	public TLCStateInfo[] getTraceInfo(final TLCState s) throws IOException {
+		throw new UnsupportedOperationException("getTraceInfo(TLCState) not implemented for this AbstractChecker");
+	}
+	
+	public TLCStateInfo[] getTraceInfo(final TLCState from, final TLCState s) throws IOException {
+		throw new UnsupportedOperationException("getTraceInfo(TLCState, TLCState) not implemented for this AbstractChecker");
+	}
+	
 	protected boolean isTimeBound() {
 		return Long.getLong(TLC.class.getName() + ".stopAfter", -1L) != -1;
 	}
@@ -580,4 +636,58 @@ public abstract class AbstractChecker
 	public long getStatesGenerated() {
 		return -1;
 	}
+
+	public final Value getStatistics() {
+		final UniqueString[] n = new UniqueString[5];
+		final Value[] v = new Value[n.length];
+		
+		n[0] = TLCGetSet.QUEUE;
+		v[0] = TLCGetSet.narrowToIntValue(getStateQueueSize());
+		
+		n[1] = TLCGetSet.DISTINCT;
+		v[1] = TLCGetSet.narrowToIntValue(getDistinctStatesGenerated());
+
+		n[2] = TLCGetSet.GENERATED;
+		v[2] = TLCGetSet.narrowToIntValue(getStatesGenerated());
+		
+		n[3] = TLCGetSet.DIAMETER;
+		v[3] = TLCGetSet.narrowToIntValue(getProgress());
+		
+		n[4] = TLCGetSet.DURATION;
+		v[4] = TLCGetSet.narrowToIntValue((System.currentTimeMillis() - startTime) / 1000L);
+
+		return new RecordValue(n, v, false);
+	}
+
+	public final Value getConfig() {
+		return config;
+	}
+	
+	private final Value createConfig() {
+		final UniqueString[] n = new UniqueString[6];
+		final Value[] v = new Value[n.length];
+		n[0] = TLCGetSet.MODE;
+		v[0] = new StringValue("bfs");
+
+		n[1] = TLCGetSet.DEADLOCK;
+		v[1] = checkDeadlock ? BoolValue.ValTrue : BoolValue.ValFalse;
+
+		n[2] = TLCGetSet.WORKER;
+		v[2] = IntValue.gen(TLCGlobals.getNumWorkers());
+
+		n[3] = TLCGetSet.SEED;
+		v[3] = new StringValue(Long.toString(RandomEnumerableValues.getSeed()));
+		
+		n[4] = TLCGetSet.FINGERPRINT;
+		v[4] = new StringValue(Long.toString(FP64.getIrredPoly()));
+
+		n[5] = TLCGetSet.INSTALL;
+		v[5] = new StringValue(TLCGlobals.getInstallLocation());
+		
+		return new RecordValue(n, v, false);
+	}
+
+    public final boolean isRecovery() {
+        return this.fromChkpt != null;
+    }
 }

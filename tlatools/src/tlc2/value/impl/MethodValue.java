@@ -29,6 +29,8 @@ import util.WrongInvocationException;
 public class MethodValue extends OpValue implements Applicable {
 
 	public static Value get(final Method md) {
+		// Call from e.g. STRING (see tlc2.module.Strings.STRING()), which has no operator
+		// definition.
 		return get(md, 0);
 	}
 	
@@ -83,7 +85,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final int compareTo(Object obj) {
     try {
       Assert.fail("Attempted to compare operator " + this.toString() +
-      " with value:\n" + obj == null ? "null" : Values.ppr(obj.toString()));
+      " with value:\n" + obj == null ? "null" : Values.ppr(obj.toString()), getSource());
       return 0;       // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -95,7 +97,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final boolean equals(Object obj) {
     try {
       Assert.fail("Attempted to check equality of operator " + this.toString() +
-      " with value:\n" + obj == null ? "null" : Values.ppr(obj.toString()));
+      " with value:\n" + obj == null ? "null" : Values.ppr(obj.toString()), getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -108,7 +110,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final boolean member(Value elem) {
     try {
       Assert.fail("Attempted to check if the value:\n" + elem == null ? "null" : Values.ppr(elem.toString()) +
-      "\nis an element of operator " + this.toString());
+      "\nis an element of operator " + this.toString(), getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -121,7 +123,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final boolean isFinite() {
     try {
       Assert.fail("Attempted to check if the operator " + this.toString() +
-      " is a finite set.");
+      " is a finite set.", getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -199,7 +201,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final Value takeExcept(ValueExcept ex) {
     try {
       Assert.fail("Attempted to appy EXCEPT construct to the operator " +
-      this.toString() + ".");
+      this.toString() + ".", getSource());
       return null;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -212,7 +214,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final Value takeExcept(ValueExcept[] exs) {
     try {
       Assert.fail("Attempted to apply EXCEPT construct to the operator " +
-      this.toString() + ".");
+      this.toString() + ".", getSource());
       return null;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -225,7 +227,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final Value getDomain() {
     try {
       Assert.fail("Attempted to compute the domain of the operator " +
-      this.toString() + ".");
+      this.toString() + ".", getSource());
       return SetEnumValue.EmptySet;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -238,7 +240,7 @@ public class MethodValue extends OpValue implements Applicable {
   public final int size() {
     try {
       Assert.fail("Attempted to compute the number of elements in the operator " +
-      this.toString() + ".");
+      this.toString() + ".", getSource());
       return 0;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {

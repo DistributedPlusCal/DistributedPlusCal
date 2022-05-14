@@ -7,7 +7,10 @@
 package tlc2.value.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import tlc2.output.EC;
 import tlc2.output.MP;
@@ -72,6 +75,9 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
       int len = this.elems.length;
       int cmp = len - tv.elems.length;
       if (cmp == 0) {
+		// At this point, we know that the domains are equal because the domain of a
+		// tuple is 1..N where N is Len(tuple). Thus, we can compare the values one by
+		// one.
         for (int i = 0; i < len; i++) {
           cmp = this.elems[i].compareTo(tv.elems[i]);
           if (cmp != 0) break;
@@ -95,6 +101,9 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
       int len = this.elems.length;
       if (len != tv.elems.length)
         return false;
+	// At this point, we know that the domains are equal because the domain of a
+	// tuple is 1..N where N is Len(tuple). Thus, we can check equality of the
+	// values one by one.
       for (int i = 0; i < len; i++) {
         if (!this.elems[i].equals(tv.elems[i]))
           return false;
@@ -110,7 +119,7 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
   @Override
   public final boolean member(Value elem) {
     try {
-      Assert.fail("Attempted to check set membership in a tuple value.");
+      Assert.fail("Attempted to check set membership in a tuple value.", getSource());
       return false;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -126,12 +135,12 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
   public final Value apply(Value arg, int control) {
     try {
       if (!(arg instanceof IntValue)) {
-        Assert.fail("Attempted to access tuple at a non integral index: " + Values.ppr(arg.toString()));
+        Assert.fail("Attempted to access tuple at a non integral index: " + Values.ppr(arg.toString()), getSource());
       }
       int idx = ((IntValue)arg).val;
       if (idx <= 0 || idx > this.elems.length) {
         Assert.fail("Attempted to access index " + idx + " of tuple\n"
-            + Values.ppr(this.toString()) + "\nwhich is out of bounds.");
+            + Values.ppr(this.toString()) + "\nwhich is out of bounds.", getSource());
       }
       return (Value) this.elems[idx-1];
     }
@@ -145,7 +154,7 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
   public final Value apply(Value[] args, int control) {
     try {
       if (args.length != 1) {
-        Assert.fail("Attempted to access tuple with " + args.length + " arguments when it expects 1.");
+        Assert.fail("Attempted to access tuple with " + args.length + " arguments when it expects 1.", getSource());
       }
       return this.apply(args[0], EvalControl.Clear);
     }
@@ -159,7 +168,7 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
   public final Value select(Value arg) {
     try {
       if (!(arg instanceof IntValue)) {
-        Assert.fail("Attempted to access tuple at a non integral index: " + Values.ppr(arg.toString()));
+        Assert.fail("Attempted to access tuple at a non integral index: " + Values.ppr(arg.toString()), getSource());
       }
       int idx = ((IntValue)arg).val;
       if (idx > 0 && idx <= this.elems.length) {
@@ -414,5 +423,18 @@ public class TupleValue extends Value implements Applicable, ITupleValue {
 		final Value res = new TupleValue(elems);
 		vos.assign(res, index);
 		return res;
+	}
+
+	@Override
+	public List<TLCVariable> getTLCVariables(TLCVariable prototype, Random rnd) {
+		final List<TLCVariable> nestedVars = new ArrayList<>(this.size());
+		for (int i = 0; i < elems.length; i++) {
+			final Value value = elems[i];
+			final TLCVariable nested = prototype.newInstance(Integer.toString(i+1), value, rnd);
+			nested.setValue(value.toString());
+			nested.setType(value.getTypeString());
+			nestedVars.add(nested);
+		}
+		return nestedVars;
 	}
 }

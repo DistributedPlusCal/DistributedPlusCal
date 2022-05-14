@@ -19,6 +19,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import tla2sany.parser.Operators;
 import tla2sany.parser.SyntaxTreeNode;
@@ -3998,6 +3999,25 @@ public class Generator implements ASTConstants, SyntaxTreeConstants, LevelConsta
 		 * modified appropriately. *
 		 ***********************************************************************/
 		if ((mainOp.getKind() == UserDefinedOpKind) || (mainOp.getKind() == ModuleInstanceKind)) {
+			final OpDefNode opDefNode = (OpDefNode) mainOp;
+			FormalParamNode[] params = opDefNode.getParams();
+			
+			// MAK 07/2021: Added this check to prevent an ArrayIndexOutOfBoundsException
+			// that occurs if a RECURSIVE operator declaration has more arguments (higher
+			// arity) than its definition:
+			//
+			//  RECURSIVE ReachableFrom(_,_)                    \* 2-arity!
+            //  ReachableFrom(S) == LET R == SetNbrs(S)
+            //                      IN  IF R \subseteq S THEN S
+            //                          ELSE ReachableFrom(R \cup S)
+            //
+			// This check expects that code elsewhere (in case of RECURSIVE e.g.
+			// processOperator(..)) has already produced a corresponding error message,
+			// such as "Definition of ReachableFrom has different arity than its RECURSIVE
+			// declaration."
+			if (params.length <= argPosition) {
+				return nullOAN;
+			}
 			arityExpected = ((OpDefNode) mainOp).getParams()[argPosition].getArity();
 		} else {
 			arityExpected = 0;
@@ -4520,12 +4540,19 @@ public class Generator implements ASTConstants, SyntaxTreeConstants, LevelConsta
 						SubstInNode substInNode = new SubstInNode(treeNode, substIn.getSubsts(), odn.getBody(), cm,
 								instanceeModule);
 
+						// MAK 02/2021: Store the individual segments of the compound id to not rely on
+						// ad-hoc parsing later when a feature such as the debugger needs to know each
+						// segment.
+						// A!B!C!OP -> {A,B,C,OP}
+						final UniqueString[] cID = Stream.of(new UniqueString[] { name }, odn.getCompoundId())
+								.flatMap(Stream::of).toArray(UniqueString[]::new);
+
 						// Create the OpDefNode for the new instance of this
 						// definition; because of the new operator name, cm is the
 						// module of origin for purposes of deciding of two defs are
 						// "the same" or "different"
 						newOdn = new OpDefNode(qualifiedName, UserDefinedOpKind, params, localness, substInNode, cm,
-								symbolTable, treeNode, true, odn.getSource());
+								symbolTable, treeNode, true, odn.getSource(), cID);
 						setOpDefNodeRecursionFields(newOdn, cm);
 						newOdn.setLabels(odn.getLabelsHT());
 					} // if (substIn.getSubsts().length > 0)

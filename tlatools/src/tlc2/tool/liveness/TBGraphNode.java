@@ -5,6 +5,7 @@
 
 package tlc2.tool.liveness;
 
+import tla2sany.semantic.LevelConstants;
 import tlc2.tool.ITool;
 import tlc2.tool.TLCState;
 import tlc2.util.SetOfLong;
@@ -23,14 +24,6 @@ public class TBGraphNode {
 	private int index; // unique id for this node
 	private final LiveExprNode[] statePreds; // state predicates in the particle
 
-	public static TBGraphNode dummyNode = new TBGraphNode();
-
-	private TBGraphNode() {
-		this.par = null;
-		this.nexts = null;
-		this.index = -1;
-		this.statePreds = null;
-	}
 
 	public TBGraphNode(TBPar par) {
 		this.par = par;
@@ -39,13 +32,32 @@ public class TBGraphNode {
 		TBPar preds = new TBPar(par.size());
 		for (int i = 0; i < par.size(); i++) {
 			LiveExprNode ln = par.exprAt(i);
-			if (ln instanceof LNState) {
+			// MAK 04/15/2021: See MAK 04/15/2021 notes in comment of
+			// tlc2.tool.liveness.LiveExprNode.simplify().
+			// The conditional below has been changed in two dimension:
+			// a) Instead of checking the concrete ln's type with instanceof, we check the
+			// ln's level.
+			// b) The check has been changed to accept ConstantLevel *and* VariableLevel,
+			// which used to be just VariableLevel.
+			// Obviously, constant-level expressions may appear in places where
+			// VariableLevel (state-level) expressions are allowed. Ignoring a
+			// constant-level expression here, causes bogus counterexamples reported for
+			// properties such as `<>TRUE` or `FALSE ~> x#x` (see Github604.tla/java for
+			// more details). Widening the check below to include constant-level expressions
+			// causes additional state predicates to be created. If one of more of those
+			// state predicates evaluate to false for a given state in
+			// tlc2.tool.liveness.TBGraphNode.isConsistent(TLCState, ITool), the state gets
+			// excluded from the behavior graph.
+			// The assertion with msg "Found LNAction(s) in temporal formulae." in
+			// Liveness.java implies that the LiveExprNode sub-types that we can encounter
+			// here won't include LNActions. The comment of
+			// tlc2.tool.liveness.TBPar.positiveClosure() confirms it too.
+			// However, ln.getLevel might still be action or temporal because of e.g. formulae
+			// such as `[]~someStatePredicate` as negation of `<>someStatePredicate`, or
+			// `()[]~(someStatePredicate)` as a particle of `[]-someStatePredicate` with `()`
+			// denoting LNNext/LTL's next operator.
+			if (ln.getLevel() <= LevelConstants.VariableLevel) {
 				preds.addElement(ln);
-			} else if (ln instanceof LNNeg) {
-				LiveExprNode body = ((LNNeg) ln).getBody();
-				if (body instanceof LNState) {
-					preds.addElement(ln);
-				}
 			}
 		}
 		this.statePreds = new LiveExprNode[preds.size()];
@@ -97,6 +109,20 @@ public class TBGraphNode {
 			}
 		}
 		return true;
+	}
+	
+	private final boolean isSelfLoop() {
+		if (nextSize() == 1) {
+			return nextAt(0) == this;
+		}
+		return false;
+	}
+	
+	public final boolean isAccepting() {
+		if (par.isEmpty() && isSelfLoop()) {
+			return true;
+		}
+		return false;
 	}
 
 	public final String toString() {

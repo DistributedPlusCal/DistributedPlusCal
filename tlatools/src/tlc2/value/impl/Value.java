@@ -8,6 +8,10 @@ package tlc2.value.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 import tla2sany.semantic.SemanticNode;
 import tlc2.TLCGlobals;
@@ -204,7 +208,7 @@ public abstract class Value implements ValueConstants, Serializable, IValue {
             return spv.elements().nextElement() == null;
           }
         default:
-          Assert.fail("Shouldn't call isEmpty() on value " + Values.ppr(this.toString()));
+          Assert.fail("Shouldn't call isEmpty() on value " + Values.ppr(this.toString()), getSource());
           return false;
       }
 
@@ -225,7 +229,7 @@ public abstract class Value implements ValueConstants, Serializable, IValue {
   public long fingerPrint(long fp) {
     try {
       Assert.fail("TLC has found a state in which the value of a variable contains " +
-      Values.ppr(this.toString())); // SZ Feb 24, 2009: changed to static access
+      Values.ppr(this.toString()), getSource()); // SZ Feb 24, 2009: changed to static access
       return 0;      // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -242,7 +246,7 @@ public abstract class Value implements ValueConstants, Serializable, IValue {
   public IValue permute(IMVPerm perm) {
     try {
       Assert.fail("TLC has found a state in which the value of a variable contains " +
-      Values.ppr(this.toString())); // SZ Feb 24, 2009: changed to static access
+      Values.ppr(this.toString()), getSource()); // SZ Feb 24, 2009: changed to static access
       return null;   // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -276,7 +280,7 @@ public abstract class Value implements ValueConstants, Serializable, IValue {
       for (int i = 0; i < path.length; i++) {
         if (!(result instanceof Applicable)) {
           Assert.fail("Attempted to apply EXCEPT construct to the value " +
-                Values.ppr(result.toString()) + ".");
+                Values.ppr(result.toString()) + ".", getSource());
         }
         Value elem = path[i];
         result = ((Applicable)result).select(elem);
@@ -360,4 +364,36 @@ public abstract class Value implements ValueConstants, Serializable, IValue {
         else { throw e; }
       }
   }
+  
+	public TLCVariable toTLCVariable(final TLCVariable variable, Random rnd) {
+		variable.setInstance(this);
+		// TODO: Use Value#getKindString instead?
+//		if (hasSource()) {
+//			variable.setType(String.format("%s at %s", getTypeString(), getSource()));
+//		} else {
+			variable.setType(getTypeString());
+//		}
+		variable.setValue(toString());
+		if (this instanceof Enumerable || this instanceof FcnRcdValue || this instanceof RecordValue
+				|| this instanceof TupleValue) {
+			// Atomic values such as IntValue throw an exception on #isFinite.
+			if (this.isFinite()) {
+				variable.setVariablesReference(rnd.nextInt(Integer.MAX_VALUE - 1) + 1);
+			}
+		}
+		return variable;
+	}
+
+	public String getTypeString() {
+		return String.format("%s: %s", getClass().getSimpleName(), getKindString());
+	}
+
+	public List<TLCVariable> getTLCVariables(TLCVariable var, Random rnd) {
+		if (this instanceof Enumerable && this.isFinite()) {
+			Enumerable e = (Enumerable) this;
+			return e.elements().all().stream().map(value -> value.toTLCVariable(var.newInstance(value, rnd), rnd))
+					.collect(Collectors.toList());
+		}
+		return new ArrayList<>(0);
+	}
 }

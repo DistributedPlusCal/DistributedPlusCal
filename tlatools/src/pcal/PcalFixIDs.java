@@ -77,6 +77,7 @@ public class PcalFixIDs {
             FixCallGoto((AST.CallGoto) ast, context);
         else if (ast.getClass().equals(AST.GotoObj.getClass()))
             FixGoto((AST.Goto) ast, context);
+
         /*******************************************************************
         * Handling of Either and LabelEither added by LL on 24 Jan 2006.   *
         *******************************************************************/
@@ -285,7 +286,7 @@ public class PcalFixIDs {
         } else {
           for (int i = 0; i < ast.body.size(); i++)
             FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
-        }
+        } // end For Distributed PlusCal
         PcalSymTab.ProcessEntry p = 
             (PcalSymTab.ProcessEntry)
             st.processes.elementAt(st.FindProcess(ast.name));
@@ -499,6 +500,7 @@ public class PcalFixIDs {
             if (var.equals((String) v.elementAt(i))) return true;
         return false;
     }
+
 }
 
 /***************************  the file FloydWarshall *************************************
@@ -602,3 +604,5 @@ options (termination)
 
 
 *****************************************************************************************/
+
+

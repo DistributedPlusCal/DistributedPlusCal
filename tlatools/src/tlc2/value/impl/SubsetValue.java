@@ -26,6 +26,7 @@ import tlc2.value.IValueOutputStream;
 import tlc2.value.RandomEnumerableValues;
 import tlc2.value.Values;
 import util.Assert;
+import util.TLAConstants;
 
 public class SubsetValue extends EnumerableValue implements Enumerable {
   public Value  set;           // SUBSET set
@@ -46,7 +47,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
   public final byte getKind() { return SUBSETVALUE; }
 
   @Override
-  public final int compareTo(Object obj) {
+  public int compareTo(Object obj) {
     try {
       if (obj instanceof SubsetValue) {
         return this.set.compareTo(((SubsetValue)obj).set);
@@ -60,7 +61,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
     }
   }
 
-  public final boolean equals(Object obj) {
+  public boolean equals(Object obj) {
     try {
       if (obj instanceof SubsetValue) {
         return this.set.equals(((SubsetValue)obj).set);
@@ -75,7 +76,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
   }
 
   @Override
-  public final boolean member(Value val) {
+  public boolean member(Value val) {
     try {
       if (val instanceof Enumerable) {
         ValueEnumeration Enum = ((Enumerable)val).elements();
@@ -88,7 +89,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
       }
       else {
         Assert.fail("Attempted to check if the non-enumerable value\n" +
-        Values.ppr(val.toString()) + "\nis element of\n" + Values.ppr(this.toString()));
+        Values.ppr(val.toString()) + "\nis element of\n" + Values.ppr(this.toString()), getSource());
       }
       return true;
     }
@@ -103,7 +104,9 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
     try {
       // Reduce (SUBSET A \subseteq SUBSET B) to (A \subseteq B) to avoid
       // exponential blowup inherent in generating the power set.
-      if (other instanceof SubsetValue && this.set instanceof Enumerable) {
+	  // For KSubsetValue, delegate to the naive implementation that enumerates the
+	  // elements. In other words, don't rewrite if a KSubsetValue is involved.
+	  if (other instanceof SubsetValue && !(other instanceof KSubsetValue) && this.set instanceof Enumerable) {
         final SubsetValue sv = (SubsetValue) other;
         return ((Enumerable) this.set).isSubsetEq(sv.set);
       }
@@ -130,7 +133,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
   public final Value takeExcept(ValueExcept ex) {
     try {
       if (ex.idx < ex.path.length) {
-        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".");
+        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".", getSource());
       }
       return ex.value;
     }
@@ -144,7 +147,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
   public final Value takeExcept(ValueExcept[] exs) {
     try {
       if (exs.length != 0) {
-        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".");
+        Assert.fail("Attempted to apply EXCEPT to the set " + Values.ppr(this.toString()) + ".", getSource());
       }
       return this;
     }
@@ -155,7 +158,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
   }
 
   @Override
-  public final int size() {
+  public int size() {
     try {
       int sz = this.set.size();
       if (sz >= 31) {
@@ -272,7 +275,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
     }
   }
 
-  private final void convertAndCache() {
+  protected final void convertAndCache() {
     if (this.pset == null) {
       this.pset = (SetEnumValue) this.toSetEnum();
     }
@@ -326,7 +329,23 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
       }
       else {
         sb = sb.append("SUBSET ");
-        sb = this.set.toString(sb, offset, swallow);
+        if (this.set instanceof IntervalValue) {
+        	// MAK 07/2021:
+			// SUBSET has higher precedence than the .. (infix) operator appearing in
+			// interval definitions (see tla2sany.semantic.BuiltInLevel). Thus, printing
+        	//   SUBSET 1..2
+        	// is wrong because its meaning is
+        	//   ((SUBSET 1)..2)
+        	//
+        	// We can correct this easily here by adding parenthesis:
+        	//   SUBSET (1..2)
+        	//   SUBSET (1+2..42)
+        	sb.append(TLAConstants.L_PAREN);
+        	sb = this.set.toString(sb, offset, swallow);
+        	sb.append(TLAConstants.R_PAREN);
+        } else {
+        	sb = this.set.toString(sb, offset, swallow);
+        }
         return sb;
       }
     }
@@ -528,7 +547,13 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 		// Only normalized inputs will yield a normalized output. Note that SEV#convert
 		// (unfortunately) enumerates the input. Thus "SUBSET SUBSET 1..10" will result
 		// in the nested/right SUBSET to be fully enumerated (1..10 obviously too).
-		final ValueVec elems = ((SetEnumValue) set.toSetEnum().normalize()).elems;
+		final Value setEnum = set.toSetEnum();
+		if (setEnum == null) {
+			// E.g. SUBSET <<1,2>> or SUBSET [ a |-> 42]
+            Assert.fail("Attempted to compute the value of an expression of form\n" +
+                    "SUBSET S, but S is a non-enumerable value:\n" + Values.ppr(this.set), getSource());
+		}
+		final ValueVec elems = ((SetEnumValue) setEnum.normalize()).elems;
 		return new ValueEnumeration() {
 
 			private int k = 0;
@@ -592,7 +617,9 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 	 */
 	public final long numberOfKElements(final int k) {
 		final int size = this.set.size();
-		if (k < 0 || size < k || size > 62) {
+		if (k < 0 || size < k || size > 63) {
+			// Size >63 because KElementEnumerator.nextElement() limited to 63 bits
+			// (assert vals.size() == k will be violated).
 			throw new IllegalArgumentException(String.format("k=%s and n=%s", k, size));
 		}
 		if (k == 0 || k == size) {
@@ -623,7 +650,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 		private final int numKSubsetElems;
 		private final int k;
 		
-		private int index;
+		private long index;
 		private int cnt;
 
 		public KElementEnumerator(final int k) {
@@ -643,17 +670,17 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 		
 		@Override
 		public void reset() {
-			index = (1 << k) - 1;
+			index = (1L << k) - 1L;
 			cnt = 0;
 		}
 
 		// see "Compute the lexicographically next bit permutation" at
 		// http://graphics.stanford.edu/~seander/bithacks.html#NextBitPermutation
-		private int nextIndex() {
-			final int oldIdx = this.index;
+		private long nextIndex() {
+			final long oldIdx = this.index;
 
-			final int t = (index | (index - 1)) + 1;
-			this.index = t | ((((t & -t) / (index & -index)) >> 1) - 1);
+			final long t = (index | (index - 1L)) + 1L;
+			this.index = t | ((((t & -t) / (index & -index)) >> 1L) - 1L);
 
 			return oldIdx;
 		}
@@ -665,8 +692,8 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 			}
 			cnt++;
 
-			int bits = nextIndex();
-			final ValueVec vals = new ValueVec(Integer.bitCount(bits));
+			long bits = nextIndex();
+			final ValueVec vals = new ValueVec(Long.bitCount(bits));
 			for (int i = 0; bits > 0 && i < elems.size(); i++) {
 				// Treat bits as a bitset and add the element of elem at current
 				// position i if the LSB of bits happens to be set.
@@ -676,6 +703,7 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 				// ...right-shift zero-fill bits by one afterwards.
 				bits = bits >>> 1;
 			}
+			assert vals.size() == k;
 			return new SetEnumValue(vals, false, cm);
 		}
 		
@@ -683,17 +711,34 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 			this.elems.sort(true);
 			return this;
 		}
+		
+		@Override
+		public SetEnumValue asSet() {
+			final ValueVec vv = new ValueVec(numKSubsetElems);
+			Value elem;
+			while ((elem = nextElement()) != null) {
+				vv.addElement(elem);
+			}
+			return new SetEnumValue(vv, false);
+		}
+	}
+
+	public final Value kSubset(int k) {
+		return kElements(k).asSet();
 	}
 	
 	@Override
 	public ValueEnumeration elements(final Ordering ordering) {
+		if (ordering == Ordering.RANDOMIZED) {
+			return ((SetEnumValue) toSetEnum()).elements(ordering);
+		}
 		// Use elementsNormalized regardless of requested ordering. Even for ordering
 		// UNDEFINED, elementsNormalized is fastest.
 		return elements();
 	}
 
   @Override
-  public final ValueEnumeration elements() {
+  public ValueEnumeration elements() {
     try {
       if (this.pset == null || this.pset == SetEnumValue.DummyEnum) {
     	  // See note on SetEnumValue#convert for SubsetValue wrt
@@ -864,6 +909,86 @@ public class SubsetValue extends EnumerableValue implements Enumerable {
 
 		int getNumOfPicks() {
 			return numOfPicks;
+		}
+	}
+
+	// This enumerator violates the expected behavior of ValueEnumeration to
+	// terminate once all elements have been enumerated, which implies that it also
+	// returns duplicates.  Its advantage over the other, stateful enumerators -that
+	// guarantee termination- is that it is very cheap.  If we ever need this, a
+	// terminating enumerator can be implemented with SubsetValue#getUnrank combined
+	// with EnumerableValue.SubsetValueEnumerator, i.e. optimally parameterizing an
+	// LCG with period m = NcK (n choose k) where NcK = n!/k!(n-k)! to pseudo-randomly
+	// generate all values (indices) in the range [0, NcK)) and generating the 
+	// subset for each index with Unrank#subsetAt.
+	// ASSUME tlc2.tool.impl.Tool.PROBABLISTIC = TRUE
+	public class RandomSubsetGenerator implements ValueEnumeration {
+		
+		private final int k;
+		private final Random random;
+		private final SetEnumValue s;
+		private int n;
+
+		public RandomSubsetGenerator(final int k) {
+			this.k = k;
+			
+			this.s = (SetEnumValue) set.toSetEnum();
+			this.s.normalize();
+			this.n = this.s.elems.size();
+
+			if (k < 0 || k > n) {
+				throw new IllegalArgumentException(String.format("k=%s and n=%s", k, n));
+			}
+			
+			this.random = RandomEnumerableValues.get();
+		}
+		
+		@Override
+		public void reset() {
+			// This enumerator is stateless and, thus, reset is a no-op.
+		}
+
+		@Override
+		public Value nextElement() {
+			// This is Algorithm S introduced in volume 2 "Seminumerical Algorithms" in
+			// Knuth's TAOCP. It iterates over the elements in S once while gradually
+			// increasing the probability p of including an element at the current index
+			// in the result. Compare with reservoir sampling discussed in section 3.4.2 of
+			// TAOCP.
+			// For more sophisticated algorithms see:
+			// https://dl.acm.org/doi/10.1145/358105.893
+			// https://dl.acm.org/doi/10.1145/23002.23003
+			// https://dl.acm.org/doi/10.1145/3147.3165
+
+			final ValueVec vec = new ValueVec(k);
+
+            for (int t = 0; t < n; t++) {
+				final double p = (k - vec.size()) / ((n - t) * 1d);
+
+				if (random.nextDouble() <= p) {
+					vec.addElement(s.elems.elementAt(t));
+				}
+				
+				if (vec.size() == k) {
+					break;
+				}
+			}
+
+			// This variant reduces the number of calls to the random number generator by
+			// allocating a bit set to remember the previously drawn elements.
+//			final BitSet bs = new BitSet(n);
+//			while (vec.size() < k) {
+//				final int i = random.nextInt(n);
+//				if (!bs.get(i)) {
+//					bs.set(i);
+//					vec.addElement(s.elems.elementAt(i));
+//				}
+//			}
+
+			// This assertion holds because even with an imaginary Random#nextDouble that
+			// returns 1 the probability p of the last k values will be 1.
+            assert vec.size() == k;
+			return new SetEnumValue(vec, false);
 		}
 	}
 }

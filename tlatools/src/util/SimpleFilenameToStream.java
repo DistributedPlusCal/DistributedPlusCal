@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 
 
 /**
@@ -45,6 +46,7 @@ public class SimpleFilenameToStream implements FilenameToStream {
    * being the last element of this array.
    */
   private String[] libraryPaths;
+  private final Path tmpDir = FilenameToStream.getTempDirectory();
 
   public SimpleFilenameToStream() {
 	  libraryPaths = getLibraryPaths(getInstallationBasePath(), null);
@@ -57,8 +59,8 @@ public class SimpleFilenameToStream implements FilenameToStream {
 /**
  * August 2014 - TL
  * This constructor was on the interface but was not implemented.
- * Now one can pass additiona libraries which will be added to the
- * installtion path and instead the path supplied using the system property TLA_LIBRARY
+ * Now one can pass additional libraries which will be added to the
+ * installation path and instead the path supplied using the system property TLA_LIBRARY
  * (which is being used in the default constructor).
  */
   public SimpleFilenameToStream(String[] anLibraryPaths) {
@@ -205,7 +207,7 @@ public class SimpleFilenameToStream implements FilenameToStream {
         	if(FilenameToStream.isInJar(prefix)) {
 				is = cl.getResourceAsStream(STANDARD_MODULES + name);
 				if(is != null) {
-					sourceFile = read(name, is);
+					sourceFile = read(name, cl.getResource(STANDARD_MODULES + name), is);
 				}
         	} else {
         		sourceFile = new TLAFile( prefix + name, true, this );
@@ -222,7 +224,7 @@ public class SimpleFilenameToStream implements FilenameToStream {
 			// operator definitions as well as Java module overwrites as .class files.
         	is = cl.getResourceAsStream(name);
         	if(is != null) {
-				return read(name, is);
+				return read(name, cl.getResource(name), is);
 			} else {
 				break;
 			}
@@ -234,8 +236,8 @@ public class SimpleFilenameToStream implements FilenameToStream {
 
   } // end locate()
 
-  private File read(String name, InputStream is) {
-    final File sourceFile = new TLAFile(TMPDIR + File.separator + name, true, this);
+  private File read(String name, URL location, InputStream is) {
+    final File sourceFile = new TLAFile(tmpDir.resolve(name), location, true, this);
 	sourceFile.deleteOnExit();
 	try {
 

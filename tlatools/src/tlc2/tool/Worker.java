@@ -9,13 +9,16 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedList;
 
-import tla2sany.semantic.ExprNode;
 import tlc2.TLCGlobals;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.tool.fp.FPSet;
-import tlc2.tool.impl.FastTool;
+import tlc2.tool.impl.CallStackTool;
+import tlc2.tool.impl.Tool;
+import tlc2.tool.impl.Tool.Mode;
 import tlc2.tool.queue.IStateQueue;
 import tlc2.util.BufferedRandomAccessFile;
 import tlc2.util.IStateWriter;
@@ -23,6 +26,8 @@ import tlc2.util.IdThread;
 import tlc2.util.SetOfStates;
 import tlc2.util.statistics.FixedSizedBucketStatistics;
 import tlc2.util.statistics.IBucketStatistics;
+import tlc2.value.impl.CounterExample;
+import util.Assert;
 import util.Assert.TLCRuntimeException;
 import util.FileUtil;
 import util.WrongInvocationException;
@@ -38,7 +43,8 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 	 * We expect to get linear speedup with respect to the number of processors.
 	 */
 	private final ModelChecker tlc;
-	private final FastTool tool;
+	private final Tool tool;
+	private final Mode mode;
 	private final IStateQueue squeue;
 	private final FPSet theFPSet;
 	private final IStateWriter allStateWriter;
@@ -60,7 +66,8 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 		this.tlc = (ModelChecker) tlc;
 		this.checkLiveness = this.tlc.checkLiveness;
 		this.checkDeadlock = this.tlc.checkDeadlock;
-		this.tool = (FastTool) this.tlc.tool;
+		this.tool = (Tool) this.tlc.tool;
+		this.mode = this.tool.getMode();
 		this.squeue = this.tlc.theStateQueue;
 		this.theFPSet = this.tlc.theFPSet;
 		this.allStateWriter = this.tlc.allStateWriter;
@@ -84,7 +91,10 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 				if (curState == null) {
 					synchronized (this.tlc) {
 						if(!this.tlc.setDone()) {
-							doPostCheckAssumption();
+							final int ec = tool.checkPostCondition();
+							if (ec != EC.NO_ERROR) {
+								tlc.setError(true, ec);
+							}
 						}
 						this.tlc.notify();
 					}
@@ -95,7 +105,7 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 				}
 				setCurrentState(curState);
 				
-				if (this.checkLiveness) {
+				if (this.checkLiveness || mode == Mode.MC_DEBUG) {
 					// Allocate iff liveness is checked.
 					setOfStates = createSetOfStates();
 				}
@@ -103,22 +113,29 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 				final long preNext = this.statesGenerated;
 				try {
 					this.tool.getNextStates(this, curState);
-				} catch (TLCRuntimeException | EvalException e) {
-					// The next-state relation couldn't be evaluated.
-					this.tlc.doNextFailed(curState, null, e);
+				} catch (final WrappingRuntimeException e) {
+					// The next-state relation couldn't be evaluated. If doNextFailed itself throws
+					// a Throwable, the catch block below will handle it.
+					this.tlc.doNextFailed(curState, e.unwrapState(), e.unwrapExp());
+				} catch (final Throwable notExpectedToHappen) {
+					this.tlc.doNextFailed(curState, null, notExpectedToHappen);
 				}
 				
 				if (this.checkDeadlock && preNext == this.statesGenerated) {
 					// A deadlock is defined as a state without (seen or unseen) successor
 					// states. In other words, evaluating the next-state relation for a state
 					// yields no states.
-	                this.tlc.doNextSetErr(curState, null, false, EC.TLC_DEADLOCK_REACHED, null);
+	                this.doNextSetErr(curState, null, false, EC.TLC_DEADLOCK_REACHED, null);
 				}
 				
 	            // Finally, add curState into the behavior graph for liveness checking:
 	            if (this.checkLiveness)
 	            {
-					doNextCheckLiveness(curState, setOfStates);
+	            	try {
+	            		doNextCheckLiveness(curState, setOfStates);
+					} catch (final Throwable e) {
+						this.tlc.doNextFailed(curState, null, e);
+	            	}
 	            }
 				
 				this.outDegree.addSample(unseenSuccessorStates);
@@ -146,6 +163,7 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 	private SetOfStates setOfStates;
 
 	private final boolean checkLiveness;
+	private static boolean printedLivenessErrorStack = false;
 
 	private final void doNextCheckLiveness(TLCState curState, SetOfStates liveNextStates) throws IOException {
 		final long curStateFP = curState.fingerPrint();
@@ -154,7 +172,65 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 		liveNextStates.put(curStateFP, curState);
 		this.tlc.allStateWriter.writeState(curState, curState, true, IStateWriter.Visualization.STUTTERING);
 
-		this.tlc.liveCheck.addNextState(tlc.tool, curState, curStateFP, liveNextStates);
+		// Contrary to exceptions that are thrown during the evaluation of the init
+		// predicate and the next-state relation, the code below causes the call stack
+		// to be printed first and only then the trace.  Ordinary safety checking first
+		// prints the trace followed by the call stack.  The Toolbox is oblivious because
+		// it parses the output.  Command-line users, however, might miss the call stack.
+		// Perhaps, it would be best to attach CallStack to the exception and let the
+		// global exception handling take care of it. Unfortunately, TLC's exception
+		// handling is a mess: a) TLCRuntimException and EvalException overlap b)
+		// CallStackTool cannot always be enabled at the site where exceptions
+		// originate, and c) there is no global exception handling.
+		try {
+			this.tlc.liveCheck.addNextState(tlc.tool.getLiveness(), curState, curStateFP, liveNextStates);
+		} catch (EvalException | TLCRuntimeException origExp) {
+			synchronized (this.tlc) {
+				if (printedLivenessErrorStack) {
+					// Another worker beat us to printing an error trace.
+					return; 
+				}
+				printedLivenessErrorStack= true;
+				
+				// liveCheck#addNextState throws an EvalException if, e.g., a Java module overrides throw one:
+				// For example: `Cardinality(S) ~> ...` with `S` a naturals, ...
+
+				// Reset the iterator before using it again after the call to addNextState above.
+				liveNextStates.resetNext();
+
+				// TODO: Try to pass DebugTool instead of tool.getLiveness to enable the TLC
+				// debugger for liveness checking.
+				final CallStackTool cTool = new CallStackTool(tlc.tool.getLiveness());
+				try {
+					this.tlc.liveCheck.addNextState(cTool, curState, curStateFP, liveNextStates);
+					// Regular evaluation with tlc.tool.getLiveness failed but CallStackTool
+					// succeeded. This should never happen!
+					Assert.fail(EC.GENERAL, origExp);
+				} catch (EvalException | TLCRuntimeException rerunExp) {
+					// liveCheck#addNextState is not side-effect free. For example, the behavior
+					// (liveness) graph might have been changed and new GraphNodes been added. If
+					// that's the case, calling addNextStates with the same parameters again causes
+					// different exceptions. Those exception are bogus and should not be shown to the
+					// user.
+					// I don't expect equals to do the right thing(tm) for EvalException and/or
+					// TLCRuntimeException. We effectively expect the same exception gets
+					// throw by calling addNextState again.
+					//assert origExp.getClass().isAssignableFrom(rerunExp.getClass());
+					//assert origException.equals(rerunException);
+					
+					if (cTool.hasCallStack()) {
+						// Tell ModelChecker.java not to re-run model-checking to re-create the error
+						// stack because it was already re-created here.
+						this.tlc.keepCallStack = false;
+						// Do not handle the exception here but send it up the stack.
+						// ModelChecker#doNextFailed puts this exception into context and prints the
+						// current (prefix of) the behavior.
+						MP.printError(EC.TLC_NESTED_EXPRESSION, cTool.toString());
+					}
+				}
+				throw origExp;
+			}
+		}
 
 		if (liveNextStates.capacity() > (multiplier * INITIAL_CAPACITY)) {
 			// Increase initial size for as long as the set has to grow
@@ -164,6 +240,11 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 	
 	private final SetOfStates createSetOfStates() {
 		return new SetOfStates(multiplier * INITIAL_CAPACITY);
+	}
+	
+	@Override
+	public SetOfStates getStates() {
+		return setOfStates;
 	}
 	
 	/* Statistics */
@@ -339,12 +420,18 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 		
 		try {
 			if (!this.tool.isGoodState(succState)) {
-				this.tlc.doNextSetErr(curState, succState, action);
+				this.doNextSetErr(curState, succState, action);
+				// It seems odd to subsume this under IVE, but we consider
+				// it an invariant that the values of all variables have to
+				// be defined.
 				throw new InvariantViolatedException();
 			}
 			
 			// Check if state is excluded by a state or action constraint.
-			final boolean inModel = (this.tool.isInModel(succState) && this.tool.isInActions(curState, succState));
+			// Set the predecessor to make TLC!TLCGet("level") work in
+			// state constraints, i.e. isInModel.
+			final boolean inModel = (this.tool.isInModel(succState.setPredecessor(curState).setAction(action))
+					&& this.tool.isInActions(curState, succState));
 			
 			// Check if state is new or has been seen earlier.
 			boolean unseen = true;
@@ -373,7 +460,32 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 			}
 			return this;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			// We can't throw Exception here because it would violate the contract of
+			// tlc2.tool.INextStateFunctor.addElement(TLCState, Action, TLCState). Thus,
+			// wrap the exception regardless of whether it is a (unchecked) runtime
+			// exception or not. We expect the outer code in run(..) above to unwrap this
+			// exception.  As a bonus, we can attach succState and send it up the stack.
+			throw new WrappingRuntimeException(e, succState);
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	private static class WrappingRuntimeException extends RuntimeException {
+
+		private final Exception e;
+		private final TLCState state;
+
+		public WrappingRuntimeException(final Exception e, final TLCState state) {
+			this.e = e;
+			this.state = state;
+		}
+		
+		public TLCState unwrapState() {
+			return state;
+		}
+
+		public Exception unwrapExp() {
+			return e;
 		}
 	}
 
@@ -396,7 +508,7 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 			if (coverage) {	action.cm.incSecondary(); }
 		}
 		// For liveness checking:
-		if (this.checkLiveness)
+		if (this.checkLiveness || mode == Mode.MC_DEBUG)
 		{
 			this.setOfStates.put(fp, succState);
 		}
@@ -421,7 +533,7 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 							return false;
                         }
                 	} else {
-						return this.tlc.doNextSetErr(curState, succState, false,
+						return this.doNextSetErr(curState, succState, false,
 								EC.TLC_INVARIANT_VIOLATED_BEHAVIOR, this.tool.getInvNames()[k]);
                 	}
 				}
@@ -453,7 +565,7 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 							return false;
                        }
                     } else {
-						return this.tlc.doNextSetErr(curState, succState, false,
+						return this.doNextSetErr(curState, succState, false,
 								EC.TLC_ACTION_PROPERTY_VIOLATED_BEHAVIOR,
 								this.tool.getImpliedActNames()[k]);
                 	}
@@ -466,40 +578,40 @@ public final class Worker extends IdThread implements IWorker, INextStateFunctor
 		}
         return false;
 	}
+	
+	private boolean doNextSetErr(TLCState curState, TLCState succState, boolean keep, int ec, String param) throws IOException, WorkerException {
+		synchronized (this.tlc) {
+			final boolean doNextSetErr = this.tlc.doNextSetErr(curState, succState, keep, ec, param);
 
-	// User request: http://discuss.tlapl.us/msg03658.html
-	//
-	// This is a quick'n'dirty prototype to have TLC evaluate a constant-level
-	// expression after state-space exploration. Not sure what this will be useful
-	// for except for the particular subset of hyperproperties such min/max/avg that
-	// are robust against being evaluated on non-distinct states.
-	private final void doPostCheckAssumption() {
-		// Hijack the unused/dormant type constraint (TYPE_CONSTRAINT) to make it
-		// possible to evaluate a given (constant-level) expression after state-space
-		// exploration ended.
-		// TODO: If useful, properly wire it to its own config keyword (instead of
-		// TYPE_CONSTRAINT).  The replacement of getTypeConstraintSpec should return
-		// ExprNode[] instead of SemanticNode for users to define multiple checks
-		// in the config file similar to action and state constraints.
-		final ExprNode sn = (ExprNode) this.tool.getTypeConstraintSpec();
-		try {
-			if (sn != null && !this.tool.isValid(sn)) {
-				// It's not an assumption because the expression doesn't appear inside
-				// an ASSUME, but good enough for this prototype.
-				MP.printError(EC.TLC_ASSUMPTION_FALSE, sn.toString());
-				// Terminate with a non-zero exit value.
-				this.tlc.setError(false, EC.TLC_ASSUMPTION_FALSE);
-			}
-		} catch (Exception e) {
-			// tool.isValid(sn) failed to evaluate...
-			MP.printError(EC.TLC_ASSUMPTION_EVALUATION_ERROR, new String[] { sn.toString(), e.getMessage() });
-			this.tlc.setError(true, EC.TLC_ASSUMPTION_EVALUATION_ERROR);
+			// Invoke PostCondition
+			doPostCondition(curState, succState);
+			
+			return doNextSetErr;
 		}
-		// The PostCheckAssumption/PostCondition cannot be stated as an ordinary invariant
-		// with the help of TLCSet/Get because the invariant will only be evaluated for
-		// distinct states, but we want it to be evaluated after state-space exploration
-		// finished.  Hacking away with TLCGet("queue") = 0 doesn't work because the queue
-		// can be empty during the evaluation of the next-state relation when a worker dequeues
-		// the last state S, that has more successor states.
+	}
+	
+	private boolean doNextSetErr(TLCState curState, TLCState succState, Action action) throws IOException, WorkerException {
+		synchronized (this.tlc) {
+			final boolean doNextSetErr = this.tlc.doNextSetErr(curState, succState, action);
+
+			// Invoke PostCondition
+			doPostCondition(curState, succState);
+
+			return doNextSetErr;
+		}
+	}
+	
+	private final void doPostCondition(TLCState curState, TLCState succState) throws IOException {
+		final LinkedList<TLCStateInfo> trace = new LinkedList<>();
+		if (curState.isInitial()) {
+			trace.add(tool.getState(curState.fingerPrint()));
+		} else if (succState == null) {
+			trace.addAll(Arrays.asList(tlc.getTraceInfo(curState)));
+			trace.add(tool.getState(curState, trace.getLast().state));
+		} else {
+			trace.addAll(Arrays.asList(tlc.getTraceInfo(succState)));
+			trace.add(tool.getState(succState, curState));
+		}
+		tool.checkPostConditionWithCounterExample(new CounterExample(trace));
 	}
 }

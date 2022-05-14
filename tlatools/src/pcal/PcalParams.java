@@ -18,8 +18,13 @@ public final class PcalParams
     /**
      * Parameters to be updated on each new release.
      */
-    public static final String modDate = "10 July 2019";
-    public static final String version = "1.9";
+    public static final String modDate = "31 December 2020";
+	// Can't increment 1.9 to 1.10 because VersionToNumber(str) calculates a lower
+	// numerical value for 1.10 than it does for 1.9. This breaks the FairSeq?Test
+    // tests. Until we switch from 1.xx to 2.0, increment versionWeight along with
+    // version.
+    public static final int versionWeight = 1902;
+    public static final String version = "1.11";
     /**
      * SZ Mar 9, 2009:
      * Added re-initialization method. Since PcalParams class
@@ -46,14 +51,16 @@ public final class PcalParams
         FairnessOption = "";
         FairAlgorithm = false;
         CheckTermination = false;
+        NoOld = false;
         Nocfg = false;
         NoDoneDisjunct = false;
         optionsInFile = false;
         versionOption = null;
-        inputVersionNumber = VersionToNumber(PcalParams.version);
+        inputVersionNumber = PcalParams.versionWeight;
         PcalTLAGen.wrapColumn = 78;
         PcalTLAGen.ssWrapColumn = 45;
         tlaPcalMapping = null ;
+        //For Distributed PlusCal	
         distpcalFlag = false;
     }
     
@@ -129,6 +136,11 @@ public final class PcalParams
       /*********************************************************************
       * True iff there is a -termination option.                           *
       *********************************************************************/
+
+    public static boolean NoOld = false ;
+    /*********************************************************************
+    * True iff there is a -noold option.                                 *
+    *********************************************************************/
       
     public static boolean Nocfg = false ;
       /*********************************************************************
@@ -144,13 +156,13 @@ public final class PcalParams
      * The following parameter is set true if --fair algorithm is used.   *
      *********************************************************************/
     public static boolean FairAlgorithm = false ; 
-    
-    
-    public static boolean distpcalFlag = false ;
+
+    //For Distributed PlusCal	
     /*********************************************************************
     * True iff the -distpcal option is chosen.                              *
     *********************************************************************/
-    
+    public static boolean distpcalFlag = false ;
+  
   /*************************************************************************
   * Parameters related to language definition.                             *
   *************************************************************************/
@@ -197,17 +209,10 @@ public final class PcalParams
     ***********************************************************************/
     public static final String BeginXlation1 = "BEGIN" ;
     public static final String BeginXlation2 = "TRANSLATION" ;
-    public static final String BeginXlation3 = "- the hash of the PCal code:" ;
 
     public static final String EndXlation1 = "END" ;
     public static final String EndXlation2 = "TRANSLATION" ;
-    public static final String EndXlation3 = "- the hash of the generated TLA code (remove "
-												+ "to silence divergence warnings):" ;
     
-    // Checksum marker keywords - introduced as part of https://github.com/tlaplus/tlaplus/issues/296
-    public static final String PCAL_CHECKSUM_KEYWORD = "PCal-";
-    public static final String TRANSLATED_PCAL_CHECKSUM_KEYWORD = "TLA-";
-
   /*************************************************************************
   * The string identifying the end of the automatically generated part of  *
   * the .cfg file and the beginning of the user-added part.                *
@@ -260,7 +265,7 @@ public final class PcalParams
      // way because of the way the code evolved, and no intelligent
      // design has stepped in to fix it.
   public static String versionOption = null;
-  public static int inputVersionNumber = VersionToNumber(PcalParams.version);
+  public static int inputVersionNumber = PcalParams.versionWeight;
      // The input file's version number * 1000
 //  public static boolean readOnly = false; 
      // True iff this is a .pcal input file and the .tla file should 
@@ -323,7 +328,7 @@ public final class PcalParams
           PcalDebug.reportError("Illegal version " + ver + " specified."); 
           return false;
       }
-      if (vnum > VersionToNumber(PcalParams.version)) {
+      if (vnum > PcalParams.versionWeight) {
           PcalDebug.reportError("Specified version " + ver + 
                   " later than current version " + PcalParams.version);
           return false;
@@ -331,6 +336,7 @@ public final class PcalParams
       inputVersionNumber = vnum;
       return true ;
   }
+
   
   //For Distributed PlusCal	
   /*************************************************************************
@@ -360,7 +366,9 @@ public final class PcalParams
 	  TLAExpr exp = new TLAExpr(vec) ;
 	  exp.normalize() ;
 	  return exp ;
-  }
+  }  
+  
  }  
 
 /* last modified on Thu 23 Aug 2007 at 10:40:25 PST by lamport */
+

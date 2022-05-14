@@ -5,18 +5,14 @@
 
 package tlc2.module;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 
-import tlc2.TLCGlobals;
 import tlc2.output.EC;
 import tlc2.output.MP;
 import tlc2.tool.EvalControl;
 import tlc2.tool.EvalException;
-import tlc2.tool.ModelChecker;
-import tlc2.tool.TLCState;
 import tlc2.tool.impl.TLARegistry;
-import tlc2.util.IdThread;
 import tlc2.value.IBoolValue;
 import tlc2.value.ValueConstants;
 import tlc2.value.Values;
@@ -36,29 +32,18 @@ import tlc2.value.impl.Value;
 import tlc2.value.impl.ValueVec;
 import util.Assert;
 import util.ToolIO;
-import util.UniqueString;
 
 public class TLC implements ValueConstants
 {
-	private static final UniqueString LEVEL = UniqueString.uniqueStringOf("level");
-	private static final UniqueString DURATION = UniqueString.uniqueStringOf("duration");
-	private static final UniqueString QUEUE = UniqueString.uniqueStringOf("queue");
-	private static final UniqueString DISTINCT = UniqueString.uniqueStringOf("distinct");
-	private static final UniqueString GENERATED = UniqueString.uniqueStringOf("generated");
-	private static final UniqueString DIAMETER = UniqueString.uniqueStringOf("diameter");
-	private static final UniqueString EXIT = UniqueString.uniqueStringOf("exit");
-	private static final UniqueString PAUSE = UniqueString.uniqueStringOf("pause");
 
 	public static final long serialVersionUID = 20160822L;
 
-	private static final long startTime = System.currentTimeMillis();
-
-	public static BufferedWriter OUTPUT;
+	public static Writer OUTPUT;
 
     static
     {
 		// The following two entries in TLARegistry define a mapping from a TLA+ infix
-		// operator to a Java method, e.g. the TLA+ infix operator "@@" is mapped to and
+		// operator to a Java method, e.g. the TLA+ infix operator "@@" is mapped to CombineFcn and
 		// thus implemented by the Java method tlc2.module.TLC.CombineFcn(Value, Value)
 		// below.
         Assert.check(TLARegistry.put("MakeFcn", ":>") == null, EC.TLC_REGISTRY_INIT_ERROR, "MakeFcn");
@@ -139,171 +124,22 @@ public class TLC implements ValueConstants
      */
     public static Value JavaTime()
     {
-        int t = (int) System.currentTimeMillis();
+    	// MAK 11/30/2021:
+		// Prevent wall-clock time from going backward for a while longer by converting
+		// milliseconds to seconds (since epoch), which "gains" ~10 bits before the Java
+		// type int overflows. This change should be safe, assuming specs do not rely on
+		// sub-second time resolution -- TLC!JavaTime never guaranteed time to increment
+    	// between two states.
+    	//TODO: Switch to 64 bit integers (long) to prevent year 2038 problem.
+    	final int t = (int) (System.currentTimeMillis() / 1000L);
+    	// Zero MSB to prevent time going negative when 2^31 overflows
+    	// (there is no unsigned variant of IntValue).  Instead, time
+    	// will go backwards, which satisfies the definition 
+    	//   CHOOSE n : n \in Nat  in  TLC!JavaTime.
         return IntValue.gen(t & 0x7FFFFFFF);
     }
 
-    public static Value TLCGet(Value vidx)
-    {
-        if (vidx instanceof IntValue)
-        {
-            int idx = ((IntValue) vidx).val;
-            if (idx >= 0)
-            {
-                Thread th = Thread.currentThread();
-                Value res = null;
-                if (th instanceof IdThread)
-                {
-                    res = (Value) ((IdThread) th).getLocalValue(idx);
-                } else if (TLCGlobals.mainChecker != null)
-                {
-                    res = (Value) tlc2.TLCGlobals.mainChecker.getValue(0, idx);
-                } else if (tlc2.TLCGlobals.simulator != null)
-                {	
-                    res = (Value) tlc2.TLCGlobals.simulator.getLocalValue(idx);
-                }
-                if (res == null)
-                {
-                    throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(idx));
-                }
-                return res;
-            }
-        } else if (vidx instanceof StringValue) {
-			return TLCGetStringValue(vidx);
-        }
-        throw new EvalException(EC.TLC_MODULE_ONE_ARGUMENT_ERROR, new String[] { "TLCGet",
-                "nonnegative integer", Values.ppr(vidx.toString()) });
-    }
-
-	private static final Value TLCGetStringValue(final Value vidx) {
-		final StringValue sv = (StringValue) vidx;
-		if (DIAMETER == sv.val) {
-			try {
-				return IntValue.gen(TLCGlobals.mainChecker.getProgress());
-			} catch (ArithmeticException e) {
-				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
-						Long.toString(TLCGlobals.mainChecker.getProgress()));
-			} catch (NullPointerException npe) {
-				// TLCGlobals.mainChecker is null while the spec is parsed. A constant
-				// expression referencing one of the named values here would thus result in an
-				// NPE.
-				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-			}
-		} else if (GENERATED == sv.val) {
-			try {
-				return IntValue.gen(Math.toIntExact(TLCGlobals.mainChecker.getStatesGenerated()));
-			} catch (ArithmeticException e) {
-				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
-						Long.toString(TLCGlobals.mainChecker.getStatesGenerated()));
-			} catch (NullPointerException npe) {
-				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-			}
-		} else if (DISTINCT == sv.val) {
-			try {
-				return IntValue.gen(Math.toIntExact(TLCGlobals.mainChecker.getDistinctStatesGenerated()));
-			} catch (ArithmeticException e) {
-				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
-						Long.toString(TLCGlobals.mainChecker.getDistinctStatesGenerated()));
-			} catch (NullPointerException npe) {
-				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-			}
-		} else if (QUEUE == sv.val) {
-			try {
-				return IntValue.gen(Math.toIntExact(TLCGlobals.mainChecker.getStateQueueSize()));
-			} catch (ArithmeticException e) {
-				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
-						Long.toString(TLCGlobals.mainChecker.getStateQueueSize()));
-			} catch (NullPointerException npe) {
-				throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-			}
-		} else if (DURATION == sv.val) {
-			try {
-				final int duration = (int) ((System.currentTimeMillis() - startTime) / 1000L);
-				return IntValue.gen(Math.toIntExact(duration));
-			} catch (ArithmeticException e) {
-				throw new EvalException(EC.TLC_MODULE_OVERFLOW,
-						Long.toString(((System.currentTimeMillis() - startTime) / 1000L)));
-			}
-		} else if (LEVEL == sv.val) {
-			// Contrary to "diameter", "level" is not monotonically increasing. "diameter" is
-			// because it calls tlc2.tool.TLCTrace.getLevelForReporting(). "level" is the height
-			// stores as part of the state that is currently explored.
-			final TLCState currentState = IdThread.getCurrentState();
-			if (currentState != null) {
-				return IntValue.gen(currentState.getLevel());
-			} else {
-				if (TLCGlobals.mainChecker == null && TLCGlobals.simulator == null) {
-					// Be consistent with TLCGet("diameter") when TLCGet("level") appears as
-					// constant substitution.
-					throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-				}
-				// Not an IdThread (hence currentState is null) implies that TLCGet("level") is
-				// evaluated as part of the initial predicate where the level - by definition -
-				// is 0 (see TLCState#level).
-				return IntValue.gen(TLCState.INIT_LEVEL - 1);
-			}
-		}
-		throw new EvalException(EC.TLC_MODULE_TLCGET_UNDEFINED, String.valueOf(sv.val));
-	}
-
-    public static Value  TLCSet(Value vidx, Value val)
-    {
-        if (vidx instanceof IntValue)
-        {
-            int idx = ((IntValue) vidx).val;
-            if (idx >= 0)
-            {
-                Thread th = Thread.currentThread();
-                if (th instanceof IdThread)
-                {
-                    ((IdThread) th).setLocalValue(idx, val);
-                } else if (TLCGlobals.mainChecker != null)
-                {
-                    TLCGlobals.mainChecker.setAllValues(idx, val);
-                } else 
-                {	
-                    tlc2.TLCGlobals.simulator.setAllValues(idx, val);
-                }
-                return BoolValue.ValTrue;
-            }
-        } else if (vidx instanceof StringValue) {
-        	final StringValue sv = (StringValue) vidx;
-        	if (EXIT == sv.val) {
-        		if (val == BoolValue.ValTrue) {
-        			if (TLCGlobals.mainChecker != null) {
-        				TLCGlobals.mainChecker.stop();
-        			}
-        			if (TLCGlobals.simulator != null) {
-        				TLCGlobals.simulator.stop();
-        			}
-        		}
-        		return BoolValue.ValTrue;
-        	} else if (PAUSE == sv.val) {
-				// Provisional TLCSet("pause", TRUE) implementation that suspends BFS model
-				// checking until enter is pressed on system.in.  Either use in spec as:
-        		//   TLCSet("pause", guard)
-        		// but it might be better guarded by IfThenElse for performance reasons:
-        		//   IF guard THEN TLCSet("pause", TRUE) ELSE TRUE
-        		if (val == BoolValue.ValTrue && TLCGlobals.mainChecker instanceof ModelChecker) {
-        			final ModelChecker mc = (ModelChecker) TLCGlobals.mainChecker;
-        			synchronized (mc.theStateQueue) {
-        				ToolIO.out.println("Press enter to resume model checking.");
-        				ToolIO.out.flush();
-						try {
-							System.in.read();
-						} catch (IOException e) {
-							throw new EvalException(EC.GENERAL, e.getMessage());
-						}
-        			}
-        		}
-        		return BoolValue.ValTrue;
-        	}
-        }
-        throw new EvalException(EC.TLC_MODULE_ARGUMENT_ERROR, new String[] { "first", "TLCSet", "nonnegative integer",
-                Values.ppr(vidx.toString()) });
-    }
-
-    public static Value MakeFcn(Value d, Value e)
+	public static Value MakeFcn(Value d, Value e)
     {
     	Value[] dom = new Value[1];
     	Value[] vals = new Value[1];
@@ -579,6 +415,10 @@ public class TLC implements ValueConstants
             }
             return new TupleValue(vals);
         }
+        case INTERVALVALUE: {
+        	final IntervalValue iv = (IntervalValue) val;
+        	return iv.randomElement();
+        }
         default: {
             SetEnumValue enumVal = (SetEnumValue) val.toSetEnum();
             if (enumVal == null)
@@ -604,18 +444,19 @@ public class TLC implements ValueConstants
      * @param val
      * @return
      */
-    public static Value  TLCEval(Value val) {
-        Value  evalVal = val.toSetEnum();
-        if (evalVal != null) {
-            return evalVal;
-        }
-        evalVal = val.toFcnRcd();
-        if (evalVal != null) {
-            return evalVal;
-        }
-        // System.out.println("TLCEval gets no conversion");
-        return val;
-    }
+//    public static Value  TLCEval(Value val) {
+//        Value  evalVal = val.toSetEnum();
+//        if (evalVal != null) {
+//            return evalVal;
+//        }
+//        evalVal = val.toFcnRcd();
+//        if (evalVal != null) {
+//            return evalVal;
+//        }
+//        // System.out.println("TLCEval gets no conversion");
+//        return val;
+//    }
+
     /*
     public static Value FApply(Value f, Value op, Value base) {
       FcnRcdValue fcn = f.toFcnRcd();

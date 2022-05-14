@@ -8,18 +8,25 @@ package tlc2.value.impl;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import tla2sany.semantic.OpDeclNode;
 import tla2sany.semantic.SymbolNode;
+import tla2sany.st.Location;
 import tlc2.output.EC;
 import tlc2.output.MP;
+import tlc2.tool.Action;
 import tlc2.tool.FingerprintException;
 import tlc2.tool.StateVec;
 import tlc2.tool.TLCState;
+import tlc2.tool.TLCStateInfo;
 import tlc2.tool.coverage.CostModel;
+import tlc2.util.Context;
 import tlc2.util.FP64;
 import tlc2.value.IMVPerm;
 import tlc2.value.IValue;
@@ -32,10 +39,20 @@ import util.TLAConstants;
 import util.UniqueString;
 
 public class RecordValue extends Value implements Applicable {
+  private static final UniqueString BLI = UniqueString.of("beginLine");
+  private static final UniqueString BCOL = UniqueString.of("beginColumn");
+  private static final UniqueString ELI = UniqueString.of("endLine");
+  private static final UniqueString ECOL = UniqueString.of("endColumn");
+  private static final UniqueString MOD = UniqueString.of("module");
+  private static final UniqueString NAME = UniqueString.of("name");
+  private static final UniqueString LOC = UniqueString.of("location");
+  private static final UniqueString CTXT = UniqueString.of("context");
+  private static final UniqueString ACTION = UniqueString.of("_action");
+
   public final UniqueString[] names;   // the field names
   public final Value[] values;         // the field values
   private boolean isNorm;
-public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], new Value[0], true);
+  public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], new Value[0], true);
 
   /* Constructor */
   public RecordValue(UniqueString[] names, Value[] values, boolean isNorm) {
@@ -57,6 +74,78 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
 	  this(new UniqueString[] {name}, new Value[] {v}, false);
   }
 
+	// See
+	// https://github.com/tlaplus/CommunityModules/commit/12cc3c6046d49ceaf2d0de8ce7558d8e2f4e53ad#diff-9a781a1a0e9b833becf01e1979ac6c5a9d49561c6b41cfbd70cfd75df1716867R86
+	// where this would have been useful. Consider refactoring the CM module
+	// override once sufficient time has passed that we can expect most users to be
+	// on a version of TLC with this constructor.
+	public RecordValue(final Map<UniqueString, Value> m) {
+		final List<Map.Entry<UniqueString, Value>> entries = new ArrayList<>(m.entrySet());
+
+		this.names = new UniqueString[entries.size()];
+		this.values = new Value[entries.size()];
+
+		for (int i = 0; i < entries.size(); i++) {
+			this.names[i] = entries.get(i).getKey();
+			this.values[i] = entries.get(i).getValue();
+		}
+	}
+
+  public RecordValue(final Location location) {
+		this.names = new UniqueString[5];
+		this.values = new Value[this.names.length];
+
+		this.names[0] = BLI;
+		this.values[0] = IntValue.gen(location.beginLine());
+
+		this.names[1] = BCOL;
+		this.values[1] = IntValue.gen(location.beginColumn());
+
+		this.names[2] = ELI;
+		this.values[2] = IntValue.gen(location.endLine());
+
+		this.names[3] = ECOL;
+		this.values[3] = IntValue.gen(location.endColumn());
+		
+		this.names[4] = MOD;
+		this.values[4] = new StringValue(location.sourceAsUniqueString());
+		
+		this.isNorm = false;
+  }
+
+  public RecordValue(final Action action) {
+		this.names = new UniqueString[2];
+		this.values = new Value[this.names.length];
+
+		this.names[0] = NAME;
+		this.values[0] = new StringValue(action.getName());
+		
+		this.names[1] = LOC;
+		this.values[1] = new RecordValue(action.getDefinition());
+		
+		this.isNorm = false;
+  }
+
+  public RecordValue(final Action action, final Context ctxt) {
+		this.names = new UniqueString[3];
+		this.values = new Value[this.names.length];
+
+		this.names[0] = NAME;
+		this.values[0] = new StringValue(action.getName());
+		
+		this.names[1] = LOC;
+		this.values[1] = new RecordValue(action.getDefinition());
+		
+		this.names[2] = CTXT;
+		this.values[2] = new RecordValue(ctxt.toMap());
+		
+		this.isNorm = false;
+  }
+
+  public RecordValue(final TLCStateInfo info) {
+	  this(info.state);
+  }
+
   public RecordValue(final TLCState state) {
 		final OpDeclNode[] vars = state.getVars();
 		
@@ -71,6 +160,68 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
 		this.isNorm = false;
   }
 
+  public RecordValue(final TLCState state, final Action action) {
+		final OpDeclNode[] vars = state.getVars();
+		
+		this.names = new UniqueString[vars.length + 1];
+		this.values = new Value[vars.length + 1];
+
+		//TODO: _action too verbose?
+		this.names[0] = ACTION;
+		this.values[0] = new RecordValue(action, action.con);
+		
+		for (int i = 0; i < vars.length; i++) {
+			this.names[i+1] = vars[i].getName();
+			this.values[i+1] = (Value) state.lookup(this.names[i+1]); 
+		}
+		
+		this.isNorm = false;
+  }
+
+  public RecordValue(final TLCState state, final Value defVal) {
+	  this(state);
+		// if state.lookup in this returned null, replace null with defVal.
+		for (int i = 0; i < this.values.length; i++) {
+			if (this.values[i] == null) {
+				this.values[i] = defVal;
+			}
+		}
+  }
+
+  	/**
+	 * Create RecordValue out of pair of states (s, t) such that the variable names
+	 * of s become record keys as is and the variables of t become record keys with
+	 * a ' appended.
+	 */
+  public RecordValue(final TLCState state, final TLCState successor, final Value defVal) {
+	  assert state.getVars().length == successor.getVars().length;
+	  
+		final OpDeclNode[] vars = state.getVars();
+		
+		this.names = new UniqueString[vars.length * 2];
+		this.values = new Value[vars.length * 2];
+
+		for (int i = 0; i < vars.length; i++) {
+			final int j = i * 2;
+			final UniqueString var = vars[i].getName();
+
+			this.names[j] = UniqueString.of(var + " ");
+			this.names[j+1] = UniqueString.of(var + "'");
+
+			this.values[j] = (Value) state.lookup(var);
+			if (this.values[j] == null) {
+				this.values[j] = defVal;
+			}
+			
+			this.values[j+1] = (Value) successor.lookup(var);
+			if (this.values[j+1] == null) {
+				this.values[j+1] = defVal;
+			}
+		}
+
+		this.isNorm = false;
+  }
+
   @Override
   public final byte getKind() { return RECORDVALUE; }
 
@@ -79,20 +230,26 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
     try {
       RecordValue rcd = obj instanceof Value ? (RecordValue) ((Value)obj).toRcd() : null;
       if (rcd == null) {
-        if (obj instanceof ModelValue) return 1;
+        if (obj instanceof ModelValue) {
+            return ((ModelValue) obj).modelValueCompareTo(this);
+        }
         Assert.fail("Attempted to compare record:\n" + Values.ppr(this.toString()) +
-        "\nwith non-record\n" + Values.ppr(obj.toString()));
+        "\nwith non-record\n" + Values.ppr(obj.toString()), getSource());
       }
       this.normalize();
       rcd.normalize();
       int len = this.names.length;
       int cmp = len - rcd.names.length;
       if (cmp == 0) {
+    	// First, compare the (equicardinal) domains.
         for (int i = 0; i < len; i++) {
           cmp = this.names[i].compareTo(rcd.names[i]);
-          if (cmp != 0) break;
+          if (cmp != 0) return cmp;
+        }
+        // Then, compare values iff domains are equal.
+        for (int i = 0; i < len; i++) {
           cmp = this.values[i].compareTo(rcd.values[i]);
-          if (cmp != 0) break;
+          if (cmp != 0) return cmp;
         }
       }
       return cmp;
@@ -110,16 +267,23 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
         if (obj instanceof ModelValue)
            return ((ModelValue) obj).modelValueEquals(this) ;
         Assert.fail("Attempted to check equality of record:\n" + Values.ppr(this.toString()) +
-        "\nwith non-record\n" + Values.ppr(obj.toString()));
+        "\nwith non-record\n" + Values.ppr(obj.toString()), getSource());
       }
       this.normalize();
       rcd.normalize();
       int len = this.names.length;
       if (len != rcd.names.length) return false;
+  	  // First, compare the (equicardinal) domains.
       for (int i = 0; i < len; i++) {
-        if ((!(this.names[i].equals(rcd.names[i]))) ||
-          (!(this.values[i].equals(rcd.values[i]))))
-          return false;
+        if (!(this.names[i].equals(rcd.names[i]))) {
+        	return false;
+        }
+      }
+      // Then, compare values iff domains are equal.
+      for (int i = 0; i < len; i++) {
+        if (!(this.values[i].equals(rcd.values[i]))) {
+        	  return false;
+        }
       }
       return true;
     }
@@ -133,7 +297,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final boolean member(Value elem) {
     try {
       Assert.fail("Attempted to check if element:\n" + Values.ppr(elem.toString()) +
-                  "\nis in the record:\n" + Values.ppr(this.toString()));
+                  "\nis in the record:\n" + Values.ppr(this.toString()), getSource());
       return false;    // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -235,7 +399,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final Value apply(Value arg, int control) {
     try {
       if (!(arg instanceof StringValue)) {
-        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()));
+        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()), getSource());
       }
       UniqueString name = ((StringValue)arg).getVal();
       int rlen = this.names.length;
@@ -245,7 +409,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
         }
       }
       Assert.fail("Attempted to access nonexistent field '" + name +
-          "' of record\n" + Values.ppr(this.toString()));
+          "' of record\n" + Values.ppr(this.toString()), getSource());
       return null;    // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -258,7 +422,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final Value apply(Value[] args, int control) {
     try {
       if (args.length != 1) {
-        Assert.fail("Attempted to apply record to more than one arguments.");
+        Assert.fail("Attempted to apply record to more than one arguments.", getSource());
       }
       return this.apply(args[0], control);
     }
@@ -273,7 +437,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
   public final Value select(Value arg) {
     try {
       if (!(arg instanceof StringValue)) {
-        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()));
+        Assert.fail("Attempted to access record by a non-string argument: " + Values.ppr(arg.toString()), getSource());
       }
       UniqueString name = ((StringValue)arg).getVal();
       int rlen = this.names.length;
@@ -305,26 +469,26 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
     }
   }
 
-  public final boolean assign(UniqueString name, Value val) {
-    try {
-      for (int i = 0; i < this.names.length; i++) {
-        if (name.equals(this.names[i])) {
-          if (this.values[i] == UndefValue.ValUndef ||
-              this.values[i].equals(val)) {
-            this.values[i] = val;
-            return true;
-          }
-          return false;
-        }
-      }
-      Assert.fail("Attempted to assign to nonexistent record field " + name + ".");
-      return false;    // make compiler happy
-    }
-    catch (RuntimeException | OutOfMemoryError e) {
-      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
-      else { throw e; }
-    }
-  }
+//  public final boolean assign(UniqueString name, Value val) {
+//    try {
+//      for (int i = 0; i < this.names.length; i++) {
+//        if (name.equals(this.names[i])) {
+//          if (this.values[i] == UndefValue.ValUndef ||
+//              this.values[i].equals(val)) {
+//            this.values[i] = val;
+//            return true;
+//          }
+//          return false;
+//        }
+//      }
+//      Assert.fail("Attempted to assign to nonexistent record field " + name + ".", getSource());
+//      return false;    // make compiler happy
+//    }
+//    catch (RuntimeException | OutOfMemoryError e) {
+//      if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
+//      else { throw e; }
+//    }
+//  }
 
   @Override
   public final boolean isNormalized() { return this.isNorm; }
@@ -337,7 +501,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
         for (int i = 1; i < len; i++) {
           int cmp = this.names[0].compareTo(this.names[i]);
           if (cmp == 0) {
-            Assert.fail("Field name " + this.names[i] + " occurs multiple times in record.");
+            Assert.fail("Field name " + this.names[i] + " occurs multiple times in record.", getSource());
           }
           else if (cmp > 0) {
             UniqueString ts = this.names[0];
@@ -359,7 +523,7 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
             j--;
           }
           if (cmp == 0) {
-            Assert.fail("Field name " + this.names[i] + " occurs multiple times in record.");
+            Assert.fail("Field name " + this.names[i] + " occurs multiple times in record.", getSource());
           }
           this.names[j] = st;
           this.values[j] = val;
@@ -717,5 +881,19 @@ public static final RecordValue EmptyRcd = new RecordValue(new UniqueString[0], 
 			public TLCState createEmpty() {
 				return this.state.createEmpty();
 			}
+		}
+
+		@Override
+		public List<TLCVariable> getTLCVariables(final TLCVariable prototype, Random rnd) {
+			final List<TLCVariable> nestedVars = new ArrayList<>(values.length);
+			for (int i = 0; i < names.length; i++) {
+				final UniqueString uniqueString = names[i];
+				final Value v = values[i];
+				final TLCVariable nested = prototype.newInstance(uniqueString.toString(), v, rnd);
+				nested.setValue(v.toString());
+				nested.setType(v.getTypeString());
+				nestedVars.add(nested);
+			}
+			return nestedVars;
 		}
 }

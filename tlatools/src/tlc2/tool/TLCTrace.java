@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import tlc2.output.EC;
 import tlc2.output.MP;
@@ -286,7 +287,7 @@ public class TLCTrace {
 		// because the set of initial states is likely to be different.
 		// This is only necessary though, if TLCGlobals.enumFraction was < 1 during
 		// the generation of inits.
-		RandomEnumerableValues.reset();
+		final Random snapshot = RandomEnumerableValues.reset();
 		
 		// The vector of fingerprints is now being followed forward from the
 		// initial state (which is the last state in the long vector), to the
@@ -325,6 +326,7 @@ public class TLCTrace {
 				res[stateNum++] = sinfo;
 			}
 		}
+		RandomEnumerableValues.set(snapshot);
 		return res;
 	}
 
@@ -343,7 +345,7 @@ public class TLCTrace {
 		printTrace(s1, s2, getTrace(s1.uid, false));
 	}
 	
-	protected synchronized final void printTrace(final TLCState s1, final TLCState s2, final TLCStateInfo[] prefix)
+	protected final void printTrace(final TLCState s1, final TLCState s2, final TLCStateInfo[] prefix)
 			throws IOException, WorkerException {
 		if (s1.isInitial()) {
 			// Do not recreate the potentially expensive error trace - e.g. when the set of
@@ -351,16 +353,16 @@ public class TLCTrace {
 			// use the two states s1 and s2 directly.
 			MP.printError(EC.TLC_BEHAVIOR_UP_TO_THIS_POINT);
 			if (s2 == null) {
-			    StatePrinter.printState(new TLCStateInfo(s1));
+			    StatePrinter.printInvariantViolationStateTraceState(new TLCStateInfo(s1));
 			} else {
 				// Print initial state
-				StatePrinter.printState(this.tool.evalAlias(new TLCStateInfo(s1), s2), s1, 1);
+				StatePrinter.printInvariantViolationStateTraceState(this.tool.evalAlias(new TLCStateInfo(s1), s2), s1, 1);
 				
 				// Create TLCStateInfo instance to include corresponding action in output.
 				TLCStateInfo state = this.tool.getState(s2, s1);
 				
 				// Print successor state.
-				StatePrinter.printState(this.tool.evalAlias(state, s2), s1, 2);
+				StatePrinter.printInvariantViolationStateTraceState(this.tool.evalAlias(state, s2), s1, 2);
 			}
 			return;
 		}
@@ -371,7 +373,7 @@ public class TLCTrace {
 		TLCState lastState = null;
 		int idx = 0;
 		while (idx < prefix.length - 1) {
-			StatePrinter.printState(this.tool.evalAlias(prefix[idx], prefix[idx + 1].state), lastState, idx + 1);
+			StatePrinter.printInvariantViolationStateTraceState(this.tool.evalAlias(prefix[idx], prefix[idx + 1].state), lastState, idx + 1);
 			lastState = prefix[idx].state;
 			idx++;
 		}
@@ -390,13 +392,13 @@ public class TLCTrace {
 			}
 		} else {
 			TLCStateInfo s0 = prefix[prefix.length - 1];
-			StatePrinter.printState(this.tool.evalAlias(s0, s1), lastState, ++idx);
+			StatePrinter.printInvariantViolationStateTraceState(this.tool.evalAlias(s0, s1), lastState, ++idx);
 			
 			sinfo = this.tool.getState(s1.fingerPrint(), s0.state);
 			if (sinfo == null) {
 				MP.printError(EC.TLC_FAILED_TO_RECOVER_INIT);
 				MP.printError(EC.TLC_BUG, "4");
-				StatePrinter.printState(s1);
+				StatePrinter.printStandaloneErrorState(s1);
 				System.exit(1);
 			}
 		}
@@ -404,7 +406,7 @@ public class TLCTrace {
 			lastState = null;
 		}
 		sinfo = this.tool.evalAlias(sinfo, s2 == null ? sinfo.state : s2);
-		StatePrinter.printState(sinfo, lastState, ++idx);
+		StatePrinter.printInvariantViolationStateTraceState(sinfo, lastState, ++idx);
 		lastState = sinfo.state;
 
 		// Print s2:
@@ -414,11 +416,11 @@ public class TLCTrace {
 			if (sinfo == null) {
 				MP.printError(EC.TLC_FAILED_TO_RECOVER_INIT);
 				MP.printError(EC.TLC_BUG, "5");
-				StatePrinter.printState(s2);
+				StatePrinter.printStandaloneErrorState(s2);
 				System.exit(1);
 			}
 			sinfo = this.tool.evalAlias(sinfo, s2);
-			StatePrinter.printState(sinfo, null, ++idx);
+			StatePrinter.printInvariantViolationStateTraceState(sinfo, null, ++idx);
 		}
 	}
 
@@ -441,7 +443,7 @@ public class TLCTrace {
 		TLCStateInfo[] prefix = this.getTrace(this.lastPtr, false);
 		int idx = 0;
 		while (idx < prefix.length) {
-			StatePrinter.printState(prefix[idx], lastState, idx + 1);
+			StatePrinter.printInvariantViolationStateTraceState(prefix[idx], lastState, idx + 1);
 			lastState = prefix[idx].state;
 			idx++;
 		}

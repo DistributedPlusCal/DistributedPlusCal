@@ -2,8 +2,15 @@
 // Portions Copyright (c) 2003 Microsoft Corporation.  All rights reserved.
 package tlc2;
 
+import java.io.File;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
+import java.util.TimeZone;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -23,7 +30,7 @@ public class TLCGlobals
 	public static final int DEFAULT_CHECKPOINT_DURATION = (30 * 60 * 1000) + 42;
 
 	// The current version of TLC
-    public static String versionOfTLC = "Version 2.15 of Day Month 20??";
+    public static String versionOfTLC = "Version 2.18 of Day Month 20??";
     
     // The bound for set enumeration, used for pretty printing
     public static int enumBound = 2000;
@@ -186,15 +193,56 @@ public class TLCGlobals
 		return true;
 	}
 	
+	public static boolean expand = true;
+	
 	public static String getRevision() {
+		return getManifestValue("X-Git-ShortRevision");
+	}
+	
+	public static String getRevisionOrDev() {
+		return TLCGlobals.getRevision() == null ? "development" : TLCGlobals.getRevision();
+	}
+	
+	public static Date getBuildDate() {
+		try {
+			final String manifestValue = getManifestValue("Build-TimeStamp");
+			if (manifestValue == null) {
+				return new Date();
+			}
+			final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S'Z'");
+			df.setTimeZone(TimeZone.getTimeZone("UTC"));
+			// TLC's Build-TimeStamp in the jar's Manifest is format according to ISO 8601
+			// (https://en.m.wikipedia.org/wiki/ISO_8601)
+			return df.parse(manifestValue);
+		} catch (NullPointerException | ParseException e) {
+			// There is no manifest or the manifest does not contain a build time stamp, in
+			// which case we return the current, syntactically equivalent time stamp.
+			// This is usually the case when running TLC from an IDE or the 'test' target of
+			// the Ant custombuild.xml file. In other words, this occurs during TLC development.
+			// However, regular usage should not take this branch.
+			// https://en.m.wikipedia.org/wiki/ISO_8601
+			return new Date();
+		}
+	}
+
+	public static int getSCMCommits() {
+		try {
+			return Integer.parseInt(getManifestValue("X-Git-Commits-Count"));
+		} catch (NullPointerException | NumberFormatException nfe) {
+			// Not mapping to -1 so that at the level of TLA+ it is \in Nat.
+			return 0;
+		}
+	}
+	
+	private static String getManifestValue(final String key) {
 		try {
 			final Enumeration<URL> resources = TLCGlobals.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
 			while (resources.hasMoreElements()) {
 				final Manifest manifest = new Manifest(resources.nextElement().openStream());
 				final Attributes attributes = manifest.getMainAttributes();
 				if("TLA+ Tools".equals(attributes.getValue("Implementation-Title"))) {
-					if(attributes.getValue("X-Git-ShortRevision") != null) {
-						return attributes.getValue("X-Git-ShortRevision");
+					if(attributes.getValue(key) != null) {
+						return attributes.getValue(key);
 					} else {
 						return null;
 					}
@@ -205,9 +253,11 @@ public class TLCGlobals
 		return null;
 	}
 	
-	public static String getRevisionOrDev() {
-		return TLCGlobals.getRevision() == null ? "development" : TLCGlobals.getRevision();
+	public static String getInstallLocation() {
+		try {
+			return new File(TLC.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getPath();
+		} catch (URISyntaxException e) {
+			return "unknown";
+		}
 	}
-
-	public static boolean expand = true;
 }

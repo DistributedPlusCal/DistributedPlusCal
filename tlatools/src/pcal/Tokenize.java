@@ -794,7 +794,6 @@ public class Tokenize
                 || tok.equals("variable")
                 || tok.equals("variables")
                 || tok.equals("||")
-                
 
          // The following are added to improve error reporting
          // and to make possible the omission of some final ";"s. 

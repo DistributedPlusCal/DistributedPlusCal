@@ -130,7 +130,7 @@ public final class TLCStateMut extends TLCState implements Cloneable, Serializab
     for (int i = 0; i < len; i++) {
       vals[i] = this.values[i];
     }
-    return new TLCStateMut(vals);
+    return copy(new TLCStateMut(vals));
   }
 
   public final TLCState deepCopy() {
@@ -142,7 +142,7 @@ public final class TLCStateMut extends TLCState implements Cloneable, Serializab
 	vals[i] = val.deepCopy();
       }
     }
-    return new TLCStateMut(vals);
+	return deepCopy(new TLCStateMut(vals));
   }
 
   public final StateVec addToVec(StateVec states) {
@@ -277,7 +277,19 @@ public final class TLCStateMut extends TLCState implements Cloneable, Serializab
     }
     return true;
   }
-  
+
+    @Override
+	public boolean noneAssigned() {
+		int len = this.values.length;
+		for (int i = 0; i < len; i++) {
+			if (values[i] != null) {
+				return false;
+			}
+		}
+		return true;
+	}
+ 
+    @Override
 	public final Set<OpDeclNode> getUnassigned() {
 		// Return sorted set (lexicographical).
 		final Set<OpDeclNode> unassignedVars = new TreeSet<OpDeclNode>(new Comparator<OpDeclNode>() {

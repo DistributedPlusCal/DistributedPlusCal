@@ -57,23 +57,52 @@ public class DotActionWriter {
 		// Spread out state nodes a bit more.
         this.writer.append("nodesep=0.35;\n");
 
+        // Add a legend explaining the semantics of the arcs.
+        //TODO penwidth should be explained too!
+//        subgraph cluster_legend {
+//            label = "Legend";
+//            node [shape=point] {
+//                d0 [style = invis];
+//                d1 [style = invis];
+//                p0 [style = invis];
+//                p1 [style = invis];
+//            }
+//            d0 -> d1 [label=unseen color=green style=dotted]
+//            p0 -> p1 [label=seen]
+//        }
+		this.writer.append("subgraph cluster_legend {\n");
+		this.writer.append("label = \"Coverage\";\n");
+		this.writer.append("node [shape=point] {\n");
+		this.writer.append("d0 [style = invis];\n");
+		this.writer.append("d1 [style = invis];\n");
+		this.writer.append("p0 [style = invis];\n");
+		this.writer.append("p0 [style = invis];\n");
+		this.writer.append("}\n");
+		this.writer.append("d0 -> d1 [label=unseen, color=\"green\", style=dotted]\n");
+		this.writer.append("p0 -> p1 [label=seen]\n");
+		this.writer.append("}\n");
+
 		this.writer.flush();
 	}
 
 	public synchronized void write(final Action action, final int id) {
-		// Marker the state as an initial state by using a filled style.
 		this.writer.append(Integer.toString(id));
-		this.writer.append(" [label=\"");
-		this.writer.append(action2dot(action, id));
-		this.writer.append("\"]");
+		this.writer.append(" [shape=box,label=\"");
+		this.writer.append(action.getNameOfDefault());
+		if (action.isInitPredicate()) {
+			// Marker the action as an initial predicate by using a filled style.
+			this.writer.append("\",style = filled]");
+		} else {
+			this.writer.append("\"]");
+		}
 		this.writer.append("\n");
 	}
 
-	public synchronized void write(Action from, final int fromId, Action to, final int toId) {
-		write(from, fromId, to, toId, 0d);
+	public synchronized void write(final int fromId, final int toId) {
+		write(fromId, toId, 0d);
 	}
 
-	public synchronized void write(Action from, final int fromId, Action to, final int toId, final double weight) {
+	public synchronized void write(final int fromId, final int toId, final double weight) {
 		// Write the transition edge.
 		this.writer.append(Integer.toString(fromId));
 		this.writer.append(" -> ");
@@ -83,14 +112,10 @@ public class DotActionWriter {
 			this.writer.append("[color=\"green\",style=dotted]");
 		} else {
 			// TODO don't increase penwidth (contributes to a spaghetti ball of lines) but
-			// use heatmap approach like in ModuleCoverageInforamtion.
+			// use heatmap approach like in ModuleCoverageInformation.
 			this.writer.append(String.format("[penwidth=%s]", Double.toString(weight)));
 		}
 		this.writer.append(";\n");
-	}
-
-	protected static String action2dot(final Action action, final int id) {
-		return action.getName().toString();
 	}
 
 	public void close() {

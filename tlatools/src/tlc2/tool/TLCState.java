@@ -23,7 +23,8 @@ import util.UniqueString;
 
 public abstract class TLCState implements Cloneable, Serializable {
   public short workerId = Short.MAX_VALUE; // Must be set to a non-negative number. Valid worker ids \in [0,Short.MAX_VALUE] and start at 0.
-  public long uid = -1;   // Must be set to a non-negative number
+  public static final int INIT_UID = -1;
+  public long uid = INIT_UID;   // Must be set to a non-negative number
   // The level of an initial state is initialized with 1 to assert that
   // TLCGet("level") in the first evaluation of the next-state relation equals 1.
   // The successor states of initial states have level 2.  During the evaluation
@@ -33,8 +34,13 @@ public abstract class TLCState implements Cloneable, Serializable {
   private int level = INIT_LEVEL;
   
   // Set by subclasses. Cannot set until we know what the variables are.
+  public static final TLCState Null = null;
   public static TLCState Empty = null;
 
+  public static boolean isEmpty(final TLCState state) {
+	  return Empty == state;
+  }
+  
   // The state variables.
   protected static OpDeclNode[] vars = null;
 
@@ -79,7 +85,25 @@ public abstract class TLCState implements Cloneable, Serializable {
   public abstract boolean allAssigned();
   public abstract Set<OpDeclNode> getUnassigned();
   public abstract TLCState createEmpty();
+
+  protected TLCState copy(TLCState copy) {
+	  copy.level = this.level;
+	  return copy;
+  }
   
+  protected TLCState deepCopy(TLCState copy) {
+	  copy.level = this.level;
+	  copy.workerId = this.workerId;
+	  copy.uid = this.uid;
+	  return copy;
+  }
+  
+  public boolean noneAssigned() {
+		// isEmpty just checks referential equality, which is broken when some code
+		// invokes TLCState#copy on the empty state (e.g. FcnRcdValue).
+		return getUnassigned().size() >= vars.length;
+  }
+
   /** 
    * Returns a mapping of variable names to their assigned values in this state.
    */ 
@@ -105,7 +129,11 @@ public abstract class TLCState implements Cloneable, Serializable {
 	  return res;
   }
 
-  public final void setPredecessor(final TLCState predecessor) {
+  public TLCState setPredecessor(final TLCStateInfo predecessor) {
+	  return setPredecessor(predecessor.getOriginalState());
+  }
+
+  public TLCState setPredecessor(final TLCState predecessor) {
 	  // This method only keeps the level instead of the predecessor, because a) we
 	  // don't need the predecessor and b) keeping predecessors would mean that we
 	  // eventually have all states of the state graph in memory.
@@ -113,6 +141,15 @@ public abstract class TLCState implements Cloneable, Serializable {
 		  Assert.fail(EC.TLC_TRACE_TOO_LONG, this.toString());
 	  }
 	  this.level = predecessor.getLevel() + 1;
+	  return this;
+  }
+
+  public TLCState unsetPredecessor() {
+	  return this;
+  }
+ 
+  public TLCState getPredecessor() {
+	  return null;
   }
 
   public final int getLevel() {
@@ -136,13 +173,17 @@ public abstract class TLCState implements Cloneable, Serializable {
 	  // no-op - see TLAPlusExecutorState
   }
 
-	public int getActionId() {
-		  // no-op - see TLCStateMutSimulation
-		return 0;
+	public Action getAction() {
+		  // no-op - see TLCStateMutExt
+		return null;
 	}
 
-	public void setActionId(int actionId) {
-		  // no-op - see TLCStateMutSimulation
+	public TLCState setAction(Action action) {
+		  // no-op - see TLCStateMutExt
+		return this;
 	}
 
+	public boolean hasAction() {
+		return getAction() != null;
+	}
 }

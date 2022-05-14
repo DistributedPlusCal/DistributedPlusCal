@@ -41,7 +41,15 @@ public final class StateVec implements IStateFunctor, INextStateFunctor {
     }
   }
 
-  private StateVec(TLCState v[]) {
+  public StateVec(final StateVec other) {
+	this(other.size);
+	this.size = other.size;
+	for (int i = 0; i < v.length; i++) {
+		this.v[i] = other.elementAt(i);
+	}
+  }
+  
+  public StateVec(TLCState v[]) {
     this.v = v;
     this.size = v.length;
   }
@@ -92,10 +100,10 @@ public final class StateVec implements IStateFunctor, INextStateFunctor {
     this.v[this.size++] = state;
     return this;
   }
-  
+
   @Override
   public final StateVec addElement(TLCState predecessor, Action action, TLCState state) {
-	  return addElement(state);
+	  return addElement(state.setPredecessor(predecessor).setAction(action));
   }
  
   public final StateVec addElements(StateVec s1) {
@@ -185,10 +193,10 @@ public final class StateVec implements IStateFunctor, INextStateFunctor {
   
   public final Value[] toRecords(final TLCState append) {
 	final Value[] values = new Value[size + 1];
-	for (int i = 0; i < values.length; i++) {
+	for (int i = 0; i < size; i++) {
 		values[i] = new RecordValue(v[i]);
 	}
-	values[values.length] = new RecordValue(append);
+	values[values.length - 1] = new RecordValue(append);
     return values;
   }
   
@@ -202,5 +210,9 @@ public final class StateVec implements IStateFunctor, INextStateFunctor {
 		}
 	}
     return res.toArray(new Value[res.size()]);
+  }
+  
+  public final boolean hasStates() {
+	  return !isEmpty();
   }
 }

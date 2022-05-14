@@ -31,8 +31,10 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import tla2sany.semantic.SymbolNode;
 import tlc2.tool.impl.FastTool;
+import tlc2.tool.impl.Tool;
 import tlc2.util.Context;
 import tlc2.value.IValue;
+import tlc2.value.impl.Value;
 import util.SimpleFilenameToStream;
 
 public class TLAPlusExecutor {
@@ -75,7 +77,7 @@ public class TLAPlusExecutor {
 	private TLCState state;
 
 	public TLAPlusExecutor(String spec, String config) {
-		this.tool = new FastTool(spec, config, new SimpleFilenameToStream());
+		this.tool = new FastTool(spec, config, new SimpleFilenameToStream(), Tool.Mode.Executor);
 
 		// Initialize the TLA+ executor by generating the initial state.
 		this.state = this.tool.getInitStates().first();
@@ -124,5 +126,9 @@ public class TLAPlusExecutor {
 
 	public ReentrantLock getLock() {
 		return lock;
+	}
+	
+	public Value getConstant(final String string) {
+		return (Value) this.tool.getSpecProcessor().getDefns().get(string);
 	}
 }

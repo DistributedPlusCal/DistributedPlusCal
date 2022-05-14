@@ -26,8 +26,13 @@
 
 package tlc2.util;
 
+import java.util.HashSet;
+
+import tlc2.tool.Action;
 import tlc2.tool.ModelChecker;
+import tlc2.tool.StateVec;
 import tlc2.tool.TLCState;
+import util.Assert.TLCRuntimeException;
 
 /**
  * A {@link SetOfStates} is a hash set with open addressing that is intended to
@@ -53,6 +58,13 @@ public final class SetOfStates {
 		this.length = size;
 		this.thresh = length / 2;
 		this.states = new TLCState[length];
+	}
+
+	public SetOfStates(final StateVec sv) {
+		this(sv.size());
+		for (int i = 0; i < sv.size(); i++) {
+			put(sv.elementAt(i));
+		}
 	}
 
 	public final void clear() {
@@ -98,8 +110,58 @@ public final class SetOfStates {
 			// assumption is that we will end up with only doing a few equality
 			// checks because the primary comparison is still the fingerprint
 			// and that the states[] is sparsely populated.
-			if (aState.equals(ent)) {
-				return true;
+			try {
+				// If this equals check is removed, the following tests will fail:
+				// - pcal.FischerTest
+			    // - tlc2.tool.SetOfStatesTest
+			    // - tlc2.tool.liveness.BidirectionalTransitions1BxTest
+			    // - tlc2.tool.liveness.BidirectionalTransitions1ByTest
+			    // - tlc2.tool.liveness.BidirectionalTransitions1Test
+			    // - tlc2.tool.liveness.CodePlexBug08EWD840FL1Test
+			    // - tlc2.tool.liveness.CodePlexBug08EWD840FL2Test
+			    // - tlc2.tool.liveness.CodePlexBug08EWD840FL3Test
+			    // - tlc2.TLCTest
+				if (aState.equals(ent)) {
+					return true;
+				}
+			} catch (TLCRuntimeException e) {
+				// Attempted to... appears in Value#equals and Value#compareTo.
+				assert e.getMessage() != null && (e.getMessage().startsWith("Attempted to check equality of")
+						|| e.getMessage().startsWith("Attempted to compare equality of"));
+				// MAK 03/22/2021: 
+				// The equals check above was added in 2.08 of 21 December 2015. It
+				// has the (unintended) side-effect that it prevents users from
+				// "mixing types" in the behavior part of the spec (this is rare)
+				// when checking liveness properties:
+				//   
+				//   ...
+				//   Next ==
+				//     \/ x' \in 1..100
+				//     \/ x' = TRUE
+				//     \/ x' = "abc"
+				//
+				//   Prop ==
+				//     <>[]TRUE \* Actual property doesn't matter.
+				//
+				// Instead, it can causes a hard-to-debug exception (iff there are
+				// enough successor states to cause collisions above):
+				//
+				//   Error: TLC threw an unexpected exception.
+				//   This was probably caused by an error in the spec or model.
+				//   See the User Output or TLC Console for clues to what happened.
+				//   The exception was a java.lang.RuntimeException
+				//   : Attempted to check equality of string "" with non-string:
+				//   FALSE
+				//
+				// The exception e indicates that the two states could not be compared
+				// (equals) because value "types" are incompatible.  For example,
+				// the value of variable x in ent is a BoolValue while it is StringValue
+				// in aState. The exception e is useless to find the source location
+				// because both TLCStates are fully generated and the source locations
+				// are gone. 
+				// It is unfortunate that TLC does type checking as a side-effect in its
+				// Object#equals (and compareTo) method, which e.g. gets called when
+				// TLCState instances or values are added to a java.util.Set.
 			}
 			loc = (loc + 1) % this.length;
 		}
@@ -137,6 +199,29 @@ public final class SetOfStates {
 		}
 		buf.append("}");
 		return buf.toString();
+	}
+	
+	public java.util.Set<TLCState> getSubSet(final Action a) {
+		final HashSet<TLCState> subset = new HashSet<>(size());
+		
+		for (int i = 0; i < size(); i++) {
+			final TLCState next = next();
+			// Deliberately use identify checking here! TLC maintains N instances of action
+			// A, one for each N passed to A:
+			//  
+			//  A(n) == ...
+			//  Next == \E n \in 1..N: A(n)
+			//
+			// Below, we want the TLCStates corresponding to A *and* a particular n! Equality
+			// (equals) might not reflect this.
+			if (a == next.getAction()) {
+				subset.add(next);
+			}
+		}
+		// Always clean-up after ourself!
+		resetNext();
+		
+		return subset;
 	}
 	
 	/*

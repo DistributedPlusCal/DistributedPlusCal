@@ -8,6 +8,7 @@ package tlc2.value.impl;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Random;
 
 import tlc2.tool.FingerprintException;
 import tlc2.tool.coverage.CostModel;
@@ -51,9 +52,9 @@ public class StringValue extends Value {
       }
       if (!(obj instanceof ModelValue)) {
         Assert.fail("Attempted to compare string " + Values.ppr(this.toString()) +
-        " with non-string:\n" + Values.ppr(obj.toString()));
+        " with non-string:\n" + Values.ppr(obj.toString()), getSource());
       }
-      return 1;
+      return ((ModelValue) obj).modelValueCompareTo(this);
     }
     catch (RuntimeException | OutOfMemoryError e) {
       if (hasSource()) { throw FingerprintException.getNewHead(this, e); }
@@ -68,7 +69,7 @@ public class StringValue extends Value {
       }
       if (!(obj instanceof ModelValue)) {
         Assert.fail("Attempted to check equality of string " + Values.ppr(this.toString()) +
-        " with non-string:\n" + Values.ppr(obj.toString()));
+        " with non-string:\n" + Values.ppr(obj.toString()), getSource());
       }
       return ((ModelValue) obj).modelValueEquals(this) ;
     }
@@ -82,7 +83,7 @@ public class StringValue extends Value {
   public final boolean member(Value elem) {
     try {
       Assert.fail("Attempted to check if the value:\n" + Values.ppr(elem.toString()) +
-      "\nis an element of the string " + Values.ppr(this.toString()));
+      "\nis an element of the string " + Values.ppr(this.toString()), getSource());
       return false;     // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -95,7 +96,7 @@ public class StringValue extends Value {
   public final boolean isFinite() {
     try {
       Assert.fail("Attempted to check if the string " + Values.ppr(this.toString()) +
-      " is a finite set.");
+      " is a finite set.", getSource());
       return false;     // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -109,7 +110,7 @@ public class StringValue extends Value {
     try {
       if (ex.idx < ex.path.length) {
         Assert.fail("Attempted to apply EXCEPT construct to the string " +
-        Values.ppr(this.toString()) + ".");
+        Values.ppr(this.toString()) + ".", getSource());
       }
       return ex.value;
     }
@@ -124,7 +125,7 @@ public class StringValue extends Value {
     try {
       if (exs.length != 0) {
         Assert.fail("Attempted to apply EXCEPT construct to the string " +
-        Values.ppr(this.toString()) + ".");
+        Values.ppr(this.toString()) + ".", getSource());
       }
       return this;
     }
@@ -138,7 +139,7 @@ public class StringValue extends Value {
   public final int size() {
     try {
       Assert.fail("Attempted to compute the number of elements in the string " +
-      Values.ppr(this.toString()) + ".");
+      Values.ppr(this.toString()) + ".", getSource());
       return 0;       // make compiler happy
     }
     catch (RuntimeException | OutOfMemoryError e) {
@@ -150,17 +151,7 @@ public class StringValue extends Value {
   @Override
   public boolean mutates() {
 	  // finalized after construction.
-	  return true;
-  }
-  
-  @Override
-  public final Value toTuple() {
-		final String s = val.toString();
-		Value[] vals = new Value[s.length()];
-		for (int i = 0; i < s.length(); i++) {
-			vals[i] = new StringValue(Character.toString(s.charAt(i)));
-		}
-		return new TupleValue(vals);
+	  return false;
   }
 
   @Override
@@ -267,6 +258,14 @@ public class StringValue extends Value {
     }
    }
 
+  	@Override
+	public TLCVariable toTLCVariable(final TLCVariable variable, Random rnd) {
+		final TLCVariable stringVar = super.toTLCVariable(variable, rnd);
+		// Replace the quoted string from super.toTLCVariable(..) with an unquoted one.
+		// In the variable view of the debugger, we don't want quotes.
+		stringVar.setValue(toUnquotedString());
+		return stringVar;
+	}
 
   /* The string representation of the value. */
   @Override

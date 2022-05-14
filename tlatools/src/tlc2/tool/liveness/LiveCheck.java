@@ -5,8 +5,10 @@
 package tlc2.tool.liveness;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionService;
@@ -16,22 +18,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import tlc2.TLC;
 import tlc2.TLCGlobals;
 import tlc2.output.EC;
 import tlc2.output.MP;
+import tlc2.output.StatePrinter;
 import tlc2.tool.Action;
+import tlc2.tool.EvalException;
+import tlc2.tool.INextStateFunctor.InvariantViolatedException;
 import tlc2.tool.ITool;
 import tlc2.tool.ModelChecker;
 import tlc2.tool.StateVec;
 import tlc2.tool.TLCState;
+import tlc2.tool.TLCStateInfo;
 import tlc2.util.BitVector;
 import tlc2.util.IStateWriter;
 import tlc2.util.IStateWriter.Visualization;
+import tlc2.util.LongVec;
 import tlc2.util.NoopStateWriter;
 import tlc2.util.SetOfStates;
 import tlc2.util.statistics.IBucketStatistics;
+import tlc2.value.impl.CounterExample;
 import util.Assert;
 
 public class LiveCheck implements ILiveCheck {
@@ -103,6 +112,9 @@ public class LiveCheck implements ILiveCheck {
 			// same value), the "smallest" (see
 			// tlc2.tool.TLCStateMut.fingerPrint()) cannot be used as a
 			// replacement state to check the actions.
+			// TODO: In the past (commit 768b8e8), actions were only evaluated for nodes
+			// that are new (ptr == -1)
+			// (see https://github.com/tlaplus/tlaplus/issues/614)
 			final BitVector checkActionResults = new BitVector(alen * nextStates.size());
 			for (int sidx = 0; sidx < nextStates.size(); sidx++) {
 				final TLCState s1 = nextStates.next();
@@ -284,7 +296,8 @@ public class LiveCheck implements ILiveCheck {
 	/* (non-Javadoc)
 	 * @see tlc2.tool.liveness.ILiveCheck#checkTrace(tlc2.tool.StateVec)
 	 */
-	public void checkTrace(ITool tool, final StateVec stateTrace) throws InterruptedException, IOException {
+	public void checkTrace(ITool tool, final Supplier<StateVec> traceSupplier) throws InterruptedException, IOException {
+		final StateVec stateTrace = traceSupplier.get();
 		// Add the first state to the LiveCheck as the current init state
 		addInitState(tool, stateTrace.elementAt(0), stateTrace.elementAt(0).fingerPrint());
 		
@@ -581,6 +594,10 @@ public class LiveCheck implements ILiveCheck {
 			int cnt = 0;
 			final int succCnt = nextStates.size();
 			
+			//TODO: See regression introduced by moving TBGraphNode#isConsistent
+			//      out of the (synchronized) loop below (commit d4908d0).
+			//      https://github.com/tlaplus/tlaplus/issues/614
+			
 			// Pre-compute the consistency of the successor states for all
 			// nodes in the tableau. This is an expensive operation which is
 			// also dependent on the amount of nodes in the tableau times
@@ -598,8 +615,7 @@ public class LiveCheck implements ILiveCheck {
 						// BitVector is divided into a segment for each
 						// tableau node. Inside each segment, addressing is done
 						// via each state. Use identical addressing below
-						// where the lookup is done (plus 1 accounts for
-						// zero-based addressing).
+						// where the lookup is done.
 						consistency.set((tableauNode.getIndex() * succCnt) + sidx);
 					}
 				}
@@ -615,8 +631,11 @@ public class LiveCheck implements ILiveCheck {
 			// with N=11 and 32 threads were ~75% compared to ~55% thread concurrency.
 			synchronized (oos) {
 
-				// Mark the current fingerprint as done. Internally it creates
-				// or updates a record in the TableauNodePtrTable.
+				// Mark the fingerprint of s in s -> t as done. Internally it creates
+				// or updates a record in the TableauNodePtrTable. We can safely mark
+				// s0/fp0 done even though we release the oos lock, because no other
+				// worker will work on s0/fp0 ever again, which is guaranteed by safety-
+				// checking.
 				final int loc0 = dgraph.setDone(fp0);
 				final int[] nodes = dgraph.getNodesByLoc(loc0);
 				if (nodes == null) {
@@ -647,14 +666,20 @@ public class LiveCheck implements ILiveCheck {
 							// Check if the successor is new
 							final long ptr1 = dgraph.getPtr(successor, tnode1.getIndex());
 							if (consistency.get((tnode1.getIndex() * succCnt) + sidx)
+									// We cannot infer from successor t being in the fingerprint graph (FG), that it is
+									// also in the behavior graph (BG):
+									// a) Worker A might add t to FG. B observes t in the fingerprint graph and adds
+									// t to BG *incorrectly assuming it is done*.
+									// b) t in FG does not imply that <<t, tnode>> in BG
+									// Without a), LiveChecker.addNextState(ITool, TLCState, long, SetOfStates,
+									// BitVector, boolean[]) could skip checking t \in BG.
+									// In other words, t \in FG is a necessary but not a sufficient condition...
 									&& (ptr1 == -1 || !node0.transExists(successor, tnode1.getIndex()))) {
 								node0.addTransition(successor, tnode1.getIndex(), checkStateResults.length, alen,
 										checkActionResults, sidx * alen, allocationHint - cnt);
 								writer.writeState(s0, tnode0, s1, tnode1, checkActionResults, sidx * alen, alen, true);
-								// Record that we have seen <fp1,
-								// tnode1>. If fp1 is done, we have
-								// to compute the next states for <fp1,
-								// tnode1>.
+								// Record that we have seen <successor,tnode1>. If fp1 is done, we have
+								// to compute the next states for <successor, tnode1>.
 								if (ptr1 == -1) {
 									dgraph.recordNode(successor, tnode1.getIndex());
 									if (isDone) {
@@ -679,9 +704,65 @@ public class LiveCheck implements ILiveCheck {
 						Assert.check(TLCGlobals.mainChecker == null, EC.GENERAL);
 					}
 				}
+
+				if (errorGraphNode != null) {
+					MP.printError(EC.TLC_TEMPORAL_PROPERTY_VIOLATED);
+					MP.printError(EC.TLC_COUNTER_EXAMPLE);
+
+					// Lock mainChecker to prevent another TLC Worker from concurrently printing a
+					// (state-graph) safety violation.
+					synchronized (TLCGlobals.mainChecker) {
+						
+						dgraph.createCache();
+						final LongVec prefix = dgraph.getPath(errorGraphNode.stateFP, errorGraphNode.tindex);
+						dgraph.destroyCache();
+
+						final int plen = prefix.size();
+						final List<TLCStateInfo> states = new ArrayList<TLCStateInfo>(plen);
+
+						long fp = prefix.elementAt(plen - 1);
+						TLCStateInfo sinfo = tool.getState(fp);
+						if (sinfo == null) {
+							throw new EvalException(EC.TLC_FAILED_TO_RECOVER_INIT);
+						}
+						states.add(sinfo);
+
+						// Drop finite stuttering from fingerprint path.
+						for (int i = plen - 2; i >= 0; i--) {
+							long curFP = prefix.elementAt(i);
+							if (curFP != fp) {
+								sinfo = tool.getState(curFP, sinfo);
+								states.add(sinfo);	
+								fp = curFP;
+							}
+						}
+
+						for (int i = 0; i < states.size() - 1; i++) {
+							StatePrinter.printInvariantViolationStateTraceState(
+									tool.getLiveness().evalAlias(states.get(i), states.get(i + 1).state));
+						}
+						// Evaluate alias on the last state that completes the violation of the safety
+						// property.
+						final TLCStateInfo last = states.get(states.size() - 1);
+						StatePrinter.printInvariantViolationStateTraceState(
+								tool.getLiveness().evalAlias(last, last.state));
+						
+						// Stop subsequent state-space exploration.
+						TLCGlobals.mainChecker.stop();
+						TLCGlobals.mainChecker.setErrState(states.get(states.size() - 2).state, last.state, false,
+								EC.TLC_INVARIANT_VIOLATED_BEHAVIOR);
+						
+						tool.checkPostConditionWithCounterExample(new CounterExample(states));
+						
+						errorGraphNode = null;
+						throw new InvariantViolatedException();
+					}
+				}
 			}
 		}
 
+		private GraphNode errorGraphNode = null;
+		
 		/**
 		 * This method takes care of the case that a new node <<state, tableau>>
 		 * in the (state X tableau) graph is generated after the state itself
@@ -716,11 +797,37 @@ public class LiveCheck implements ILiveCheck {
 				final TBGraphNode tnode1 = tnode.nextAt(i);
 				final int tidx1 = tnode1.getIndex();
 				final long ptr1 = dgraph.getPtr(fp, tidx1);
-				if (tnode1.isConsistent(s, tool) && (ptr1 == -1 || !node.transExists(fp, tidx1))) {
-					node.addTransition(fp, tidx1, slen, alen, checkActionResults, 0, (nextSize - cnt));
-					if (ptr1 == -1) {
-						dgraph.recordNode(fp, tnode1.getIndex());
-						addNextState(tool, s, fp, tnode1, oos, dgraph);
+				if (tnode1.isConsistent(s, tool)) {
+					if (tnode1.isAccepting() && this.errorGraphNode == null) {
+						// MAK 01/2022:
+						//
+						// If tnode1 is a sink in the tableau graph, i.e., it is accepting and state s
+						// (from the state-graph) is consistent with this tnode1, we know that s is the
+						// final state of a counter-example of a safety property.
+						//
+						// What then has to happen is to reconstruct the path in the behavior graph
+						// (TableauGraph) from some initial node to the GraphNode node (with
+						// <<s.fingerprint, tnode1.getIndex>). However, the GraphNodes of a suffix of
+						// this path might not have been added to the behavior graph yet. Instead, these
+						// GraphNodes have been pushed onto the (Java) call-stack and will only be added
+						// after returning from this method. Thus, we remember/save GraphNode node in
+						// errorGraphNode and preemptively return from behavior graph exploration.
+						//
+						// Once all GraphNodes from the suffix have been added to the behavior graph,
+						// the calling method TableauLiveChecker.addNextState(ITool, TLCState, long,
+						// SetOfStates, BitVector, boolean[]) can reconstruct the path from the
+						// GraphNodes in the behavior graph (TableauGraph#getPath), and print the actual
+						// error-trace by recreating the sequence of states from their fingerprints in
+						// the state graph.
+						this.errorGraphNode = node;
+						return;
+					}
+					if (ptr1 == -1 || !node.transExists(fp, tidx1)) {
+						node.addTransition(fp, tidx1, slen, alen, checkActionResults, 0, (nextSize - cnt));
+						if (ptr1 == -1) {
+							dgraph.recordNode(fp, tnode1.getIndex());
+							addNextState(tool, s, fp, tnode1, oos, dgraph);
+						}
 					}
 				}
 				cnt++;
