@@ -1,26 +1,28 @@
------------------------- MODULE OneProcessMultiThreadP  -------------------------
+------------------------ MODULE OneProcessMultiThreadLocalVarC  -------------------------
 EXTENDS Naturals, TLC
 
 CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 
-(* PlusCal options (-termination  -distpcal) *)
+(* PlusCal options (-termination -distpcal) *)
 
-(*--algorithm Dummy 
+(*--algorithm Dummy {
 variables 
     ar \in [ 1..N -> 0..MAXINT ],  (* Array of N integers in 0..MAXINT *)
     x \in 0..MAXINT,               
     i = 1;
 
-process pid = 1
-begin
-     x := ar[1];
-end process;
-begin
-     ar[i] := 0;
-end subprocess;
+process ( pid = 1 )
+variable c = 1;
+{
+			 c := c+1;
+       x := ar[c];
+}
+{
+       ar[i] := c;
+}
 
-end algorithm;
+}
 *)
 =============================================================================
 {

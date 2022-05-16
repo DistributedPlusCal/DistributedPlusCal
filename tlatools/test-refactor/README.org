@@ -32,7 +32,7 @@
 - as before but use string identifiers for processes
 
 
-* OneProcessMultiThread
+* OneProcessMultiThread -- COPIED
 - with multiple threads
 - C or P
 - id in set

@@ -1,7 +1,8 @@
 * Processes
 
-* OneProcessMultiThread
+** OneProcessMultiThread
 - one process with multiple threads
 - process id explicit (not in set)
 - C or P
-
+** OneProcessMultiThreadLocalVar
+- as OneProcessMultiThread but with a local variable to the process

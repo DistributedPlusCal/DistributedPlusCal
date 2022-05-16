@@ -10,10 +10,9 @@ CONSTANT MAXINT      (* Size of arrays *)
 variables 
     ar \in [ 1..N -> 0..MAXINT ],  (* Array of N integers in 0..MAXINT *)
     x \in 0..MAXINT,               
-    found = FALSE,
     i = 1;
 
-process ( pid2 = 1 )
+process ( pid = 1 )
 {
        x := ar[1];
 }
