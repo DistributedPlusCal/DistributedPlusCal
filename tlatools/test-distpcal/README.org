@@ -1,8 +1,10 @@
 * Processes
 
-** OneProcessMultiThread
+** Test One Process
+
+*** OneProcessMultiThread
 - one process with multiple threads
 - process id explicit (not in set)
 - C or P
-** OneProcessMultiThreadLocalVar
+*** OneProcessMultiThreadLocalVar
 - as OneProcessMultiThread but with a local variable to the process

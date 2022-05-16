@@ -153,21 +153,32 @@ def create_cfg(path, file_name, constants):
 # - - - - - - - - - - - - - - - - - - - - -
 # Remove the generated .cfg and .tla test files
 def remove_cfg(path, file_name):
-    test_file_name = GEN_FILE_PREFIX + file_name
+    # remove original TLA file (copied from test directory)
+    try: 
+        os.remove(os.path.join(path, file_name + ".tla"))
+    except:
+        if verbose_level >= 2:
+            print("\n    Warning: Missing otiginal TLA file in compile directory")
 
-    os.remove(os.path.join(path, test_file_name + ".tla"))
-    os.remove(os.path.join(path, test_file_name + ".cfg"))
-    shutil.rmtree(os.path.join(path, test_file_name + ".tla_metadir/"))
+    # remove files generated for model-checking 
+    test_file_name = GEN_FILE_PREFIX + file_name
+    try: 
+        os.remove(os.path.join(path, test_file_name + ".tla"))
+        os.remove(os.path.join(path, test_file_name + ".cfg"))
+        shutil.rmtree(os.path.join(path, test_file_name + ".tla_metadir/"))
+    except:
+        if verbose_level >= 2:
+            print("\n    Warning: Missing generated",GEN_FILE_PREFIX,"(OLD,CFG) files ")
 
 # - - - - - - - - - - - - - - - - - - - - -
 # Remove the generated .cfg and .old files
 def remove_gen(path, file_name):
-    # TODO: replace with if
     try: 
         os.remove(os.path.join(path, file_name + ".old"))
         os.remove(os.path.join(path, file_name + ".cfg"))
     except:
-        pass
+        if verbose_level >= 2:
+            print("\n    Warning: Missing generated OLD,CFG files ")
 
 # - - - - - - - - - - - - - - - - - - - - -
 # Print the message and add to file if applicable
@@ -328,7 +339,6 @@ for t in tests:
     if verbose_level >= 2:
         print('  :: parse JSON done')
         if verbose_level >= 3:
-            # TODO: print options from json (only the true ones, or with values)
             print_json(test["json"])
 
 # - - - - -
