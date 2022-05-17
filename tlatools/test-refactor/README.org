@@ -12,7 +12,7 @@
 - dummy algorithm with NO processes and ONE label
 - should produce the same code with distpcal flag or not - OK
 
-* NoProcessTwoLabels
+* NoProcessTwoLabels - INTEGRATED
 - dummy algorithm with NO processes and TWO labels
 - should produce the same code with distpcal flag or not - OK
 
