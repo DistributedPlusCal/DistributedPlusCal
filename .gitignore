@@ -4,3 +4,4 @@ report-master.pdf
 *.cfg
 *.old
 **/tlatools/class
+**/.DS_Store
