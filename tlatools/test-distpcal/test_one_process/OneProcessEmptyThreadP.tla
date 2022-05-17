@@ -1,8 +1,5 @@
 ------------------------ MODULE OneProcessEmptyThreadP -------------------------
-EXTENDS Naturals, TLC
-
-CONSTANT N           (* Size of arrays *)
-CONSTANT MAXINT      (* Size of arrays *)
+EXTENDS Naturals, TLC 
 
 (* PlusCal options (-termination  -distpcal) *)
 
@@ -17,3 +14,11 @@ end process
 end algorithm;
 *)
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": true,
+    "args-check": ["-deadlock"],
+    "model-checking-args": {},
+    "do_compare": true,
+    "compare_to": "test_one_process/OneProcessEmptyThreadPCAL.tla"
+}

@@ -28,3 +28,8 @@
 *** OneProcessSetMultiThreadXalt (C & P)
 - same as OneProcessSetMultiThread but the set of Nodes is a parameter
   (for tests)
+*** OneProcessEmptyThreadP (P)
+- dummy algorithm with ONE processes with EMPTY body
+- only possible with P syntax (?)
+- should produce the same code with distpcal flag or not - OK
+- doesn't parse in Toolbox

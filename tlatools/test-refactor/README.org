@@ -17,7 +17,7 @@
 - should produce the same code with distpcal flag or not - OK
 
 
-* OneProcessEmptyThreadP
+* OneProcessEmptyThreadP - INTEGRATED
 - dummy algorithm with ONE processes with EMPTY body
 - only possible with P syntax (?)
 - should produce the same code with distpcal flag or not - OK
