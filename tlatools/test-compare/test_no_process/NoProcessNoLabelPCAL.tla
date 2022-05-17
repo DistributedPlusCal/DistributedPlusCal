@@ -1,4 +1,4 @@
------------------------- MODULE NoProcessNoLabelC -------------------------
+------------------------ MODULE NoProcessNoLabelPCAL -------------------------
 EXTENDS Naturals, TLC
 
 (* PlusCal options (-termination) *)

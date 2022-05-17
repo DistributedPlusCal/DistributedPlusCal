@@ -1,14 +1,14 @@
-* NoProcessEmptyBody - REMOVED
+* NoProcessEmptyBody - USELESS
 - dummy algorithm with NO body
 - only possible with P syntax
 - should produce the same code with distpcal flag or not - OK
 - doens't parse in Toolbox
 
-* NoProcessNoLabel
+* NoProcessNoLabel - INTEGRATED
 - dummy algorithm with NO processes and No label
 - should produce the same code with distpcal flag or not - OK
 
-* NoProcessOneLabel
+* NoProcessOneLabel - INTEGRATED
 - dummy algorithm with NO processes and ONE label
 - should produce the same code with distpcal flag or not - OK
 
@@ -32,7 +32,7 @@
 - as before but use string identifiers for processes
 
 
-* OneProcessMultiThread -- COPIED
+* OneProcessMultiThread -- INTEGRATED
 - with multiple threads
 - C or P
 - id in set
