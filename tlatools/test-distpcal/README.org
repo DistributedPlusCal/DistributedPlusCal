@@ -2,9 +2,15 @@
 
 ** Test One Process
 
-*** OneProcessMultiThread
+*** OneProcessMultiThread (C & P)
 - one process with multiple threads
 - process id explicit (not in set)
 - C or P
-*** OneProcessMultiThreadLocalVar
+*** OneProcessMultiThreadLocalVar (C & P)
 - as OneProcessMultiThread but with a local variable to the process
+*** OneProcessSetMultiThread (C & P)
+- one process definition
+- process ids from Set 
+*** OneProcessSetMultiThreadXalt (C & P)
+- same as OneProcessSetMultiThread but the set of Nodes is a parameter
+  (for tests)
