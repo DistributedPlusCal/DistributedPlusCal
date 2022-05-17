@@ -1,7 +1,21 @@
 * Processes
 
-** Test One Process
+** Test No Process
+*** NoProcessNoLabel
+- dummy algorithm with NO processes and No label
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessOneLabel
+- dummy algorithm with NO processes and ONE label
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessTwoLabels
+- dummy algorithm with NO processes and TWO labels
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessNoLabelMacro
+- dummy algorithm with NO processes and a macro
+- should produce the same code with distpcal flag or not - OK
 
+
+** Test One Process
 *** OneProcessMultiThread (C & P)
 - one process with multiple threads
 - process id explicit (not in set)
