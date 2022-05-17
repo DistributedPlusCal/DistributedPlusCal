@@ -414,11 +414,12 @@ if do_compare:
             print(" ", t, end="", flush=True)
         if "compare_to" in test["json"]:
             compare_name = test["json"]["compare_to"]
+            compare_file = os.path.join(compare_path,compare_name)
             nb_test['compare'] += 1
             if verbose_level >= 2:
                 print(" to ", compare_name, end="", flush=True)
-            if os.path.exists(os.path.join(compare_path,compare_name)):
-                completed_process = run_compare(test["path"], os.path.join(compare_path,compare_name))
+            if os.path.exists(compare_file):
+                completed_process = run_compare(test["path"], compare_file)
                 if completed_process:
                     test['compare_ok'] = True
                     nb_test['compare_ok'] += 1
@@ -428,7 +429,7 @@ if do_compare:
                     test['compare_error'] = "file different"
             else:
                 test['compare_ok'] = False
-                test['compare_error'] = "file doesn't exist"
+                test['compare_error'] = "file "+compare_file+" doesn't exist"
         else:
             test['compare_ok'] = True
             test['compare_error'] = "errorWasExpected"
