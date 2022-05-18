@@ -356,11 +356,6 @@ for t in tests:
     # run test
     completed_process = run_parsing(test["path"])
     nb_test['comp'] += 1
-    # remove generated files if flag
-    if delete_generated:
-        file_dir = os.path.dirname(test["path"])
-        file_name = os.path.splitext(os.path.basename(test["path"]))[0]
-        remove_gen(file_dir, file_name)
     # check if an error is expected 
     need_error = False
     if "need-error-parse" in test["json"]:
@@ -393,9 +388,6 @@ if do_check:
             test_file_name = os.path.join(file_dir, GEN_FILE_PREFIX + file_name + ".tla")
             completed_process = run_checking(test_file_name, args)
             nb_test['check'] += 1
-            # remove generated files if flag
-            if delete_generated:
-                remove_cfg(file_dir, file_name)
             # check if an error is expected 
             need_error = False
             if "need-error-check" in test["json"]:
@@ -447,7 +439,19 @@ if do_compare:
                 print('  :: compare :: OK')
             else:
                 print('  :: compare :: ERROR')
-        
+
+# - - - - -
+# Cleaning phase
+if delete_generated:
+    for t in tests:
+        test = tests[t]
+        file_dir = os.path.dirname(test["path"])
+        file_name = os.path.splitext(os.path.basename(test["path"]))[0]
+        # remove generated files 
+        remove_gen(file_dir, file_name)
+        # remove generated files if flag
+        remove_cfg(file_dir, file_name)
+                
 # - - - - -
 # Display result
 if verbose_level >= 1:
