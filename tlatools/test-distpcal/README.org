@@ -23,6 +23,11 @@
 *** OneProcessOneThreadStringId (C & P)
 - as OneProcessOneThread but use string identifiers for processes
 - generates two labels
+*** OneProcessOneThreadLVandLabelsC.tla (C & P)
+- as OneProcessOneThread but with explicit labels and process id in set
+
+
+
 *** OneProcessMultiThread (C & P)
 - one process with multiple threads
 - process id explicit (not in set)

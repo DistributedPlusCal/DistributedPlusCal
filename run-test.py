@@ -15,7 +15,7 @@ jar_parse = "tlatools/dist/tla2tools.jar"
 jar_check =  "tlatools/dist/tla2tools.jar"
 
 # path where all the tests are located
-main_path = "tlatools/test-distpcal"
+main_path = "tlatools/test-distpcal/test_one_process"
 # path where all pre-compiled specifications are located
 compare_path = "tlatools/test-compare"
 # path where all result are saved
