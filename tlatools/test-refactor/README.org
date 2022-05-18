@@ -23,8 +23,7 @@
 - should produce the same code with distpcal flag or not - OK
 - doens't parse in Toolbox
 
-
-* OneProcessOneThread (one process instance or n process instances)
+* OneProcessOneThread (one process instance or n process instances) - INTEGRATED
 - dummy algorithm with ONE process and ONE/TWO labels
 - should produce the same code (except for pc) with distpcal flag or not - OK
 

@@ -16,6 +16,13 @@
 
 
 ** Test One Process
+*** OneProcessOneThread (C & P)
+- dummy algorithm with ONE process
+- uses local variable
+- should produce the same code (except for pc) with distpcal flag or not - OK
+*** OneProcessOneThreadStringId (C & P)
+- as OneProcessOneThread but use string identifiers for processes
+- generates two labels
 *** OneProcessMultiThread (C & P)
 - one process with multiple threads
 - process id explicit (not in set)

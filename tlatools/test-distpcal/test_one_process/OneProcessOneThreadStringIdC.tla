@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessOneThread1sC -------------------------
+------------------------ MODULE OneProcessOneThreadStringIdC -------------------------
 EXTENDS Naturals, TLC
 
 CONSTANT N           (* Size of arrays *)
@@ -15,13 +15,22 @@ variables
 
 process ( pid = "ID" )
 {
-    One:
         found := TRUE;
 				x := ar[1];
         i := i + 1;
 				ar[i] := 0;
+        i := i + 1;
 }
 
 }
 *)
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": false,
+    "args-check": ["-deadlock"],
+    "model-checking-args": {
+        "N": 2,
+        "MAXINT": 2
+    }
+}
