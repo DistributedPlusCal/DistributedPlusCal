@@ -15,7 +15,7 @@ jar_parse = "tlatools/dist/tla2tools.jar"
 jar_check =  "tlatools/dist/tla2tools.jar"
 
 # path where all the tests are located
-main_path = "tlatools/test-distpcal/test_one_process"
+main_path = "tlatools/test-distpcal"
 # path where all pre-compiled specifications are located
 compare_path = "tlatools/test-compare"
 # path where all result are saved
@@ -91,6 +91,7 @@ def run_compare_parse(tla_file_path_1, tla_file_path_2):
 # - - - - - - - - - - - - - - - - - - - - -
 # run compare test
 def run_compare(tla_file_path_1_in, tla_file_path_2_in):
+    print("\nCOMPARE: ",tla_file_path_1_in, " to ",tla_file_path_2_in)
     # read the first file
     str_1 = ""
     f1 = open(tla_file_path_1_in, "r")
@@ -230,7 +231,7 @@ def process_result(test_name,completed_process,phase,need_error):
 # - - - - - - - - - - - - - - - - - - - - -
 # Check command line arguments
 def check_args():
-    global jar_parse, jar_check, verbose_level, main_path, do_check, delete_generated, output_to_file
+    global jar_parse, jar_check, verbose_level, main_path, do_check, do_compare, delete_generated, output_to_file
     i = 0
     while i < len(sys.argv):
         if sys.argv[i] in ('-h', "--help"):
@@ -262,8 +263,12 @@ def check_args():
             main_path = sys.argv[i]
         elif sys.argv[i] in ("-o", "--output"):
             output_to_file = True
-        elif sys.argv[i] in ("-dc", "--disable_check"):
+        elif sys.argv[i] in ("-dck", "--disable_check"):
             do_check = False
+            print("No model-check")
+        elif sys.argv[i] in ("-dco", "--disable_compare"):
+            do_compare = False
+            print("No compare")
         elif sys.argv[i] in ("-dg", "--delete_generated"):
             delete_generated = True
         i += 1
@@ -275,7 +280,6 @@ check_args()
 # setup path variables
 jar_file = os.path.join(os.getcwd(), jar_parse)
 test_path = os.path.join(os.getcwd(), main_path)
-compare_path = os.path.join(os.getcwd(), compare_path)
 
 nb_test = {}
 nb_test['comp'] = 0
@@ -287,7 +291,7 @@ nb_test['compare_ok'] = 0
 
 # get all tla test files
 tests = {}
-tmp_files = glob.glob(os.path.join(test_path, "**/*.tla"), recursive = True)
+tmp_files = sorted(glob.glob(os.path.join(test_path, "**/*.tla"), recursive = True))
 for f in tmp_files:
     base_name = os.path.basename(f)
     if not base_name.startswith(GEN_FILE_PREFIX) and os.path.isfile(f):
@@ -414,6 +418,10 @@ if do_compare:
             print(" ", t, end="", flush=True)
         if "compare_to" in test["json"]:
             compare_name = test["json"]["compare_to"]
+            # if other path than the default one, compare_path
+            if "compare_path" in test["json"]: 
+                if test["json"]["compare_path"] == "compile":
+                    compare_path = os.path.join(os.getcwd(), compile_path)
             compare_file = os.path.join(compare_path,compare_name)
             nb_test['compare'] += 1
             if verbose_level >= 2:

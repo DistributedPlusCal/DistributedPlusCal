@@ -15,7 +15,6 @@ variables
 
 process pid = "ID"
 begin
-    One:
         found := TRUE;
 				x := ar[1];
         i := i + 1;
@@ -33,5 +32,7 @@ end algorithm
     "model-checking-args": {
         "N": 2,
         "MAXINT": 2
-    }
+    },
+    "compare_path": "compile",
+    "compare_to": "test_one_process/OneProcessOneThreadStringIdC.tla"
 }

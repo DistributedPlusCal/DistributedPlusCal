@@ -15,6 +15,5 @@ end algorithm;
     "need-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {},
-    "do_compare": true,
     "compare_to": "test_no_process/NoProcessNoLabelPCAL.tla"
 }

@@ -30,7 +30,6 @@ variables
         "N": 3,
         "MAXINT": 3
     },
-    "do_compare": true,
     "compare_to": "test_no_process/NoProcessOneLabelPCAL.tla"
 }
 

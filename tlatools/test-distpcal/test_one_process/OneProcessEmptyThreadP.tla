@@ -19,6 +19,6 @@ end algorithm;
     "need-error-check": true,
     "args-check": ["-deadlock"],
     "model-checking-args": {},
-    "do_compare": true,
+    "compare_path": "compare",
     "compare_to": "test_one_process/OneProcessEmptyThreadPCAL.tla"
 }

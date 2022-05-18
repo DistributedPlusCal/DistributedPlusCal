@@ -32,6 +32,5 @@ variables
         "N": 4,
         "MAXINT": 4
     },
-    "do_compare": true,
     "compare_to": "test_no_process/NoProcessTwoLabelsPCAL.tla"
 }

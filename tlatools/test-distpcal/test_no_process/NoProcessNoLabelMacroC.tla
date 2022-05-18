@@ -40,6 +40,5 @@ macro inc(i,inc) {
         "N": 2,
         "MAXINT": 3
 		},
-    "do_compare": true,
     "compare_to": "test_no_process/NoProcessNoLabelMacroPCAL.tla"
 }
