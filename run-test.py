@@ -15,7 +15,7 @@ jar_parse = "tlatools/dist/tla2tools.jar"
 jar_check =  "tlatools/dist/tla2tools.jar"
 
 # path where all the tests are located
-main_path = "tlatools/test-distpcal"
+main_path = "tlatools/test-distpcal/test_procedures_process"
 # path where all pre-compiled specifications are located
 compare_path = "tlatools/test-compare"
 # path where all result are saved
@@ -91,7 +91,6 @@ def run_compare_parse(tla_file_path_1, tla_file_path_2):
 # - - - - - - - - - - - - - - - - - - - - -
 # run compare test
 def run_compare(tla_file_path_1_in, tla_file_path_2_in):
-    print("\nCOMPARE: ",tla_file_path_1_in, " to ",tla_file_path_2_in)
     # read the first file
     str_1 = ""
     f1 = open(tla_file_path_1_in, "r")

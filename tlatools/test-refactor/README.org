@@ -27,7 +27,7 @@
 - dummy algorithm with ONE process and ONE/TWO labels
 - should produce the same code (except for pc) with distpcal flag or not - OK
 
-* OneProcessOneThread1sC
+* OneProcessOneThread1sC - INTEGRATED
 - as before but use string identifiers for processes
 
 
@@ -39,6 +39,7 @@
 * OneProcessMultiThreadMC
 - use macros
 - and channel operations in the macros
+
 
 * TwoProcessesOneThread2C
 - dummy algorithm with TWO processes (1 and n instances) and one thread
