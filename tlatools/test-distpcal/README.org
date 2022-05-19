@@ -51,5 +51,9 @@
 *** Procedures0p
 - no process
 - should produce the same code with distpcal flag or not - OK
+*** Procedures1p1t
+- one process, id fixed
+- should produce the same code (except for pc) with distpcal flag or not - OK
+
 
 

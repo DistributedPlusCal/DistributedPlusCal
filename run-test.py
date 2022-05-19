@@ -15,7 +15,7 @@ jar_parse = "tlatools/dist/tla2tools.jar"
 jar_check =  "tlatools/dist/tla2tools.jar"
 
 # path where all the tests are located
-main_path = "tlatools/test-distpcal/test_procedures_process"
+main_path = "tlatools/test-distpcal"
 # path where all pre-compiled specifications are located
 compare_path = "tlatools/test-compare"
 # path where all result are saved
@@ -410,10 +410,11 @@ if do_compare:
         if "compare_to" in test["json"]:
             compare_name = test["json"]["compare_to"]
             # if other path than the default one, compare_path
+            current_compare_path = os.path.join(os.getcwd(), compare_path)
             if "compare_path" in test["json"]: 
                 if test["json"]["compare_path"] == "compile":
-                    compare_path = os.path.join(os.getcwd(), compile_path)
-            compare_file = os.path.join(compare_path,compare_name)
+                    current_compare_path = os.path.join(os.getcwd(), compile_path)
+            compare_file = os.path.join(current_compare_path,compare_name)
             nb_test['compare'] += 1
             if verbose_level >= 2:
                 print(" to ", compare_name, end="", flush=True)

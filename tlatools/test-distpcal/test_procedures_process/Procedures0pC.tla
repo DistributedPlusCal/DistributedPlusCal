@@ -37,5 +37,6 @@ variable lv = 0;
     "model-checking-args": {
         "defaultInitValue": 0
 		},
+    "compare_path": "compare",
 		"compare_to": "test_procedures_process/Procedures0pPCAL.tla"
 }
