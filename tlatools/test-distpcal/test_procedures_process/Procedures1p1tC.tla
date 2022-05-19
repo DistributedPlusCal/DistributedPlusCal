@@ -1,9 +1,5 @@
------------------------- MODULE Procedures1p1t -------------------------
+------------------------ MODULE Procedures1p1tC -------------------------
 EXTENDS TLC, Integers, Sequences
-
-\* CONSTANT N
-\* ASSUME N \in Nat 
-\* Nodes == 1 .. N
 
 (* PlusCal options (-distpcal) *)
  
@@ -35,3 +31,11 @@ variable lp = 10, res = 1;
 }
 *)
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": false,
+    "args-check": ["-deadlock"],
+    "model-checking-args": {
+        "defaultInitValue": 0
+    }
+}

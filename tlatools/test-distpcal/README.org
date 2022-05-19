@@ -53,7 +53,10 @@
 - should produce the same code with distpcal flag or not - OK
 *** Procedures1p1t
 - one process, id fixed
-- should produce the same code (except for pc) with distpcal flag or not - OK
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+*** Procedures2p1t
+- two processes, id fixed and id in set
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
 
 
 
