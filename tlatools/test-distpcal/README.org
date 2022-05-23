@@ -46,7 +46,8 @@
 - should produce the same code with distpcal flag or not - OK
 - doesn't parse in Toolbox
 
-** Test Procedus with Processes
+
+** Test Procedures with Processes
 
 *** Procedures0p
 - no process
@@ -56,6 +57,9 @@
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
 *** Procedures2p1t
 - two processes, id fixed and id in set
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+*** Procedures1p2t
+- one process, two threads, id fixed
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
 
 

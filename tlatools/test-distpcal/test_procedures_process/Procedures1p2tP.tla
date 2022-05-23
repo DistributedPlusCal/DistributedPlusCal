@@ -1,4 +1,4 @@
------------------------- MODULE Procedures2p1tP -------------------------
+------------------------ MODULE Procedures1p2tP -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
@@ -32,17 +32,14 @@ begin
 	 After:
 	      res := lp;
 end process
-
-process idm \in Nodes
-variable lpS = 10, resS = 1;
 begin
    BeforeS:
-	      lpS := lpS + 1;
+	      lp := lp + 1;
    SdrS:
-        call f(lpS);
+        call f(lp);
 	 AfterS:
-	      resS := lpS;
-end process
+	      res := lp;
+end subprocess
 
 end algorithm
 *)
@@ -55,5 +52,5 @@ end algorithm
         "defaultInitValue": 0
     },
 		"compare_path": "compile",
-		"compare_to": "test_procedures_process/Procedures2p1tC.tla"
+		"compare_to": "test_procedures_process/Procedures1p2tC.tla"
 }

@@ -1,4 +1,4 @@
------------------------- MODULE Procedures1p2t -------------------------
+------------------------ MODULE Procedures1p2tC -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
@@ -9,7 +9,7 @@ N == 2
 Nodes == 1 .. N
  
 (*
---algorithm LamportMutex {
+--algorithm Dummy {
 variable c = 0;
 
 procedure f(x)
@@ -32,18 +32,23 @@ variable lp = 10, res = 1;
 	 After:
 	      res := lp;
 } 
-
-process (idm \in Nodes)
-variable lpS = 10, resS = 1;
 {
    BeforeS:
-	      lpS := lpS + 1;
+	      lp := lp + 1;
    SdrS:
-        call f(lpS);
+        call f(lp);
 	 AfterS:
-	      resS := lpS;
+	      res := lp;
 } 
 
 } 
 *)
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": false,
+    "args-check": ["-deadlock"],
+    "model-checking-args": {
+        "defaultInitValue": 0
+    }
+}
