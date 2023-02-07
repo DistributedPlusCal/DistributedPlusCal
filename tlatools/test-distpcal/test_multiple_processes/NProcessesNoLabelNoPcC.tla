@@ -1,7 +1,7 @@
 ------------------------ MODULE NProcessesNoLabelNoPcC.tla -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination -label -distpcal) *)
 
 (*--algorithm Dummy {
 variables i = 1;
@@ -11,37 +11,16 @@ variables i = 1;
             i := i + 1;
         }
     }
+
+    process (qid \in [1..2])
     {
         while(TRUE) {
-            i := i + 1;
+            i := i + 3;
         }
     }
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d565ddae" /\ chksum(tla) = "e2cbe90a")
-VARIABLE i
-
-vars == << i >>
-
-ProcSet == ([0..3])
-
-SubProcSet == [_n1 \in ProcSet |-> 1..2]
-
-Init == (* Global variables *)
-        /\ i = 1
-
-pid(self) == i' = i + 1
-
-pid(self) == i' = i + 1
-
-Next == (\E self \in [0..3]: pid(self))
-
-Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in [0..3] : \A subprocess \in SubProcSet[self] : WF_vars(pid(self))
-
-\* END TRANSLATION 
-
 
 =============================================================================
 {
