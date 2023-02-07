@@ -453,6 +453,12 @@ public class ParseAlgorithm
                      omitStutteringWhenDoneValue || omitStutteringWhenDone;
                    j++;
                  }
+                 // HC: threads are anonymous and thus, we have no ids
+                 // that allow us to distingush them in PlusCal (the
+                 // first label in thread is used as id). If we omitPC
+                 // then the label is not generated and the spec
+                 // becomes ambigous (TODO: check why labels are not
+                 // generated when omitPC=true)
                  if(proc.threads.size() > 1) {
                    omitPC = false;
                  }
@@ -653,12 +659,12 @@ public class ParseAlgorithm
            return;
        } ;
        //For Distributed PlusCal
-       // HC: doublecheck
-       if (PcalParams.distpcalFlag) {
-           omitPC = false;
-           omitStutteringWhenDone = false;
-           return;
-       } // end For Distributed PlusCal
+       // HC: we can have multiple threads and no PC (like for multiple processes)
+       // if (PcalParams.distpcalFlag) {
+           // omitPC = false;
+           // omitStutteringWhenDone = false;
+           // return;
+       // } // end For Distributed PlusCal
        AST.LabeledStmt lblStmt = (AST.LabeledStmt) body.elementAt(0);
        if ( (lblStmt.stmts == null) || (lblStmt.stmts.size() == 0)) {
            // Again, this shouldn't happen.
