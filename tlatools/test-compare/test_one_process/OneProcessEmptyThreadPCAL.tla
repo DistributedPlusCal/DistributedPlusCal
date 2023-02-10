@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessEmptyThreadPCAL -------------------------
+------------------------ MODULE OneProcessEmptyThreadP -------------------------
 EXTENDS Naturals, TLC 
 
 (* PlusCal options (-termination  -distpcal) *)
@@ -13,7 +13,7 @@ end process
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "2b0149d4" /\ chksum(tla) = "a7ea8cfc")
+\* BEGIN TRANSLATION (chksum(pcal) = "c675110e" /\ chksum(tla) = "c1fed77d")
 VARIABLE i
 
 vars == << i >>
@@ -25,6 +25,8 @@ SubProcSet == [_n1 \in ProcSet |-> 1..1]
 Init == (* Global variables *)
         /\ i = 1
 
+pid == pid1
+
 Next == pid
 
 Spec == /\ Init /\ [][Next]_vars
@@ -32,3 +34,11 @@ Spec == /\ Init /\ [][Next]_vars
 
 \* END TRANSLATION 
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": true,
+    "args-check": ["-deadlock"],
+    "model-checking-args": {},
+    "compare_path": "compare",
+    "compare_to": "test_one_process/OneProcessEmptyThreadPCAL.tla"
+}

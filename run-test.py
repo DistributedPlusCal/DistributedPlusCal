@@ -14,6 +14,9 @@ jar_parse = "tlatools/dist/tla2tools.jar"
 # jar location for checking test
 jar_check =  "tlatools/dist/tla2tools.jar"
 
+# jar location for sanity test
+jar_sanity =  "tlatools/dist/tla2tools.jar"
+
 # path where all the tests are located
 main_path = "tlatools/test-distpcal"
 # path where all pre-compiled specifications are located
@@ -76,6 +79,25 @@ def run_checking(tla_file_path, args):
         output = subprocess.run(cmd, capture_output=True,
                                 text=True, timeout=TIMEOUT_TIME)
     except:
+        output = "timeout"
+    return output
+
+# - - - - - - - - - - - - - - - - - - - - -
+# run tlc sanity test
+def run_sanity(tla_file_path, args):
+
+    # create the command
+    cmd = ["java", "-cp", jar_sanity, "tla2sany.SANY", tla_file_path]
+    for a in args:
+        cmd.append(a)
+
+    # run the command
+    try:
+        output = subprocess.run(cmd, capture_output=True,
+                                text=True, timeout=TIMEOUT_TIME)
+    except:
+        if verbose_level >= 3:
+            print(output.stderr)
         output = "timeout"
     return output
 
@@ -385,7 +407,10 @@ if do_check:
             if "args-check" in test["json"]:
                 args = test["json"]["args-check"]
             test_file_name = os.path.join(file_dir, GEN_FILE_PREFIX + file_name + ".tla")
-            completed_process = run_checking(test_file_name, args)
+            if "just-sanity" in test["json"]:
+                completed_process = run_sanity(test["path"], args)
+            else:
+                completed_process = run_checking(test_file_name, args)
             nb_test['check'] += 1
             # check if an error is expected 
             need_error = False

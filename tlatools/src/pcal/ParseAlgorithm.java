@@ -453,15 +453,14 @@ public class ParseAlgorithm
                      omitStutteringWhenDoneValue || omitStutteringWhenDone;
                    j++;
                  }
-                 // HC: threads are anonymous and thus, we have no ids
-                 // that allow us to distingush them in PlusCal (the
-                 // first label in thread is used as id). If we omitPC
-                 // then the label is not generated and the spec
-                 // becomes ambigous (TODO: check why labels are not
-                 // generated when omitPC=true)
-                 if(proc.threads.size() > 1) {
-                   omitPC = false;
-                 }
+                 // HC: pc can be omitted even if multiple threads
+                 // (threads that have the same shape as the processes
+                 // that don't need pc. We just need to use the
+                 // (generated) id of the thread instead of the labels
+                 // used when pc is not omitted
+                 // if(proc.threads.size() > 1) {
+                   // omitPC = false;
+                 // }
                } else {  // end For Distributed PlusCal	
                  ExpandMacrosInStmtSeq(proc.body, multiproc.macros) ;
                  AddLabelsToStmtSeq(proc.body) ;
@@ -838,10 +837,12 @@ public class ParseAlgorithm
          int i = 0;
          AST.Thread thread = new AST.Thread();
          thread.index = i++;
+         // the name is used when labels are not used (pc omitted)
+         thread.name = result.name + String.valueOf(thread.index + 1);
          thread.id = result.id;
 		
          //read the sub-process delimiter
-         GobbleBeginOrLeftBrace();  
+         GobbleBeginOrLeftBrace();
          thread.body = GetStmtSeq();
          GobbleEndOrRightBrace("process"); // HC: use subprocess?
 	
@@ -854,6 +855,8 @@ public class ParseAlgorithm
            while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { 
              thread = new AST.Thread();
              thread.index = i++;
+             // the name is used when labels are not used (pc omitted)
+             thread.name = result.name + String.valueOf(thread.index + 1);
              thread.id = result.id;
 				
              //read the sub-process delimiter

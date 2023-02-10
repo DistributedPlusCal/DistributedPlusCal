@@ -481,10 +481,36 @@ public class PcalTLAGen
         //For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           for(AST.Thread thread : ast.threads) {
+            // HC: we use the name of the thread (not of the process)
+            // to build the TLA statement for the thread (when PC is
+            // omitted and thus, no labels)
+            currentProcName = thread.name; 
             for (int j = 0; j < thread.body.size(); j++) {
               AST.LabeledStmt tStmt = (AST.LabeledStmt) thread.body.elementAt(j);
               GenLabeledStmt(tStmt, "thread");
             }
+          }
+          // HC: when PC is omitted (and we have no labels) we should
+          // generate the disjunct of threads using the names of the
+          // threads
+          if (ParseAlgorithm.omitPC) {
+            String argument = (isSet) ? "(self)" : "";
+            StringBuffer buf = new StringBuffer(ast.name + argument + " == ");
+            addOneTokenToTLA(buf.toString());
+            String indentSpaces = NSpaces(buf.length() + 2);        
+            // generale disjunct of threads
+            for (int j = 0; j < ast.threads.size(); j++) {
+              //iterate the threads of each node
+              AST.Thread thread = ast.threads.elementAt(j);
+              String disjunct = thread.name + argument;
+              if (j != 0) { //HC: not first thread
+                addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
+              }
+              // addLeftParen(stmt.getOrigin());
+              addOneTokenToTLA(disjunct);
+              // addRightParen(stmt.getOrigin());
+            }
+            addOneLineOfTLA("");
           }
         } else { // end For Distributed PlusCal
           for (int i = 0; i < ast.body.size(); i++) {

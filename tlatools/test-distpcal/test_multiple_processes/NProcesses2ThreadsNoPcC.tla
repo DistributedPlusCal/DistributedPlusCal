@@ -1,4 +1,4 @@
------------------------- MODULE NProcessesNoLabelNoPcC -------------------------
+------------------------ MODULE NProcesses2ThreadsNoPcC -------------------------
 EXTENDS Naturals, TLC
 
 (* PlusCal options (-label -distpcal) *)
@@ -11,6 +11,11 @@ EXTENDS Naturals, TLC
             i := i + 1;
         }
     }
+    {
+        while (TRUE) {
+            i := i + 2;
+        }
+    }
 
     process(qid \in 3..4)
     {
@@ -18,11 +23,21 @@ EXTENDS Naturals, TLC
             i := i + 3;
         }
     }
+    {
+        while(TRUE) {
+            i := i + 4;
+        }
+    }
 
     process(sid = 5)
     {
         while(TRUE) {
             i := i + 5;
+        }
+    }
+    {
+        while(TRUE) {
+            i := i + 6;
         }
     }
 }
@@ -35,5 +50,5 @@ EXTENDS Naturals, TLC
     "just-sanity": true,
     "need-error-check": false,
     "model-checking-args": {},
-    "compare_to": "test_multiple_processes/NProcessesNoLabelNoPcC.tla"
+    "compare_to": "test_multiple_processes/NProcesses2ThreadsNoPcC.tla"
 }

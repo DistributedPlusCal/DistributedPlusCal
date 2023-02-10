@@ -271,6 +271,8 @@ public class PcalTranslate {
         sAss.lhs.var = id ;
         // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
+          // HC: should add threadIndex only if id == "pc"
+          // if(threadIndex == NO_THREAD || "pc".equals(id)) {
           if(threadIndex == NO_THREAD) {
             sAss.lhs.sub = MakeExpr(new Vector());
           } else {
@@ -1749,7 +1751,8 @@ public class PcalTranslate {
     //For Distributed pluscal
     private static AST.Thread ExplodeThread(AST.Thread ast, Integer threadIndex) throws PcalTranslateException {
         /*********************************************************************
-        * Generate new AST.Process with exploded labeled statements.         *
+        * Generate new AST.Thread with exploded labeled statements.         *
+        * Should be the same as ExplodeProcess (case with no distpcalFlag)  *
         *********************************************************************/
         int i = 0;
         AST.Thread newast = new AST.Thread();
