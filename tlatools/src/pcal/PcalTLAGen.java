@@ -3410,12 +3410,12 @@ public class PcalTLAGen
                        } else {
                            prefixBegin = "\\A self \\in ";
                            // For Distributed Pluscal.
-                           // HC: doublecheck (seems different from Heba's code
-                           if (PcalParams.distpcalFlag){
-                             prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
-                           } else { // end For Distributed PlusCal
+                           // HC: no need to quantify on subprocesses (since pc not involved in Spec)
+                           // if (PcalParams.distpcalFlag){
+                             // prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
+                           // } else { // end For Distributed PlusCal
                              prefixEnd = " : ";
-                           }
+                           // }
                        }
                        String padding = NSpaces(prefixBegin.length());
                        for (int j = 0; j < prefixSize; j++) {
@@ -3463,7 +3463,7 @@ public class PcalTLAGen
                    }
                    wfSB.append(pName);
         		   wfSB.append(")");
-        		   
+
         		   StringBuffer sfSB = null ;
         		   if (    xf.equals("WF") 
         		       && (pAst.plusLabels != null) 
