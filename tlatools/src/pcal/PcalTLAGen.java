@@ -477,40 +477,36 @@ public class PcalTLAGen
         } else
             nextStep.addElement(ast.name);
         
-        
         //For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
+          // HC: the statements for each thread
           for(AST.Thread thread : ast.threads) {
             // HC: we use the name of the thread (not of the process)
-            // to build the TLA statement for the thread (when PC is
-            // omitted and thus, no labels)
+            // to build the TLA statement for the thread
             currentProcName = thread.name; 
             for (int j = 0; j < thread.body.size(); j++) {
               AST.LabeledStmt tStmt = (AST.LabeledStmt) thread.body.elementAt(j);
               GenLabeledStmt(tStmt, "thread");
             }
-          }
-          // HC: when PC is omitted (and we have no labels) we should
-          // generate the disjunct of threads using the names of the
-          // threads
-          if (ParseAlgorithm.omitPC) {
-            String argument = (isSet) ? "(self)" : "";
-            StringBuffer buf = new StringBuffer(ast.name + argument + " == ");
-            addOneTokenToTLA(buf.toString());
-            String indentSpaces = NSpaces(buf.length() + 2);        
-            // generale disjunct of threads
-            for (int j = 0; j < ast.threads.size(); j++) {
-              //iterate the threads of each node
-              AST.Thread thread = ast.threads.elementAt(j);
-              String disjunct = thread.name + argument;
-              if (j != 0) { //HC: not first thread
-                addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
+
+            // HC: when PC is not omitted (and we have labels) we should
+            // generate the disjunct of labels for each thread
+            if (!ParseAlgorithm.omitPC) {
+              String argument = (isSet) ? "(self)" : "";
+              StringBuffer buf = new StringBuffer(thread.name + argument + " == ");
+              addOneTokenToTLA(buf.toString());
+              String indentSpaces = NSpaces(buf.length() + 2);        
+              // generale disjunct of labels in thread
+              for (int j = 0; j < thread.body.size(); j++) {
+                AST.LabeledStmt tStmt = (AST.LabeledStmt) thread.body.elementAt(j);
+                String disjunct = tStmt.label + argument;
+                if (j != 0) { //HC: not first label
+                  addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
+                }
+                addOneTokenToTLA(disjunct);
               }
-              // addLeftParen(stmt.getOrigin());
-              addOneTokenToTLA(disjunct);
-              // addRightParen(stmt.getOrigin());
+              addOneLineOfTLA("");                    
             }
-            addOneLineOfTLA("");
           }
         } else { // end For Distributed PlusCal
           for (int i = 0; i < ast.body.size(); i++) {
@@ -532,35 +528,35 @@ public class PcalTLAGen
          * because we have already defined the process name to equal the 
          * only label action.
          */
-
-      if (! ParseAlgorithm.omitPC) {
+     
+      //For Distributed PlusCal
+      if(PcalParams.distpcalFlag) {
+        // HC: generate the disjunct of threads
         addLeftParen(ast.getOrigin());
         String argument = (isSet) ? "(self)" : "";
         StringBuffer buf = new StringBuffer(ast.name + argument + " == ");
         addOneTokenToTLA(buf.toString());
-        String indentSpaces = NSpaces(buf.length() + 2);        
-        //For Distributed PlusCal
-        if(PcalParams.distpcalFlag) {
-          for (int j = 0; j < ast.threads.size(); j++) {
-            //iterate the threads of each node
-            AST.Thread thread = ast.threads.elementAt(j);
-            for (int i = 0; i < thread.body.size(); i++) {
-              AST.LabeledStmt stmt = (AST.LabeledStmt) thread.body.elementAt(i);
-              String disjunct = stmt.label + argument;
-              if (   i != 0 
-                     && tlacodeNextLine.length() + 7 /* the 7 was obtained empirically */
-                     + disjunct.length() > wrapColumn) {
-                endCurrentLineOfTLA();
-              }
-              if (i != 0 || j != 0) { //HC: not first thread or not first label
-                addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
-              }
-              addLeftParen(stmt.getOrigin());
-              addOneTokenToTLA(disjunct);
-              addRightParen(stmt.getOrigin());
-            }
+        String indentSpaces = NSpaces(buf.length() + 2);
+
+        for (int j = 0; j < ast.threads.size(); j++) {
+          //iterate the threads of each node
+          AST.Thread thread = ast.threads.elementAt(j);
+          String disjunct = thread.name + argument;
+          if (j != 0) { //HC: not first thread
+            addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
           }
-        } else { // end For Distributed PlusCal
+          addOneTokenToTLA(disjunct);
+        }
+        addRightParen(ast.getOrigin());
+        addOneLineOfTLA("");          
+      } else { // end For Distributed PlusCal
+        
+      if (! ParseAlgorithm.omitPC) { 
+        addLeftParen(ast.getOrigin());
+        String argument = (isSet) ? "(self)" : "";
+        StringBuffer buf = new StringBuffer(ast.name + argument + " == ");
+        addOneTokenToTLA(buf.toString());
+        String indentSpaces = NSpaces(buf.length() + 2);
           for (int i = 0; i < ast.body.size(); i++) {
             AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
             String disjunct = stmt.label + argument;
@@ -576,9 +572,10 @@ public class PcalTLAGen
             addOneTokenToTLA(disjunct);
             addRightParen(stmt.getOrigin());
           }
-        }
         addRightParen(ast.getOrigin());
         addOneLineOfTLA("");
+      }
+
       }
 
         
