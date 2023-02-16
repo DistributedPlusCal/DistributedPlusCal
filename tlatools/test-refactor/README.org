@@ -41,15 +41,6 @@
 - and channel operations in the macros
 
 
-
-
-* MultiProcessMultiThread1C
-- dummy algorithm with TWO processes (1 and n instances), each with 2 threads
-- parsed in Toolbox
-- TLC OK
-
-
-
 * Clash 
 - dummy algorithm to check how fresh variables are generated 
 -- in SubProcSet
@@ -94,4 +85,5 @@
 * FreshVars
 - check how fresh variables are generated
 - try to declare a variable that will be freshly generated (eg _n42)
+
 
