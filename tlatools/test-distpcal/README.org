@@ -49,11 +49,27 @@
 
 ** Test Several Processes
 
+*** NProcessesNoLabelNoPc (C+P)
+- 3 processes (2 with IN, 1 with =) with no threads
+- each process is a WHILE TRUE => no need for PC
+
+*** NProcesses2ThreadsNoPc (C+P)
+- 3 processes (2 with IN, 1 with =), each with 2 threads
+- 2 of the processes are fair
+- each process is a WHILE TRUE => no need for PC
+- check WF statements
+
+*** NProcesses2Threads (C+P)
+- 3 processes (2 with IN, 1 with =), each with 2 threads
+- 2 of the processes are fair
+- check WF statements
+
 *** Processes2p1tPvarClash
 - two processes, id fixed and id in set
 - try to create a clash between declared variables and generated
   (normally fresh) variable
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
+
 
 ** Test Procedures with Processes
 
