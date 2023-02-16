@@ -75,6 +75,9 @@
 - two processes (1 and n instances) and one thread
 - should produce the same code (except for pc and thread statement) with distpcal flag or not
 
+*** TwoProcessesOneThread2sC
+- as TwoProcessesOneThread2C but use string identifiers for processes
+
 
 ** Test Procedures with Processes
 
