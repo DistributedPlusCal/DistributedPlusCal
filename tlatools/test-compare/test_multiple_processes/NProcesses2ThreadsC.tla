@@ -3,12 +3,21 @@ EXTENDS Naturals, TLC
 
 (* PlusCal options (-label -termination -distpcal) *)
 
+CONSTANT N           (* Size of arrays *)
+CONSTANT MAXINT      (* Size of arrays *)
+
 (*--algorithm Dummy {
-    variables i = 1;
+    variables
+		ar \in [ 1..N -> 0..MAXINT ],  (* Array of N integers in 0..MAXINT *)
+	    x \in 0..MAXINT,               
+  	    found = FALSE,
+ 		i = 1;
+		
     fair process (pid \in 1..2)
     {
         i := i + 1;
         i := i + 10;
+        found := TRUE;
     }
     {
         i := i + 2;
@@ -17,14 +26,17 @@ EXTENDS Naturals, TLC
 
     process(qid \in 3..4)
     {
-            i := i + 3;
+        i := i + 3;
+        x := ar[1];
     }
     {
-            i := i + 4;
+        i := i + 4;
+        ar[i] := 0;
     }
 
     fair process(sid = 5)
     {
+        x := ar[1];
         i := i + 5;
         i := i + 50;
     }
@@ -35,10 +47,10 @@ EXTENDS Naturals, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d7a02b60" /\ chksum(tla) = "26364e29")
-VARIABLES i, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "aacffb3e" /\ chksum(tla) = "a3913255")
+VARIABLES ar, x, found, i, pc
 
-vars == << i, pc >>
+vars == << ar, x, found, i, pc >>
 
 ProcSet == (1..2) \cup (3..4) \cup {5}
 
@@ -47,6 +59,9 @@ SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 1..2 THEN 1..2
                                     ELSE (**5**) 1..2]
 
 Init == (* Global variables *)
+        /\ ar \in [ 1..N -> 0..MAXINT ]
+        /\ x \in 0..MAXINT
+        /\ found = FALSE
         /\ i = 1
         /\ pc = [self \in ProcSet |-> CASE self \in 1..2 -> <<"Lbl_1","Lbl_3">>
                                         [] self \in 3..4 -> <<"Lbl_5","Lbl_6">>
@@ -55,20 +70,25 @@ Init == (* Global variables *)
 Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ i' = i + 1
                /\ pc' = [pc EXCEPT ![self][1] = "Lbl_2"]
+               /\ UNCHANGED << ar, x, found >>
 
 Lbl_2(self) == /\ pc[self][1]  = "Lbl_2"
                /\ i' = i + 10
+               /\ found' = TRUE
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+               /\ UNCHANGED << ar, x >>
 
 pid1(self) == Lbl_1(self) \/ Lbl_2(self)
 
 Lbl_3(self) == /\ pc[self][2]  = "Lbl_3"
                /\ i' = i + 2
                /\ pc' = [pc EXCEPT ![self][2] = "Lbl_4"]
+               /\ UNCHANGED << ar, x, found >>
 
 Lbl_4(self) == /\ pc[self][2]  = "Lbl_4"
                /\ i' = i + 20
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+               /\ UNCHANGED << ar, x, found >>
 
 pid2(self) == Lbl_3(self) \/ Lbl_4(self)
 
@@ -76,35 +96,44 @@ pid(self) == pid1(self) \/ pid2(self)
 
 Lbl_5(self) == /\ pc[self][1]  = "Lbl_5"
                /\ i' = i + 3
+               /\ x' = ar[1]
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
+               /\ UNCHANGED << ar, found >>
 
 qid1(self) == Lbl_5(self)
 
 Lbl_6(self) == /\ pc[self][2]  = "Lbl_6"
                /\ i' = i + 4
+               /\ ar' = [ar EXCEPT ![i'] = 0]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
+               /\ UNCHANGED << x, found >>
 
 qid2(self) == Lbl_6(self)
 
 qid(self) == qid1(self) \/ qid2(self)
 
 Lbl_7 == /\ pc[5][1]  = "Lbl_7"
+         /\ x' = ar[1]
          /\ i' = i + 5
          /\ pc' = [pc EXCEPT ![5][1] = "Lbl_8"]
+         /\ UNCHANGED << ar, found >>
 
 Lbl_8 == /\ pc[5][1]  = "Lbl_8"
          /\ i' = i + 50
          /\ pc' = [pc EXCEPT ![5][1] = "Done"]
+         /\ UNCHANGED << ar, x, found >>
 
 sid1 == Lbl_7 \/ Lbl_8
 
 Lbl_9 == /\ pc[5][2]  = "Lbl_9"
          /\ i' = i + 6
          /\ pc' = [pc EXCEPT ![5][2] = "Lbl_10"]
+         /\ UNCHANGED << ar, x, found >>
 
 Lbl_10 == /\ pc[5][2]  = "Lbl_10"
           /\ i' = i + 60
           /\ pc' = [pc EXCEPT ![5][2] = "Done"]
+          /\ UNCHANGED << ar, x, found >>
 
 sid2 == Lbl_9 \/ Lbl_10
 
@@ -132,6 +161,9 @@ Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][su
 {
     "need-error-parse": false,
     "need-error-check": false,
-    "model-checking-args": {},
+    "model-checking-args": {
+		    "N": 2,
+		    "MAXINT": 2
+		},
     "compare_to": "test_multiple_processes/NProcesses2ThreadsC.tla"
 }
