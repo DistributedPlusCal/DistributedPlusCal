@@ -3,7 +3,7 @@ EXTENDS Naturals, TLC
 
 CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
-CONSTANT PROCSet     (* Set of process indexes *)
+\* CONSTANT PROCSet     (* Set of process indexes *)
 
 (* PlusCal options (-termination -distpcal) *)
 
@@ -14,7 +14,7 @@ variables
     found = FALSE,
     i = 1;
 
-process ( pid1 \in PROCSet )
+process ( pid1 \in 2..3 )
 {
     One:
         found := TRUE;
@@ -32,4 +32,14 @@ process ( pid2 = 1 )
 
 }
 *)
+
 =============================================================================
+{
+    "need-error-parse": false,
+    "need-error-check": false,
+    "model-checking-args": {
+		    "N": 2,
+		    "MAXINT": 2
+	},
+    "compare_to": "test_multiple_processes/TwoProcessesOneThread2C.tla"
+}

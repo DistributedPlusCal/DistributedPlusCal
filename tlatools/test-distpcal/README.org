@@ -71,6 +71,10 @@
   (normally fresh) variable
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
 
+*** TwoProcessesOneThread2C
+- two processes (1 and n instances) and one thread
+- should produce the same code (except for pc and thread statement) with distpcal flag or not
+
 
 ** Test Procedures with Processes
 
@@ -92,6 +96,7 @@
 *** Procedures1p2t
 - one process, two threads, id fixed
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
+
 
 
 
