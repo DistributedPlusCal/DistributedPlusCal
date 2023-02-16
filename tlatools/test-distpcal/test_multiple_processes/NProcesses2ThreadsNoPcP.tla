@@ -50,5 +50,6 @@ end algorithm
     "just-sanity": true,
     "need-error-check": false,
     "model-checking-args": {},
+		"compare_path": "compile",
     "compare_to": "test_multiple_processes/NProcesses2ThreadsNoPcC.tla"
 }

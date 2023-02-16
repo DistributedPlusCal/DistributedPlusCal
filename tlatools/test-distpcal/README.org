@@ -51,6 +51,7 @@
 
 *** NProcessesNoLabelNoPc (C+P)
 - 3 processes (2 with IN, 1 with =) with no threads
+- should produce the same code with distpcal flag or not
 - each process is a WHILE TRUE => no need for PC
 
 *** NProcesses2ThreadsNoPc (C+P)

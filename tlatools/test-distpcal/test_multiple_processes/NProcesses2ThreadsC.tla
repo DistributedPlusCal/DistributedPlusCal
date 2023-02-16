@@ -1,7 +1,7 @@
 ------------------------ MODULE NProcesses2ThreadsC -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -distpcal) *)
+(* PlusCal options (-label -termination -distpcal) *)
 
 (*--algorithm Dummy {
     variables i = 1;

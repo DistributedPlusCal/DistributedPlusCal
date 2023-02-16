@@ -1,7 +1,7 @@
 ------------------------ MODULE NProcesses2ThreadsP -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -distpcal) *)
+(* PlusCal options (-label -termination -distpcal) *)
 
 (*--algorithm Dummy 
     variables i = 1;
@@ -41,5 +41,6 @@ end algorithm
     "need-error-parse": false,
     "need-error-check": false,
     "model-checking-args": {},
+		"compare_path": "compile",
     "compare_to": "test_multiple_processes/NProcesses2ThreadsC.tla"
 }

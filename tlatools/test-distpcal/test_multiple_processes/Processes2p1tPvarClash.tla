@@ -38,5 +38,5 @@ end algorithm
 		    "N": 2
     },
 		"compare_path": "compile",
-		"compare_to": "test_processes/Processes2p1tCvarClash.tla"
+		"compare_to": "test_multiple_processes/Processes2p1tCvarClash.tla"
 }

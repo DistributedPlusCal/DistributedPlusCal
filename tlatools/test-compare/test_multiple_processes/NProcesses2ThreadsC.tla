@@ -1,7 +1,7 @@
------------------------- MODULE NProcesses2ThreadsNoPcC -------------------------
+------------------------ MODULE NProcesses2ThreadsC -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -distpcal) *)
+(* PlusCal options (-label -termination -distpcal) *)
 
 (*--algorithm Dummy {
     variables i = 1;
@@ -35,7 +35,7 @@ EXTENDS Naturals, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ccc72039" /\ chksum(tla) = "c7e747a2")
+\* BEGIN TRANSLATION (chksum(pcal) = "d7a02b60" /\ chksum(tla) = "26364e29")
 VARIABLES i, pc
 
 vars == << i, pc >>
@@ -121,6 +121,7 @@ Next == sid
 
 Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in 1..2 : WF_vars(pid(self))
+        /\ \A self \in 3..4 : WF_vars(qid(self))
         /\ WF_vars(sid)
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
@@ -130,8 +131,7 @@ Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][su
 =============================================================================
 {
     "need-error-parse": false,
-    "just-sanity": true,
     "need-error-check": false,
     "model-checking-args": {},
-    "compare_to": "test_multiple_processes/NProcesses2ThreadsNoPcC.tla"
+    "compare_to": "test_multiple_processes/NProcesses2ThreadsC.tla"
 }
