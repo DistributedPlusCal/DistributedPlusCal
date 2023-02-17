@@ -1,9 +1,4 @@
 
-* OneProcessMultiThreadMC
-- use macros
-- and channel operations in the macros
-
-
 * Clash 
 - dummy algorithm to check how fresh variables are generated 
 -- in SubProcSet
@@ -32,18 +27,6 @@
   (without Snd2 and Rcv2); doesn't work for channels (because of cur
   receiver twice)
 
-* Procedures
-- 0p -> uniprocess
-- 1p1s -> one process / one thread
-- 1p2t -> one process / two threads
-- both use the same procedure
-- Rec -> recursive procedure, no channels
-
-* ProceduresWithLV
-- procedures using process local variables
-- parses but error in TLC (with or without distpcal)
-- ProceduresWithLVprocId: use local variables from unique process
-- ProceduresWithLVprocSet: use local variables from process set
 
 * FreshVars
 - check how fresh variables are generated
