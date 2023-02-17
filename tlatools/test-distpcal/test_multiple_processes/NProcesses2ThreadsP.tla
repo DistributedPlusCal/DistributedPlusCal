@@ -14,6 +14,7 @@ CONSTANT MAXINT      (* Size of arrays *)
       i = 1;
 		
     fair process pid \in 1..2
+    variables lvpid = 0;
     begin
         i := i + 1;
         i := i + 10;
@@ -22,6 +23,7 @@ CONSTANT MAXINT      (* Size of arrays *)
     begin
         i := i + 2;
         i := i + 20;
+        lvpid := ar[1];
     end subprocess
 
     process qid \in 3..4
@@ -31,14 +33,16 @@ CONSTANT MAXINT      (* Size of arrays *)
     end process
     begin
         i := i + 4;
-        ar[i] := 0;
+        ar[2] := 1;
     end subprocess
 
     fair process sid = 5
+    variables lvqid = 1;
     begin
         x := ar[1];
         i := i + 5;
         i := i + 50;
+        ar[2] := lvqid;
     end process
     begin
         i := i + 6;
