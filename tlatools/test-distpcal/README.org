@@ -78,6 +78,9 @@
 *** TwoProcessesOneThread2sC
 - as TwoProcessesOneThread2C but use string identifiers for processes
 
+*** TwoProcessesTwoThreadsLvC
+- two processes (1 and n instances) each with 2 threads
+- each process has local variables
 
 ** Test Procedures with Processes
 
