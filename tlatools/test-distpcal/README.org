@@ -47,6 +47,10 @@
 - doesn't parse in Toolbox
 
 
+*** OneProcessMultiThreadMacroC.tla
+- OneProcessMultiThread with a macro
+
+
 ** Test Several Processes
 
 *** NProcessesNoLabelNoPc (C+P)
@@ -81,6 +85,7 @@
 *** TwoProcessesTwoThreadsLvC
 - two processes (1 and n instances) each with 2 threads
 - each process has local variables
+
 
 ** Test Procedures with Processes
 
