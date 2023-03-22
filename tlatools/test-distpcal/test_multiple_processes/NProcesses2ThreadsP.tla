@@ -1,10 +1,16 @@
 ------------------------ MODULE NProcesses2ThreadsP -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -termination -distpcal) *)
+(* PlusCal options (-label -distpcal) *)
 
-CONSTANT N           (* Size of arrays *)
-CONSTANT MAXINT      (* Size of arrays *)
+\* CONSTANT N           
+N == 2
+\* CONSTANT MAXINT      
+MAXINT == 2
+\* CONSTANT 
+PROCSet1 == 1..2
+PROCSet2 == 3..4
+PROCid == 5
 
 (*--algorithm Dummy 
     variables
@@ -13,7 +19,7 @@ CONSTANT MAXINT      (* Size of arrays *)
   	  found = FALSE,
       i = 1;
 		
-    fair process pid \in 1..2
+    fair process pid \in PROCSet1
     variables lvpid = 0;
     begin
         i := i + 1;
@@ -26,7 +32,7 @@ CONSTANT MAXINT      (* Size of arrays *)
         lvpid := ar[1];
     end subprocess
 
-    process qid \in 3..4
+    process qid \in PROCSet2
     begin
         i := i + 3;
         x := ar[1];
@@ -36,7 +42,7 @@ CONSTANT MAXINT      (* Size of arrays *)
         ar[2] := 1;
     end subprocess
 
-    fair process sid = 5
+    fair process sid = PROCid
     variables lvqid = 1;
     begin
         x := ar[1];

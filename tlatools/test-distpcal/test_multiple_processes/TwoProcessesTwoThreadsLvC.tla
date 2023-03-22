@@ -1,10 +1,12 @@
 ------------------------ MODULE TwoProcessesTwoThreadsLvC  -------------------------
 EXTENDS Naturals, TLC
 
-CONSTANT N           (* Size of arrays *)
-CONSTANT MAXINT      (* Size of arrays *)
+\* CONSTANT N           (* Size of arrays *)
+N == 2
+\* CONSTANT MAXINT      (* Size of arrays *)
+MAXINT == 2
 \* CONSTANT PROCSet     (* Set of process indexes *)
-
+PROCSet == 2..3
 (* PlusCal options (-label -termination -distpcal) *)
 
 (*--algorithm Dummy {
@@ -14,7 +16,7 @@ variables
     found = FALSE,
     i = 1;
 
-process ( pid1 \in 2..3 )
+process ( pid1 \in PROCSet )
 variables lvpid1 = 0;
 {
     found := TRUE;

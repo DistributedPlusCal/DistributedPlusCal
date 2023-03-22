@@ -1,10 +1,12 @@
 ------------------------ MODULE TwoProcessesTwoThreadsLvC  -------------------------
 EXTENDS Naturals, TLC
 
-CONSTANT N           (* Size of arrays *)
-CONSTANT MAXINT      (* Size of arrays *)
+\* CONSTANT N           (* Size of arrays *)
+N == 2
+\* CONSTANT MAXINT      (* Size of arrays *)
+MAXINT == 2
 \* CONSTANT PROCSet     (* Set of process indexes *)
-
+PROCSet == 2..3
 (* PlusCal options (-label -termination -distpcal) *)
 
 (*--algorithm Dummy {
@@ -14,7 +16,7 @@ variables
     found = FALSE,
     i = 1;
 
-process ( pid1 \in 2..3 )
+process ( pid1 \in PROCSet )
 variables lvpid1 = 0;
 {
     found := TRUE;
@@ -37,14 +39,14 @@ variables lvpid2 = 10;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "42ba6100" /\ chksum(tla) = "76bc6feb")
+\* BEGIN TRANSLATION (chksum(pcal) = "835eccf4" /\ chksum(tla) = "6bdb0dbf")
 VARIABLES ar, x, found, i, pc, lvpid1, lvpid2
 
 vars == << ar, x, found, i, pc, lvpid1, lvpid2 >>
 
-ProcSet == (2..3) \cup {1}
+ProcSet == (PROCSet) \cup {1}
 
-SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 2..3 THEN 1..2
+SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in PROCSet THEN 1..2
                                  ELSE (**1**) 1..1]
 
 Init == (* Global variables *)
@@ -53,10 +55,10 @@ Init == (* Global variables *)
         /\ found = FALSE
         /\ i = 1
         (* Process pid1 *)
-        /\ lvpid1 = [self \in 2..3 |-> 0]
+        /\ lvpid1 = [self \in PROCSet |-> 0]
         (* Process pid2 *)
         /\ lvpid2 = 10
-        /\ pc = [self \in ProcSet |-> CASE self \in 2..3 -> <<"Lbl_1","Lbl_2">>
+        /\ pc = [self \in ProcSet |-> CASE self \in PROCSet -> <<"Lbl_1","Lbl_2">>
                                         [] self = 1 -> <<"Lbl_3">>]
 
 Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
@@ -95,11 +97,11 @@ Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][su
                /\ UNCHANGED vars
 
 Next == pid2
-           \/ (\E self \in 2..3: pid1(self))
+           \/ (\E self \in PROCSet: pid1(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 2..3 : WF_vars(pid1(self))
+        /\ \A self \in PROCSet : WF_vars(pid1(self))
         /\ WF_vars(pid2)
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")

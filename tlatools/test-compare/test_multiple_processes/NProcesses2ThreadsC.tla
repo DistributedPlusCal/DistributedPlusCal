@@ -1,10 +1,16 @@
 ------------------------ MODULE NProcesses2ThreadsC -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -termination -distpcal) *)
+(* PlusCal options (-label -distpcal) *)
 
-CONSTANT N           (* Size of arrays *)
-CONSTANT MAXINT      (* Size of arrays *)
+\* CONSTANT N           
+N == 2
+\* CONSTANT MAXINT      
+MAXINT == 2
+\* CONSTANT 
+PROCSet1 == 1..2
+PROCSet2 == 3..4
+PROCid == 5
 
 (*--algorithm Dummy {
     variables
@@ -13,7 +19,7 @@ CONSTANT MAXINT      (* Size of arrays *)
   	    found = FALSE,
  		i = 1;
 		
-    fair process (pid \in 1..2)
+    fair process (pid \in PROCSet1)
     variables lvpid = 0;
     {
         i := i + 1;
@@ -26,7 +32,7 @@ CONSTANT MAXINT      (* Size of arrays *)
         lvpid := ar[1];
     }
 
-    process(qid \in 3..4)
+    process(qid \in PROCSet2)
     {
         i := i + 3;
         x := ar[1];
@@ -36,7 +42,7 @@ CONSTANT MAXINT      (* Size of arrays *)
         ar[2] := 1;
     }
 
-    fair process(sid = 5)
+    fair process(sid = PROCid)
     variables lvqid = 1;
     {
         x := ar[1];
@@ -51,16 +57,16 @@ CONSTANT MAXINT      (* Size of arrays *)
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "96719dc7" /\ chksum(tla) = "87a2d0ed")
+\* BEGIN TRANSLATION (chksum(pcal) = "db923f07" /\ chksum(tla) = "6d81e72e")
 VARIABLES ar, x, found, i, pc, lvpid, lvqid
 
 vars == << ar, x, found, i, pc, lvpid, lvqid >>
 
-ProcSet == (1..2) \cup (3..4) \cup {5}
+ProcSet == (PROCSet1) \cup (PROCSet2) \cup {PROCid}
 
-SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 1..2 THEN 1..2
-                                 ELSE IF _n1 \in 3..4 THEN 1..2
-                                    ELSE (**5**) 1..2]
+SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in PROCSet1 THEN 1..2
+                                 ELSE IF _n1 \in PROCSet2 THEN 1..2
+                                    ELSE (**PROCid**) 1..2]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]
@@ -68,12 +74,12 @@ Init == (* Global variables *)
         /\ found = FALSE
         /\ i = 1
         (* Process pid *)
-        /\ lvpid = [self \in 1..2 |-> 0]
+        /\ lvpid = [self \in PROCSet1 |-> 0]
         (* Process sid *)
         /\ lvqid = 1
-        /\ pc = [self \in ProcSet |-> CASE self \in 1..2 -> <<"Lbl_1","Lbl_3">>
-                                        [] self \in 3..4 -> <<"Lbl_5","Lbl_6">>
-                                        [] self = 5 -> <<"Lbl_7","Lbl_9">>]
+        /\ pc = [self \in ProcSet |-> CASE self \in PROCSet1 -> <<"Lbl_1","Lbl_3">>
+                                        [] self \in PROCSet2 -> <<"Lbl_5","Lbl_6">>
+                                        [] self = PROCid -> <<"Lbl_7","Lbl_9">>]
 
 Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ i' = i + 1
@@ -121,28 +127,28 @@ qid2(self) == Lbl_6(self)
 
 qid(self) == qid1(self) \/ qid2(self)
 
-Lbl_7 == /\ pc[5][1]  = "Lbl_7"
+Lbl_7 == /\ pc[PROCid][1]  = "Lbl_7"
          /\ x' = ar[1]
          /\ i' = i + 5
-         /\ pc' = [pc EXCEPT ![5][1] = "Lbl_8"]
+         /\ pc' = [pc EXCEPT ![PROCid][1] = "Lbl_8"]
          /\ UNCHANGED << ar, found, lvpid, lvqid >>
 
-Lbl_8 == /\ pc[5][1]  = "Lbl_8"
+Lbl_8 == /\ pc[PROCid][1]  = "Lbl_8"
          /\ i' = i + 50
          /\ ar' = [ar EXCEPT ![2] = lvqid]
-         /\ pc' = [pc EXCEPT ![5][1] = "Done"]
+         /\ pc' = [pc EXCEPT ![PROCid][1] = "Done"]
          /\ UNCHANGED << x, found, lvpid, lvqid >>
 
 sid1 == Lbl_7 \/ Lbl_8
 
-Lbl_9 == /\ pc[5][2]  = "Lbl_9"
+Lbl_9 == /\ pc[PROCid][2]  = "Lbl_9"
          /\ i' = i + 6
-         /\ pc' = [pc EXCEPT ![5][2] = "Lbl_10"]
+         /\ pc' = [pc EXCEPT ![PROCid][2] = "Lbl_10"]
          /\ UNCHANGED << ar, x, found, lvpid, lvqid >>
 
-Lbl_10 == /\ pc[5][2]  = "Lbl_10"
+Lbl_10 == /\ pc[PROCid][2]  = "Lbl_10"
           /\ i' = i + 60
-          /\ pc' = [pc EXCEPT ![5][2] = "Done"]
+          /\ pc' = [pc EXCEPT ![PROCid][2] = "Done"]
           /\ UNCHANGED << ar, x, found, lvpid, lvqid >>
 
 sid2 == Lbl_9 \/ Lbl_10
@@ -154,19 +160,17 @@ Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][su
                /\ UNCHANGED vars
 
 Next == sid
-           \/ (\E self \in 1..2: pid(self))
-           \/ (\E self \in 3..4: qid(self))
+           \/ (\E self \in PROCSet1: pid(self))
+           \/ (\E self \in PROCSet2: qid(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..2 : WF_vars(pid(self))
-        /\ \A self \in 3..4 : WF_vars(qid(self))
+        /\ \A self \in PROCSet1 : WF_vars(pid(self))
         /\ WF_vars(sid)
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
 \* END TRANSLATION 
-
 =============================================================================
 {
     "need-error-parse": false,
