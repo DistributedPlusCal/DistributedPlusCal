@@ -804,6 +804,15 @@ public class ParseAlgorithm
        plusLabels = new Vector(0);
        minusLabels = new Vector(0);
        proceduresCalled = new Vector(0);
+       //For Distributed PlusCal, when using p-syntax
+       // use plusLabels, minusLabels, proceduresCalled to account for
+       // plus/minus-labels and proceduresCalled at thread level and
+       // concatenate to get the corresponding values at process level
+       // in plusLabelsProcess, minusLabelsProcess, proceduresCalledProcess
+       Vector plusLabelsProcess = new Vector(0);
+       Vector minusLabelsProcess = new Vector(0);
+       Vector proceduresCalledProcess = new Vector(0);
+       // end For Distributed PlusCal
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
@@ -843,7 +852,19 @@ public class ParseAlgorithm
 		
          //read the sub-process delimiter
          GobbleBeginOrLeftBrace();
+         // reset for the next Thread
+         plusLabels = new Vector(0);
+         minusLabels = new Vector(0);
+         proceduresCalled = new Vector(0);
          thread.body = GetStmtSeq();
+         // set the values for the thread
+         thread.plusLabels = plusLabels;
+         thread.minusLabels = minusLabels;
+         thread.proceduresCalled = proceduresCalled;
+         // and add them to the process level (redundant)
+         plusLabelsProcess.addAll(plusLabels);
+         minusLabelsProcess.addAll(minusLabels);
+         proceduresCalledProcess.addAll(proceduresCalled);
          GobbleEndOrRightBrace("process"); // HC: use subprocess?
 	
          if(pSyntax) {
@@ -867,7 +888,19 @@ public class ParseAlgorithm
                // GobbleThis("{");
              // }
 
+             // reset for the next Thread
+             plusLabels = new Vector(0);
+             minusLabels = new Vector(0);
+             proceduresCalled = new Vector(0);
              thread.body = GetStmtSeq();
+             // set the values for the thread
+             thread.plusLabels = plusLabels;
+             thread.minusLabels = minusLabels;
+             thread.proceduresCalled = proceduresCalled;
+             // and add them to the process level (redundant)
+             plusLabelsProcess.addAll(plusLabels);
+             minusLabelsProcess.addAll(minusLabels);
+             proceduresCalledProcess.addAll(proceduresCalled);
 
              //to make sure this works remove the key node from the algorithm completely
              GobbleEndOrRightBrace("subprocess");
@@ -893,9 +926,18 @@ public class ParseAlgorithm
        if (PeekAtAlgToken(1).equals(";"))
          { String tok = GetAlgToken() ; } ;
 //       CheckLabeledStmtSeq(result.body) ;
-       result.plusLabels = plusLabels;
-       result.minusLabels = minusLabels;
-       result.proceduresCalled = proceduresCalled;
+
+       //For Distributed PlusCal
+       // use the concatenation of plusLabels of each thread
+       if (PcalParams.distpcalFlag) {
+         result.plusLabels = plusLabelsProcess;
+         result.minusLabels = minusLabelsProcess;
+         result.proceduresCalled = proceduresCalledProcess;
+       } else { // end For Distributed PlusCal
+         result.plusLabels = plusLabels;
+         result.minusLabels = minusLabels;
+         result.proceduresCalled = proceduresCalled;
+       }
        result.setOrigin(new Region(beginLoc, endLoc)) ;
        return result ;
      }

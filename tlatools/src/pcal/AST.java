@@ -2213,7 +2213,8 @@ public class AST
 
   
   public static class Thread extends AST{
-	  public String    name  = "" ;
+	  public String    name  = "";
+    public int fairness = UNFAIR_PROC ; // unused for the moment
 	  public Vector  minusLabels = new Vector();
 	  public Vector  plusLabels = new Vector();
 	  public Vector  proceduresCalled = new Vector();
@@ -2227,7 +2228,8 @@ public class AST
 				  Indent(lineCol()) +
 				  "[name   |-> \"" + name + "\"," 
 				  + NewLine() +
-				  "\", minusLabels |-> "
+          " fairness |-> \"" 
+          + FairnessString[fairness] + "\", minusLabels |-> "
 				  + VectorToSeqQuotedString(minusLabels) + ", plusLabels |->"
 				  + VectorToSeqQuotedString(plusLabels) + ", proceduresCalled |->"
 				  + VectorToSeqQuotedString(proceduresCalled) + ","
