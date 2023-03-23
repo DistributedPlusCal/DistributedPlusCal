@@ -150,7 +150,13 @@ public class ParseAlgorithm
     * proceduresCalled is the vector of distinct names of 
     * procedures called within the current process or procedure.
     */
-   
+
+   //For Distributed PlusCal
+   // the fairness of the current thread
+   // use a global variable but we could use a parameter in GetProcess
+   public static int fairnessThread = AST.UNFAIR_PROC;
+   // end For Distributed PlusCal
+
    /*
     * The following are added to record whether or not the translation needs
     * (a) the variable pc and (b) the stuttering-when-done disjunct of Next.
@@ -411,8 +417,12 @@ public class ParseAlgorithm
                     } else if (PcalParams.FairnessOption.equals("sf")) {
                     	fairness = AST.SF_PROC;
                     }
-                };        	   
-        	   AST.Process proc =  GetProcess() ;
+                };
+             //For Distributed PlusCal
+             // propagate the fairness of the process to the threads
+             fairnessThread = fairness;
+             // end For Distributed PlusCal
+             AST.Process proc =  GetProcess() ;
         	   proc.fairness = fairness ;
         	   multiproc.procs.addElement(proc) ; 
              } ;
@@ -804,7 +814,7 @@ public class ParseAlgorithm
        plusLabels = new Vector(0);
        minusLabels = new Vector(0);
        proceduresCalled = new Vector(0);
-       //For Distributed PlusCal, when using p-syntax
+       //For Distributed PlusCal
        // use plusLabels, minusLabels, proceduresCalled to account for
        // plus/minus-labels and proceduresCalled at thread level and
        // concatenate to get the corresponding values at process level
@@ -816,7 +826,7 @@ public class ParseAlgorithm
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
-       //For Distributed PlusCal, when using p-syntax
+       //For Distributed PlusCal
        // HC: doublecheck if (with subprocess)
        if (PcalParams.distpcalFlag)  {
          if (   PeekAtAlgToken(1).equals("begin")
@@ -858,6 +868,7 @@ public class ParseAlgorithm
          proceduresCalled = new Vector(0);
          thread.body = GetStmtSeq();
          // set the values for the thread
+         thread.fairness = fairnessThread;
          thread.plusLabels = plusLabels;
          thread.minusLabels = minusLabels;
          thread.proceduresCalled = proceduresCalled;
@@ -894,6 +905,7 @@ public class ParseAlgorithm
              proceduresCalled = new Vector(0);
              thread.body = GetStmtSeq();
              // set the values for the thread
+             thread.fairness = fairnessThread;
              thread.plusLabels = plusLabels;
              thread.minusLabels = minusLabels;
              thread.proceduresCalled = proceduresCalled;
