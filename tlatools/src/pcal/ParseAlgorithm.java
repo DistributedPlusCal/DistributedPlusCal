@@ -875,7 +875,12 @@ public class ParseAlgorithm
          // and add them to the process level (redundant)
          plusLabelsProcess.addAll(plusLabels);
          minusLabelsProcess.addAll(minusLabels);
-         proceduresCalledProcess.addAll(proceduresCalled);
+         // add procedure only if doesn't already exist
+         for(int ip=0; ip<proceduresCalled.size(); ip++){
+           if(! proceduresCalledProcess.contains(proceduresCalled.elementAt(ip))){
+             proceduresCalledProcess.add(proceduresCalled.elementAt(ip));
+           }
+         }
          GobbleEndOrRightBrace("process"); // HC: use subprocess?
 	
          if(pSyntax) {
@@ -912,7 +917,12 @@ public class ParseAlgorithm
              // and add them to the process level (redundant)
              plusLabelsProcess.addAll(plusLabels);
              minusLabelsProcess.addAll(minusLabels);
-             proceduresCalledProcess.addAll(proceduresCalled);
+             // add procedure only if doesn't already exist
+             for(int ip=0; ip<proceduresCalled.size(); ip++){
+               if(! proceduresCalledProcess.contains(proceduresCalled.elementAt(ip))){
+                 proceduresCalledProcess.add(proceduresCalled.elementAt(ip));
+               }
+             }
 
              //to make sure this works remove the key node from the algorithm completely
              GobbleEndOrRightBrace("subprocess");

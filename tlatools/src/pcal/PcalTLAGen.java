@@ -3378,12 +3378,186 @@ public class PcalTLAGen
            for (int i = 0; i < st.processes.size(); i++) {
         	   PcalSymTab.ProcessEntry p = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
         	   AST.Process pAst = p.ast ;
+             //For Distributed PlusCal
+             if(PcalParams.distpcalFlag) {
+
+           for (int it = 0; it < pAst.threads.size(); it++) {
+             AST.Thread tAst = pAst.threads.elementAt(it);
+             // as for now, the same as the fairness of its process
+             int fairness = tAst.fairness;
+        	   if (fairness != AST.UNFAIR_PROC) {
+        		   String xf = (fairness == AST.WF_PROC) ? "WF" : "SF";
+
+                   Vector pSelf = p.id.toStringVector();
+                   // makeLetIn is true iff prefix will be LET self == ... IN
+                   boolean makeLetIn = false ;
+                   
+                   String qSelf = "self";
+                   if (p.isEq) {
+                       if (pSelf.size() > 1) {
+                           makeLetIn = true ;
+                       } else {
+                           qSelf = (String) pSelf.elementAt(0);
+                       }
+                   }
+                   
+                   Vector prefix = new Vector();
+               if (makeLetIn || !p.isEq) {
+                       int prefixSize = pSelf.size();
+                       String prefixBegin;
+                       String prefixEnd;
+                       if (p.isEq) {
+                           prefixBegin = "LET self == ";
+                           prefixEnd = "";
+                       } else {
+                           prefixBegin = "\\A self \\in ";
+                           prefixEnd = " : ";
+                       }
+                       String padding = NSpaces(prefixBegin.length());
+                       for (int j = 0; j < prefixSize; j++) {
+                           String line = (String) pSelf.elementAt(j);
+                           if (j == 0) {
+                               line = prefixBegin + line;
+                           } else {
+                               line = padding + line;
+                           }
+                           if (j == prefixSize - 1) {
+                               line = line + prefixEnd;
+                           }
+                           prefix.addElement(line);
+                       }
+                       if (makeLetIn) {
+                           prefix.addElement("IN ");
+                       }
+        		   } // end if (makeLetIn || !p.isEq)
+        		   
+        		   StringBuffer wfSB = new StringBuffer(xf + "_vars(");
+        		   if (tAst.minusLabels != null && tAst.minusLabels.size() > 0) {
+        		       wfSB.append("(pc[");
+        		       wfSB.append(qSelf);
+        		       if (tAst.minusLabels.size() == 1) {
+                       wfSB.append("]["+(it+1)+"]");
+        		           wfSB.append(" # \"");
+        		           wfSB.append(tAst.minusLabels.elementAt(0));
+        		           wfSB.append("\"");
+        		       } else {
+        		           wfSB.append("]["+(it+1)+"]");
+        		           wfSB.append(" \\notin {\"");
+        		           for (int j = 0; j < tAst.minusLabels.size(); j++) {
+        		               wfSB.append(tAst.minusLabels.elementAt(j));
+        		               if (j == tAst.minusLabels.size() - 1) {
+        		                   wfSB.append("\"}");
+        		               } else {
+        		                   wfSB.append("\", \"");
+        		               }
+        		           }
+        		       }
+        		       wfSB.append(") /\\ ");
+        		   }
+        		   
+        		   String tName = tAst.name;
+                   if (!p.isEq) {
+                       tName = tAst.name + "(self)";
+                   }
+                   wfSB.append(tName);
+        		   wfSB.append(")");
+
+        		   StringBuffer sfSB = null ;
+        		   if (    xf.equals("WF") 
+        		       && (tAst.plusLabels != null) 
+        		       && (tAst.plusLabels.size() != 0)) {
+        		       sfSB = new StringBuffer() ;
+        		       for (int j = 0; j < tAst.plusLabels.size(); j++) {
+        		           if (j != 0) {
+        		               sfSB.append(" /\\ ");
+        		           }
+        		           sfSB.append("SF_vars(");
+        		           sfSB.append(tAst.plusLabels.elementAt(j));
+                       
+        		           if (!p.isEq) {
+        		               sfSB.append("(self)");
+        		           }
+        		           sfSB.append(")");
+        		       }
+        		   }
+        	   
+        	       Vector  prcdFormulas = new Vector();
+        	       Vector  procedures = tAst.proceduresCalled;
+                   for (int k = 0; k < procedures.size(); k++) {
+                       String originalName = (String) procedures.elementAt(k);
+                       String name = st.UseThis(PcalSymTab.PROCEDURE, originalName, "");
+                       int procedureIndex = st.FindProc(name);
+                       PcalSymTab.ProcedureEntry pe =
+                          (PcalSymTab.ProcedureEntry) st.procs.elementAt(procedureIndex);
+                       AST.Procedure prcAst = pe.ast;
+
+                       StringBuffer wfPrcSB = new StringBuffer(xf + "_vars(");
+                       if (prcAst.minusLabels != null && prcAst.minusLabels.size() > 0) {
+                           wfPrcSB.append("(pc[");
+                           wfPrcSB.append(qSelf);
+                           if (prcAst.minusLabels.size() == 1) {
+                               wfSB.append("]["+(it+1)+"]");
+                               wfSB.append(" # \"");
+                               wfPrcSB.append(prcAst.minusLabels.elementAt(0));
+                               wfPrcSB.append("\"");
+                           } else {
+                               wfSB.append("]["+(it+1)+"]");
+                               wfSB.append(" \\notin {\"");
+                               for (int j = 0; j < prcAst.minusLabels.size(); j++) {
+                                   wfPrcSB.append(prcAst.minusLabels.elementAt(j));
+                                   if (j == prcAst.minusLabels.size() - 1) {
+                                       wfPrcSB.append("\"}");
+                                   } else {
+                                       wfPrcSB.append("\", \"");
+                                   }
+                               }
+                           }
+                           wfPrcSB.append(") /\\ ");
+                       }
+    
+                       String prcName = pe.name + "(" + qSelf + ", " + (it+1) + ")";
+                       wfPrcSB.append(prcName);
+                       wfPrcSB.append(")");
+                                          
+                       StringBuffer sfPrcSB = null;
+                       if (    xf.equals("WF") 
+                           && (prcAst.plusLabels != null) 
+                           && (prcAst.plusLabels.size() != 0)) {
+                           sfPrcSB = new StringBuffer() ;
+                           for (int j = 0; j < prcAst.plusLabels.size(); j++) {
+                               if (j != 0) {
+                                   sfPrcSB.append(" /\\ ");
+                               }
+                               sfPrcSB.append("SF_vars(");
+                               sfPrcSB.append(prcAst.plusLabels.elementAt(j));
+                               sfPrcSB.append("(" + qSelf + ", " + (it+1) + ")");
+                               sfPrcSB.append(")");
+                           }
+                       }
+                       prcdFormulas.addElement(
+                            new FormulaPair(
+                                    wfPrcSB.toString(), 
+                                    (sfPrcSB == null) ? null : sfPrcSB.toString())
+                          ) ;
+                     } // end construction of prcdFormulas
+        	       
+        	       procFairnessFormulas.addElement(
+        	         new ProcessFairness(
+        	                 xf, 
+        	                 prefix, 
+        	                 wfSB.toString(), 
+        	                 (sfSB == null) ? null : sfSB.toString(), 
+        	                 prcdFormulas)
+        	              ) ;
+               } // end if (fairness != AST.UNFAIR_PROC)
+           } // end for on threads
+             } else {
+               
         	   int fairness = pAst.fairness;
         	   if (fairness != AST.UNFAIR_PROC) {
         		   String xf = (fairness == AST.WF_PROC) ? "WF" : "SF";
         		   
                    Vector pSelf = p.id.toStringVector();
-                   
                    // makeLetIn is true iff prefix will be LET self == ... IN
                    boolean makeLetIn = false ;
                    
@@ -3406,13 +3580,7 @@ public class PcalTLAGen
                            prefixEnd = "";
                        } else {
                            prefixBegin = "\\A self \\in ";
-                           // For Distributed Pluscal.
-                           // HC: no need to quantify on subprocesses (since pc not involved in Spec)
-                           // if (PcalParams.distpcalFlag){
-                             // prefixEnd = " : \\A subprocess \\in SubProcSet[self] : ";
-                           // } else { // end For Distributed PlusCal
-                             prefixEnd = " : ";
-                           // }
+                           prefixEnd = " : ";
                        }
                        String padding = NSpaces(prefixBegin.length());
                        for (int j = 0; j < prefixSize; j++) {
@@ -3472,6 +3640,7 @@ public class PcalTLAGen
         		           }
         		           sfSB.append("SF_vars(");
         		           sfSB.append(pAst.plusLabels.elementAt(j));
+                       
         		           if (!p.isEq) {
         		               sfSB.append("(self)");
         		           }
@@ -3512,10 +3681,6 @@ public class PcalTLAGen
                        }
     
                        String prcName = pe.name + "(" + qSelf + ")";
-                       //For Distributed PlusCal
-                       if(PcalParams.distpcalFlag) {
-                    	   prcName = pe.name + "(" + qSelf + ", subprocess)";
-                       } // end For Distributed PlusCal
                        wfPrcSB.append(prcName);
                        wfPrcSB.append(")");
                                           
@@ -3550,7 +3715,8 @@ public class PcalTLAGen
         	                 prcdFormulas)
         	              ) ;
                } // end if (fairness != AST.UNFAIR_PROC)
-           } 	   
+             } // end For Distributed PlusCal
+           }
         } // ends construction of procFairnessFormulas
            
         if (wfNextConj == null && procFairnessFormulas.size() == 0) {
