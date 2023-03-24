@@ -3430,7 +3430,7 @@ public class PcalTLAGen
                            prefix.addElement("IN ");
                        }
         		   } // end if (makeLetIn || !p.isEq)
-        		   
+
         		   StringBuffer wfSB = new StringBuffer(xf + "_vars(");
         		   if (tAst.minusLabels != null && tAst.minusLabels.size() > 0) {
         		       wfSB.append("(pc[");
@@ -3496,13 +3496,13 @@ public class PcalTLAGen
                            wfPrcSB.append("(pc[");
                            wfPrcSB.append(qSelf);
                            if (prcAst.minusLabels.size() == 1) {
-                               wfSB.append("]["+(it+1)+"]");
-                               wfSB.append(" # \"");
+                               wfPrcSB.append("]["+(it+1)+"]");
+                               wfPrcSB.append(" # \"");
                                wfPrcSB.append(prcAst.minusLabels.elementAt(0));
                                wfPrcSB.append("\"");
                            } else {
-                               wfSB.append("]["+(it+1)+"]");
-                               wfSB.append(" \\notin {\"");
+                               wfPrcSB.append("]["+(it+1)+"]");
+                               wfPrcSB.append(" \\notin {\"");
                                for (int j = 0; j < prcAst.minusLabels.size(); j++) {
                                    wfPrcSB.append(prcAst.minusLabels.elementAt(j));
                                    if (j == prcAst.minusLabels.size() - 1) {
