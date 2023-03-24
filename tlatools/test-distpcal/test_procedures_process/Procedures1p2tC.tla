@@ -8,8 +8,7 @@ N == 2
 \* CONSTANT Nodes     (* Set of process indexes *)
 Nodes == 1 .. N
  
-(*
---algorithm Dummy {
+(*--algorithm Dummy {
 variable c = 0;
 
 procedure f(x)
