@@ -86,6 +86,11 @@
 - two processes (1 and n instances) each with 2 threads
 - each process has local variables
 
+*** NProcesses2ThreadsFairnessWfC
+- 2 processes (1 with IN, 1 with =), each with 2 threads
+- processes are WF
+- one or two labels are - and +
+
 
 ** Test Procedures with Processes
 
