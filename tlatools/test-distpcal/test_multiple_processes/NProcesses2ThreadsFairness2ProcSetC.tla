@@ -51,7 +51,9 @@ PROCSet == 1..2
 {
     "need-error-parse": false,
     "need-error-check": false,
-    "model-checking-args": {},
-    "compare_to": "test_multiple_processes/NProcesses2ThreadsSfC.tla"
+    "model-checking-args": {
+        "defaultInitValue": 0
+    },
+    "compare_to": "test_multiple_processes/NProcesses2ThreadsFairness2ProcSetC.tla"
 }
 

@@ -70,7 +70,7 @@ def run_parsing(tla_file_path):
 def run_checking(tla_file_path, args):
 
     # create the command
-    cmd = ["java", "-jar", jar_check, "-metadir", tla_file_path+"_metadir/", tla_file_path]
+    cmd = ["java", "-XX:+UseParallelGC", "-jar", jar_check, "-metadir", tla_file_path+"_metadir/", tla_file_path]
     for a in args:
         cmd.append(a)
 
