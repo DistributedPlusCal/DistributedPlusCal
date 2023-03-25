@@ -8,8 +8,7 @@ N == 5
 
 (* PlusCal options (-distpcal) *)
  
-(*
---algorithm Dummy {
+(*--algorithm Dummy {
 variable c = 0,
          acc = [i \in 0 .. N |-> 0];
 

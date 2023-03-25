@@ -3,8 +3,7 @@ EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
  
-(*
---algorithm Dummy {
+(*--algorithm Dummy {
 variable c = 0, lp = 10, res = 1;
 
 procedure f(x)
