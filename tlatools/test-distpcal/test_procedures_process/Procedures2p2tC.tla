@@ -1,11 +1,11 @@
------------------------- MODULE Procedures2p1tC -------------------------
+------------------------ MODULE Procedures2p2tC -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-distpcal) *)
 
-\* CONSTANT N           (* Size of arrays *)
+\* CONSTANT N 
 N == 2
-\* CONSTANT Nodes     (* Set of process indexes *)
+\* CONSTANT Nodes
 Nodes == 1 .. N
  
 (*--algorithm Dummy {
@@ -15,34 +15,40 @@ procedure f(x)
 variable lv = 0;
 {
     Add:
+        lv := lv + x;
         c := x + 1;
-				lv := lv + 2;
-				x := lv + 3;
         return;
 }
 
-process (id = N+1)
+process (pid \in Nodes)
 variable lp = 10, res = 1;
 {
-   Before:
-	      lp := lp + 1;
-   Sdr:
+    Before:
+	    lp := lp + 1;
+    Sdr:
         call f(lp);
-	 After:
-	      res := lp;
+    After:
+	    res := lp;
 } 
-
-process (idm \in Nodes)
-variable lpS = 10, resS = 1;
 {
-   BeforeS:
-	      lpS := lpS + 1;
-   SdrS:
-        call f(lpS);
-	 AfterS:
-	      resS := lpS;
+    BeforeS:
+	    lp := lp + 1;
+    SdrS:
+        call f(lp);
+	AfterS:
+	    res := lp;
 } 
 
+process (qid = N+1)
+variable lq = 11, resq = 4;
+{
+    Beforeq:
+	    lq := lq + 1;
+    Sdrq:
+        call f(lq);
+    Afterq:
+	    resq := lq;
+} 
 } 
 *)
 =============================================================================

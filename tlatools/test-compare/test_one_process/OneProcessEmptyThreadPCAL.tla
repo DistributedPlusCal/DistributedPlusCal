@@ -13,7 +13,7 @@ end process
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c675110e" /\ chksum(tla) = "c1fed77d")
+\* BEGIN TRANSLATION (chksum(pcal) = "b9dc3160" /\ chksum(tla) = "3cde1cee")
 VARIABLE i
 
 vars == << i >>
@@ -30,9 +30,10 @@ pid == pid1
 Next == pid
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(pid)
+        /\ WF_vars(pid1)
 
 \* END TRANSLATION 
+
 =============================================================================
 {
     "need-error-parse": false,

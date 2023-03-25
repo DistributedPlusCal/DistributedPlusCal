@@ -32,7 +32,7 @@ process ( pid2 = 1 )
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "f280988e" /\ chksum(tla) = "cb63a88e")
+\* BEGIN TRANSLATION (chksum(pcal) = "8aec4da3" /\ chksum(tla) = "1fc45fc3")
 VARIABLES ar, x, found, i, pc
 
 vars == << ar, x, found, i, pc >>
@@ -87,8 +87,8 @@ Next == pid2
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 2..3 : WF_vars(pid1(self))
-        /\ WF_vars(pid2)
+        /\ \A self \in 2..3 : WF_vars(pid11(self))
+        /\ WF_vars(pid21)
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 

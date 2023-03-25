@@ -39,7 +39,7 @@ variables lvpid2 = 10;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "835eccf4" /\ chksum(tla) = "6bdb0dbf")
+\* BEGIN TRANSLATION (chksum(pcal) = "cf72d703" /\ chksum(tla) = "e8d2d2e5")
 VARIABLES ar, x, found, i, pc, lvpid1, lvpid2
 
 vars == << ar, x, found, i, pc, lvpid1, lvpid2 >>
@@ -101,8 +101,9 @@ Next == pid2
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in PROCSet : WF_vars(pid1(self))
-        /\ WF_vars(pid2)
+        /\ \A self \in PROCSet : WF_vars(pid11(self))
+        /\ \A self \in PROCSet : WF_vars(pid12(self))
+        /\ WF_vars(pid21)
 
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
