@@ -90,6 +90,18 @@
 - 2 processes (1 with IN, 1 with =), each with 2 threads
 - processes are WF
 - one or two labels are - and +
+*** NProcesses2ThreadsFairness1ProcC
+- 2 processes (1 with IN, 1 with =), each with 2 threads
+- processes are WF and SF
+- and call one procedure with labels are - and +
+*** NProcesses2ThreadsFairness2ProcC
+- 1 processes with IN with 2 threads
+- process is WF
+- and calls two procedures with labels are - and +
+*** NProcesses2ThreadsFairness2IdC
+- 1 processes with = with 2 threads
+- process is WF
+- and calls two procedures with labels are - and +
 
 
 ** Test Procedures with Processes
