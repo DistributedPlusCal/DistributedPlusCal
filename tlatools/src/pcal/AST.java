@@ -1093,6 +1093,17 @@ public class AST
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
    	public abstract Vector clear(Channel channel) throws ParseAlgorithmException;
 
+     @Override
+     public String toString()
+     { String dimensions = this.dimensions == null ? "[]" : this.dimensions.toString();
+       return
+         Indent(lineCol()) +
+                    "[var |-> \"" + var + "\", " +
+                    "eqOrIn |-> " + boolToEqOrIn(isEq) + ", " +
+                    "val |-> " + val.toString() +  ", " +
+                    "dim |-> " + dimensions + "]" +
+         EndIndent() ;
+     }
    }
    
    public static class UnorderedChannel extends Channel{
@@ -1118,7 +1129,8 @@ public class AST
 
    		expr.addLine();
       
-      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+                            || channel.dimensions.size() == 0)  ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
 
    		expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
@@ -1229,7 +1241,8 @@ public class AST
 			expr = new TLAExpr();
 			expr.addLine();
 
-      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+                            || channel.dimensions.size() == 0) ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
 
 			expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
@@ -1622,7 +1635,8 @@ public class AST
 			
 			expr.addLine();
       
-      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+                            || channel.dimensions.size() == 0) ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(" Append(" + prevChannel + ", ")); 
 
       for(int i = 0; i < msg.tokens.size(); i++) {
@@ -1751,7 +1765,8 @@ public class AST
 			expr = new TLAExpr();
 			expr.addLine();
 
-      String prevChannel = (channel.dimensions == null) ? channelName : "@";
+      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+                            || channel.dimensions.size() == 0) ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + prevChannel + ") ")); 
 
 			sass.rhs = expr;

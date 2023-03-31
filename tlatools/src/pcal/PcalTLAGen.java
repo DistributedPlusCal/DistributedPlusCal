@@ -4576,7 +4576,8 @@ public class PcalTLAGen
         //For Distributed PlusCal
         // HC: fix bug FIFO (06/04/21)
         if((decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel)
-           && ((Channel) decl).dimensions != null) {
+           && ((Channel) decl).dimensions != null // eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+           && ((Channel) decl).dimensions.size() != 0) {
           RewriteVarDeclDimensions(((Channel)decl));
         } // end For Distributed PlusCal
         addExprToTLA(decl.val);

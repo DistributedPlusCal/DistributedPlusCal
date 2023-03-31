@@ -355,10 +355,10 @@ public class ParseAlgorithm
        //For Distributed PlusCal
        if (PcalParams.distpcalFlag)  {
          if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("channels") ) {
-           vdecls.addAll(GetChannelDecls("channel",CHANNEL_TYPE_UNORDERED));
+           vdecls.addAll(GetChannelDecls());
          }
          if ( PeekAtAlgToken(1).equals("fifo") || PeekAtAlgToken(1).equals("fifos")) {
-           vdecls.addAll(GetChannelDecls("fifo",CHANNEL_TYPE_FIFO));
+           vdecls.addAll(GetChannelDecls());
          }
        }
        // end For Distributed PlusCal	
@@ -1074,6 +1074,7 @@ public class ParseAlgorithm
          * declarations to be separated by commas.                         *
          ******************************************************************/
        pv.setOrigin(new Region(beginLoc, endLoc));
+       // System.out.println("VAR dec: "+pv);
        return pv ;
      }
 
@@ -4779,22 +4780,17 @@ public class ParseAlgorithm
    }
 
    //For Distributed PlusCal	
-  public static Vector GetChannelDecls(String decl, String type) throws ParseAlgorithmException {
+  public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
 		String channelType = "";
-
-		if (tok.equals(decl) || tok.equals(decl+"s")) {
-			channelType = type;
-		} else {
-			//no channels to read
-			return new Vector();
-		}
 		
-		if (tok.equals(decl) || tok.equals(decl+"s")) {
+		if (tok.equals("channel") || tok.equals("channels")) {
 			MustGobbleThis(tok);
-		} else {
+			channelType = CHANNEL_TYPE_UNORDERED;
+		} else { // only fifo alternative available so far
 			GobbleThis(tok);
+			channelType = CHANNEL_TYPE_FIFO;
 		}
 
 		Vector result = new Vector();
@@ -4814,36 +4810,93 @@ public class ParseAlgorithm
 
   
    	//For Distributed PlusCal	
-	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
+	// // public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
 
-		AST.Channel pv;
+		// AST.Channel pv;
+		// if (channelType.equals(CHANNEL_TYPE_UNORDERED)) {
+			// pv = new AST.UnorderedChannel();
+			// pv.val = PcalParams.DefaultChannelInit();
+		// } else if (channelType.equals(CHANNEL_TYPE_FIFO)) {
+			// pv = new AST.FIFOChannel();
+			// pv.val = PcalParams.DefaultFifoInit();
+		// } else {
+			// // specify a default type (or throw exception)
+			// pv = null;
+			// hasDefaultInitialization = true;
+		// }
+
+		// pv.var = GetAlgToken();
+		// pv.isEq = true;		
+		
+		// PCalLocation beginLoc = GetLastLocationStart();
+		// PCalLocation endLoc = GetLastLocationEnd();
+		// pv.col = lastTokCol;
+		// pv.line = lastTokLine;
+		
+		// if (PeekAtAlgToken(1).equals("[")) {
+
+			// GobbleThis("[");
+			// pv.dimensions = new ArrayList<>();
+			// pv.dimensions.add(GetAlgToken());
+
+			// String next = PeekAtAlgToken(1);
+			
+			// //for one dimensional channels
+			// if(next.equals("]")) {
+				// GobbleThis("]");
+			// } else {
+				// while(!next.equals("]")) {
+					// if(next.equals(",")) {
+						// GobbleThis(",");
+						// next = PeekAtAlgToken(1);
+						// continue;
+					// } else {
+						// pv.dimensions.add(GetAlgToken());
+						// next = PeekAtAlgToken(1);
+					// }
+				// }
+
+				// GobbleThis("]");
+			// }
+		// }
+		
+		// GobbleCommaOrSemicolon();
+
+		// /******************************************************************
+		 // * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
+		 // * separated by commas. *
+		 // ******************************************************************/
+		// pv.setOrigin(new Region(beginLoc, endLoc));
+    // System.out.println("VAR dec: "+pv);
+		// return pv;
+	// }
+
+  	
+	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException
+  {	AST.Channel pv;
 		if (channelType.equals(CHANNEL_TYPE_UNORDERED)) {
 			pv = new AST.UnorderedChannel();
 			pv.val = PcalParams.DefaultChannelInit();
-		} else if (channelType.equals(CHANNEL_TYPE_FIFO)) {
+		} else { // suppose that the only alternative is CHANNEL_TYPE_FIFO
 			pv = new AST.FIFOChannel();
 			pv.val = PcalParams.DefaultFifoInit();
-		} else {
-			// specify a default type (or throw exception)
-			pv = null;
-			hasDefaultInitialization = true;
 		}
-
 		pv.var = GetAlgToken();
-		pv.isEq = true;		
-		
+		pv.isEq = true;	 // in fact, never assigned
 		PCalLocation beginLoc = GetLastLocationStart();
 		PCalLocation endLoc = GetLastLocationEnd();
 		pv.col = lastTokCol;
 		pv.line = lastTokLine;
 		
+			pv.dimensions = new ArrayList<>();
 		if (PeekAtAlgToken(1).equals("[")) {
 
 			GobbleThis("[");
-			pv.dimensions = new ArrayList<>();
+      // pv.val = GetExpr() ; 
 			pv.dimensions.add(GetAlgToken());
 
 			String next = PeekAtAlgToken(1);
+      System.out.println("NEXT: "+next);
 			
 			//for one dimensional channels
 			if(next.equals("]")) {
