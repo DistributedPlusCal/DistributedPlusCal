@@ -1074,7 +1074,6 @@ public class ParseAlgorithm
          * declarations to be separated by commas.                         *
          ******************************************************************/
        pv.setOrigin(new Region(beginLoc, endLoc));
-       // System.out.println("VAR dec: "+pv);
        return pv ;
      }
 
@@ -1315,13 +1314,10 @@ public class ParseAlgorithm
          {
            //For Distributed pluscal
            if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
-             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
              return getSendToChannelCall(nextTok);
            } else if(nextTok.equals("receive")) {
-             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
              return getReceiveFromChannelCall(nextTok);
            } else if(nextTok.equals("clear")) {
-             PcalDebug.reportInfo("Found pre-defined  : " + nextTok);
              return getClearChannelCall(nextTok);
            } else { // end For Distributed PlusCal
              return GetMacroCall() ;
@@ -4807,70 +4803,6 @@ public class ParseAlgorithm
 		}
 		return result;
 	}
-
-  
-   	//For Distributed PlusCal	
-	// // public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException {
-
-		// AST.Channel pv;
-		// if (channelType.equals(CHANNEL_TYPE_UNORDERED)) {
-			// pv = new AST.UnorderedChannel();
-			// pv.val = PcalParams.DefaultChannelInit();
-		// } else if (channelType.equals(CHANNEL_TYPE_FIFO)) {
-			// pv = new AST.FIFOChannel();
-			// pv.val = PcalParams.DefaultFifoInit();
-		// } else {
-			// // specify a default type (or throw exception)
-			// pv = null;
-			// hasDefaultInitialization = true;
-		// }
-
-		// pv.var = GetAlgToken();
-		// pv.isEq = true;		
-		
-		// PCalLocation beginLoc = GetLastLocationStart();
-		// PCalLocation endLoc = GetLastLocationEnd();
-		// pv.col = lastTokCol;
-		// pv.line = lastTokLine;
-		
-		// if (PeekAtAlgToken(1).equals("[")) {
-
-			// GobbleThis("[");
-			// pv.dimensions = new ArrayList<>();
-			// pv.dimensions.add(GetAlgToken());
-
-			// String next = PeekAtAlgToken(1);
-			
-			// //for one dimensional channels
-			// if(next.equals("]")) {
-				// GobbleThis("]");
-			// } else {
-				// while(!next.equals("]")) {
-					// if(next.equals(",")) {
-						// GobbleThis(",");
-						// next = PeekAtAlgToken(1);
-						// continue;
-					// } else {
-						// pv.dimensions.add(GetAlgToken());
-						// next = PeekAtAlgToken(1);
-					// }
-				// }
-
-				// GobbleThis("]");
-			// }
-		// }
-		
-		// GobbleCommaOrSemicolon();
-
-		// /******************************************************************
-		 // * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
-		 // * separated by commas. *
-		 // ******************************************************************/
-		// pv.setOrigin(new Region(beginLoc, endLoc));
-    // System.out.println("VAR dec: "+pv);
-		// return pv;
-	// }
-
   	
 	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException
   {	AST.Channel pv;
@@ -4888,33 +4820,21 @@ public class ParseAlgorithm
 		pv.col = lastTokCol;
 		pv.line = lastTokLine;
 		
-			pv.dimensions = new ArrayList<>();
-		if (PeekAtAlgToken(1).equals("[")) {
+    pv.dimensions = new ArrayList<>();
+    boolean moreDimensions = PeekAtAlgToken(1).equals("[");
 
+    while (moreDimensions) {
 			GobbleThis("[");
-      // pv.val = GetExpr() ; 
-			pv.dimensions.add(GetAlgToken());
-
+      String nextDimension = "";
+      
 			String next = PeekAtAlgToken(1);
-      System.out.println("NEXT: "+next);
-			
-			//for one dimensional channels
-			if(next.equals("]")) {
-				GobbleThis("]");
-			} else {
-				while(!next.equals("]")) {
-					if(next.equals(",")) {
-						GobbleThis(",");
-						next = PeekAtAlgToken(1);
-						continue;
-					} else {
-						pv.dimensions.add(GetAlgToken());
-						next = PeekAtAlgToken(1);
-					}
-				}
-
-				GobbleThis("]");
-			}
+      while(!next.equals("]")) {
+        nextDimension += " "+GetAlgToken();
+        next = PeekAtAlgToken(1);
+      }
+      GobbleThis("]");
+      pv.dimensions.add(nextDimension);
+      moreDimensions = PeekAtAlgToken(1).equals("[");
 		}
 		
 		GobbleCommaOrSemicolon();
@@ -5199,7 +5119,6 @@ public class ParseAlgorithm
 		int i = 0;
 
 		while (nodeDecl != null && i < nodeDecl.size()) {
-			PcalDebug.reportInfo("While loop WAS NOT SUPPOSED to execute!!!!!!!!!");
 			AST.VarDecl tempVar = null;
 			try {
 				tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
@@ -5222,7 +5141,6 @@ public class ParseAlgorithm
 				AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
 
 				if (tempVar.var.equals(varName)) {
-					PcalDebug.reportInfo("found matching channel.");
 					chanVar = tempVar;
 				}
 				i = i + 1;
@@ -5233,7 +5151,6 @@ public class ParseAlgorithm
 				//throw an error
 			}
 		}
-		PcalDebug.reportInfo("found variable declaration name: " + chanVar);
 		return chanVar;
 	}
   // end For Distributed PlusCal
