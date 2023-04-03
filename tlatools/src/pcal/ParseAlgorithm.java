@@ -3272,6 +3272,8 @@ public class ParseAlgorithm
         if( PcalParams.distpcalFlag ){
           if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
             {
+              PcalDebug.reportInfo("HC ** SEND: "+stmt +" -- "+args+" / "+params);
+
               AST.ChannelSendCall chanstmt = (AST.ChannelSendCall) stmt;
               AST.ChannelSendCall result = new AST.ChannelSendCall();
               result.col  = chanstmt.col ;
@@ -3292,26 +3294,38 @@ public class ParseAlgorithm
                 result.isBroadcast = true;
               
               result.channelName = chanstmt.channelName;
-              // HC: if the channel nad for the operation is one of the parameters
+              result.callExp = chanstmt.callExp.cloneAndNormalize() ;
+              result.callExp.substituteForAll(args, params) ;
+              // HC: if the channel for the operation is one of the parameters
+              // substitute the name and the corresponding expression
               int ind = params.indexOf(chanstmt.channelName);
               if( ind != -1 ){
-                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
-                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
+                TLAExpr argChannel = (TLAExpr) args.elementAt(ind) ;
+                TLAToken tok = argChannel.tokenAt(new IntPair(0,0));
+
                 if( tok.type == TLAToken.IDENT ) {
                   result.channelName = tok.string;
                 }
+
+                // use the expression from the argumets
+                // (by removing the first token which is the name of the channel)
+                TLAExpr newExpr = argChannel.cloneAndNormalize();
+                ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
+                result.callExp = newExpr.cloneAndNormalize();
               }
-              
-              result.msg  = chanstmt.msg.cloneAndNormalize() ;
+
+              result.msg = chanstmt.msg.cloneAndNormalize() ;
               result.msg.substituteForAll(args, params) ;
-              result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
-              result.callExp.substituteForAll(args, params) ;
+
+              PcalDebug.reportInfo("HC ** SEND result: "+result);
 
               return result;
             } ;
 
           if ( stmt.getClass().equals( AST.ChannelReceiverObj.getClass() ) )
             {
+              PcalDebug.reportInfo("HC ** RECEIVE: "+stmt +" -- "+args+" / "+params);
+
               AST.ChannelReceiveCall chanstmt = (AST.ChannelReceiveCall) stmt;
               AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
               result.col  = chanstmt.col ;
@@ -3326,22 +3340,48 @@ public class ParseAlgorithm
 
               result.name = chanstmt.name;
               result.channelName = chanstmt.channelName;
-              // HC: if the channel nad for the operation is one of the parameters
+              result.callExp = chanstmt.callExp.cloneAndNormalize() ;
+              result.callExp.substituteForAll(args, params) ;
+              // HC: if the channel for the operation is one of the parameters
+              // substitute the name and the corresponding expression
               int ind = params.indexOf(chanstmt.channelName);
               if( ind != -1 ){
-                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
-                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
+                TLAExpr argChannel = (TLAExpr) args.elementAt(ind) ;
+                TLAToken tok = argChannel.tokenAt(new IntPair(0,0));
+
                 if( tok.type == TLAToken.IDENT ) {
                   result.channelName = tok.string;
                 }
-              }
-              
-              result.callExp  = chanstmt.callExp.cloneAndNormalize() ;
-              result.callExp.substituteForAll(args, params) ;
 
+                // use the expression from the argumets
+                // (by removing the first token which is the name of the channel)
+                TLAExpr newExpr = argChannel.cloneAndNormalize();
+                ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
+                result.callExp = newExpr.cloneAndNormalize();
+              }
               result.targetVarName = chanstmt.targetVarName;
-              result.targetExp  = chanstmt.targetExp.cloneAndNormalize() ;
+              result.targetExp = chanstmt.targetExp.cloneAndNormalize() ;
               result.targetExp.substituteForAll(args, params) ;
+
+              // HC: if the target variable is one of the parameters
+              // substitute the name and the corresponding expression
+              int indT = params.indexOf(chanstmt.targetVarName);
+              if( indT != -1 ){
+                TLAExpr argTarget = (TLAExpr) args.elementAt(indT) ;
+                TLAToken tok = argTarget.tokenAt(new IntPair(0,0));
+
+                if( tok.type == TLAToken.IDENT ) {
+                  result.targetVarName = tok.string;
+                }
+
+                // use the expression from the argumets
+                // (by removing the first token which is the name of the channel)
+                TLAExpr newExpr = argTarget.cloneAndNormalize();
+                ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
+                result.targetExp = newExpr.cloneAndNormalize();
+              }
+
+              PcalDebug.reportInfo("HC ** RECEIVE result: "+result);
 
               return result;
             } ;
@@ -4955,6 +4995,8 @@ public class ParseAlgorithm
 		while (i < stmtseq.size()) {
 			AST stmt = (AST) stmtseq.elementAt(i);
 
+      // System.out.println("HC ** original stmt: "+stmt);
+
 			if (stmt.getClass().equals(AST.LabelIfObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, globalDecls);
 				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, globalDecls);
@@ -4979,6 +5021,7 @@ public class ParseAlgorithm
 					j = j - 1;
 				}
 				i = i + expansion.size() - 1;
+        System.out.println("HC ** Final stmt: "+expansion);
 			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
 				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls);
 				stmtseq.remove(i);
@@ -5000,6 +5043,7 @@ public class ParseAlgorithm
 			}
 			i = i + 1;
 		}
+
 		return;
 	}
 	
@@ -5047,6 +5091,8 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
+
+    PcalDebug.reportInfo("ExpandReceiveCall: "+call.channelName+" -- "+call.targetVarName) ;
 
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);

@@ -129,3 +129,40 @@
 
 
 
+
+** Test Channels
+
+*** NoProcessChannels
+- no process
+- channel 0/1/2-dimensional
+- fifo 0/1/2-dimensional
+- send and receive on all channels
+
+*** TwoProcessesGlobalChannel
+- two processes
+- global channel and fifo
+- Channel/fifo declaration with dimension other than identifier (Nodes \cup {Id})
+- send/receive on channel
+
+*** OneProcessesThreadsMacrosChannel0dimension
+- two processes, multiple threads
+- global channel dimension 0
+- macros for send and receive
+
+*** OneProcessesThreadsMacrosChannelNdimension
+- same as OneProcessesThreadsMacrosChannel0dimension but with 1- and
+  2- dimensional channels
+
+*** TwoProcessesLocalChannel
+- two processes
+- LOCAL channel and fifo
+- BUG: can't have local definitions for channels
+
+*** TwoProcessesGlobalChannelBUG
+- destination of "receive" call is an array element
+- BUG: doesn't compile
+
+*** TwoProcessesGlobalChannelCLASH
+- local variables with same name in different processes
+- BUG: problem when renaming the variables in "send" call (and
+  probably "receive" call as well when fixed for previous bugs)
