@@ -1098,7 +1098,7 @@ public class AST
      { String dimensions = this.dimensions == null ? "[]" : this.dimensions.toString();
        return
          Indent(lineCol()) +
-                    "[var |-> \"" + var + "\", " +
+                    "[chan |-> \"" + var + "\", " +
                     "eqOrIn |-> " + boolToEqOrIn(isEq) + ", " +
                     "val |-> " + val.toString() +  ", " +
                     "dim |-> " + dimensions + "]" +
@@ -1202,23 +1202,9 @@ public class AST
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = targetVar.var;
+      sass.lhs.sub = targetExp.cloneAndNormalize();
 
 			TLAExpr expr = new TLAExpr();
-
-			if(targetExp.tokens != null) {
-				for(int i = 0; i < targetExp.tokens.size(); i++) {
-					Vector tv = (Vector) targetExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						expr.addToken(tok);
-					}
-				}
-				sass.lhs.sub = expr;
-			} else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-			
-			expr = new TLAExpr();
 			expr.addLine();
 			expr.addToken(PcalTranslate.IdentToken(tempVarName));
 
@@ -1560,7 +1546,7 @@ public class AST
 			sass.col  = col;
 			sass.lhs.var = channel.var;
 			sass.lhs.sub = new TLAExpr(new Vector());
-			
+
 			sass.setOrigin(this.getOrigin());
 
 			TLAExpr expr = new TLAExpr();
@@ -1667,7 +1653,6 @@ public class AST
 		
 		@Override
 		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
-
 			Vector result = new Vector();
 
 			TLAExpr exp = new TLAExpr();
@@ -1707,23 +1692,9 @@ public class AST
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = targetVar.var;
-
+      sass.lhs.sub = targetExp.cloneAndNormalize();
+      
 			TLAExpr expr = new TLAExpr();
-
-			if(targetExp.tokens != null) {
-				for(int i = 0; i < targetExp.tokens.size(); i++) {
-					Vector tv = (Vector) targetExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						expr.addToken(tok);
-					}
-				}
-				sass.lhs.sub = expr;
-			} else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-			
-			expr = new TLAExpr();
 			expr.addLine();
 			expr.addToken(PcalTranslate.BuiltInToken("Head("));
 			expr.addToken(PcalTranslate.IdentToken(channelName));

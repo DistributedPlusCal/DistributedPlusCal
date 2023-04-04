@@ -5092,11 +5092,8 @@ public class ParseAlgorithm
 	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
 			throws ParseAlgorithmException {
 
-    PcalDebug.reportInfo("ExpandReceiveCall: "+call.channelName+" -- "+call.targetVarName) ;
-
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
 		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);
-
 		if(targetVar == null) {
 			throw new ParseAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
 		}

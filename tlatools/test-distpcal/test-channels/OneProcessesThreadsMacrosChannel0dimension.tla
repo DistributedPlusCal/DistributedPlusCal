@@ -11,7 +11,8 @@ Id == 3
 variables ar = [ ind \in Nodes |-> 0 ],  
           cur = 22;
 
-channels ch, ch1[Nodes \cup {Id}], ch2[Nodes][Nodes];
+channels ch;
+fifo fif;
 
 macro sendMacro(chanName, im) {
 	send(chanName, im);
@@ -26,15 +27,19 @@ variable c = 3;
 	c := c+self;
     S:
     send(ch, c);
+    send(fif, c);
     SM:
     c := c+50;
-    sendMacro(ch,c); 
+    sendMacro(ch,c);
+    sendMacro(fif,c);
 }
 {
     R:
     receive(ch, cur);
+    receive(fif, cur);
     RM:
     receiveMacro(ch, cur);
+    receiveMacro(fif, cur);
 }
 
 }
