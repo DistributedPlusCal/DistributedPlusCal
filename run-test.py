@@ -19,6 +19,8 @@ jar_sanity =  "tlatools/dist/tla2tools.jar"
 
 # path where all the tests are located
 main_path = "tlatools/test-distpcal"
+# the sub-paths where the tests are located, all of them by default
+specific_path = "**"
 # path where all pre-compiled specifications are located
 compare_path = "tlatools/test-compare"
 # path where all result are saved
@@ -252,7 +254,7 @@ def process_result(test_name,completed_process,phase,need_error):
 # - - - - - - - - - - - - - - - - - - - - -
 # Check command line arguments
 def check_args():
-    global jar_parse, jar_check, verbose_level, main_path, do_check, do_compare, delete_generated, output_to_file
+    global jar_parse, jar_check, verbose_level, main_path, specific_path, do_check, do_compare, delete_generated, output_to_file
     i = 0
     while i < len(sys.argv):
         if sys.argv[i] in ('-h', "--help"):
@@ -282,6 +284,12 @@ def check_args():
                 exit()
             i += 1
             main_path = sys.argv[i]
+        elif sys.argv[i] in ("-sp", "--specific_path"):
+            if i+1 >= len(sys.argv):
+                print("error: need value after option", sys.argv[i])
+                exit()
+            i += 1
+            specific_path = sys.argv[i]
         elif sys.argv[i] in ("-o", "--output"):
             output_to_file = True
         elif sys.argv[i] in ("-dck", "--disable_check"):
@@ -300,7 +308,7 @@ check_args()
 
 # setup path variables
 jar_file = os.path.join(os.getcwd(), jar_parse)
-test_path = os.path.join(os.getcwd(), main_path)
+test_path = os.path.join(os.path.join(os.getcwd(), main_path),specific_path)
 
 nb_test = {}
 nb_test['comp'] = 0
@@ -312,7 +320,8 @@ nb_test['compare_ok'] = 0
 
 # get all tla test files
 tests = {}
-tmp_files = sorted(glob.glob(os.path.join(test_path, "**/*.tla"), recursive = True))
+
+tmp_files = sorted(glob.glob(os.path.join(test_path, "*.tla"), recursive = True))
 for f in tmp_files:
     base_name = os.path.basename(f)
     if not base_name.startswith(GEN_FILE_PREFIX) and os.path.isfile(f):
