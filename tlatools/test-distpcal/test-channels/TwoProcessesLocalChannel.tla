@@ -10,6 +10,7 @@ Id == 3
 variable cur = "none";
 channel chan[Nodes];
 
+\* can't declare channels locally (so far)
 process ( w \in Nodes )
 variable c = 3;
 fifos fifs[Nodes];
@@ -23,6 +24,7 @@ fifos fifs[Nodes];
     receive(fifs[self], cur);
 }
 
+\* can't declare channels locally (so far)
 process ( v = Id )
 variable d = 4;
 channel ch[Nodes];
@@ -37,7 +39,7 @@ channel ch[Nodes];
 *)
 ==========================================================
 {
-    "need-error-parse": false,
+    "need-error-parse": true,
     "need-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {  }
