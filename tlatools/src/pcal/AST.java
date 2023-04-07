@@ -1122,7 +1122,7 @@ public class AST
    		TLAExpr expr = new TLAExpr();
 
    		if(callExp.tokens != null) {
-   			sass.lhs.sub = callExp;
+        sass.lhs.sub = callExp.cloneAndNormalize();
    		}else {
    			sass.lhs.sub = new TLAExpr(new Vector());
    		}
@@ -1143,8 +1143,8 @@ public class AST
    				expr.addToken(tok);
    			}
    		}
-
    		expr.addToken(PcalTranslate.BuiltInToken("}"));
+      expr.normalize();
    		sass.rhs = expr;
 
    		sass.setOrigin(this.getOrigin());
@@ -1172,17 +1172,16 @@ public class AST
 
 			TLAExpr exp = new TLAExpr();
 
+      // with freshVar \in chanName[dim] do <assign>
 			AST.With with = new AST.With();
 			with.col = line;
 			with.line = col;
 			with.var = tempVarName;
 			with.isEq = false;
-
+      // chanName[dim]
 			exp = new TLAExpr();
 			exp.addLine();
-
 			exp.addToken(PcalTranslate.IdentToken(channelName));
-
 			if(callExp.tokens != null) {
 				for(int i = 0; i < callExp.tokens.size(); i++) {
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
@@ -1192,41 +1191,45 @@ public class AST
 					}
 				}
 			}
-			
+      exp.normalize();
 			with.exp = exp;
 			with.setOrigin(this.getOrigin());
-
-			Vector doBody = new Vector();
-
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = targetVar.var;
-      sass.lhs.sub = targetExp.cloneAndNormalize();
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-			expr.addToken(PcalTranslate.IdentToken(tempVarName));
-
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-
+      // assign = <sass1> + <sass2>
 			AST.Assign assign = new AST.Assign();
 			assign.ass = new Vector();
 			assign.line = line ;
 			assign.col  = col ;
 			assign.setOrigin(this.getOrigin());
-
+      // sass1 = targetVar := freshVar
+			AST.SingleAssign sass = new AST.SingleAssign();
+			sass.line = line;
+			sass.col  = col;
+      // targetVar
+			sass.lhs.var = targetVar.var;
+      sass.lhs.sub = targetExp.cloneAndNormalize();
+      // freshVar
+			TLAExpr expr = new TLAExpr();
+			expr.addLine();
+			expr.addToken(PcalTranslate.IdentToken(tempVarName));
+      expr.normalize();
+			sass.rhs = expr;
+			sass.setOrigin(this.getOrigin());
+      // set sass1
 			assign.ass.addElement(sass);
-
+      // sass2 = chanName[dim] :=
 			sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
+      // chanName[dim]
 			sass.lhs.var = channelName;
-
+			if(callExp.tokens != null) {
+				sass.lhs.sub = callExp.cloneAndNormalize();
+			}else {
+				sass.lhs.sub = new TLAExpr(new Vector());
+			}
+      // chanName/@ \ { freshVar }
 			expr = new TLAExpr();
 			expr.addLine();
-
       String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
                             || channel.dimensions.size() == 0) ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
@@ -1235,19 +1238,16 @@ public class AST
 			expr.addToken(PcalTranslate.BuiltInToken("{"));
 			expr.addToken(PcalTranslate.IdentToken(tempVarName));
 			expr.addToken(PcalTranslate.BuiltInToken("}"));
-
+      expr.normalize();
 			sass.rhs = expr;
-
-			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp;
-			}else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-
 			sass.setOrigin(this.getOrigin());
+      // set sass2
 			assign.ass.addElement(sass);
+      // set body for With
+			Vector doBody = new Vector();
 			doBody.addElement(assign);
 			with.Do = doBody;
+      // set result
 			result.addElement(with);
 
 			return result;
@@ -1614,7 +1614,7 @@ public class AST
 			TLAExpr expr = new TLAExpr();
 			
 			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp;
+				sass.lhs.sub = callExp.cloneAndNormalize();
 			}else {
 				sass.lhs.sub = new TLAExpr(new Vector());
 			}
@@ -1632,8 +1632,8 @@ public class AST
           expr.addToken(tok);
         }
       }
-      
 			expr.addToken(PcalTranslate.BuiltInToken(")"));
+      expr.normalize();
 			sass.rhs = expr;
 
 			sass.setOrigin(this.getOrigin());
@@ -1657,16 +1657,15 @@ public class AST
 
 			TLAExpr exp = new TLAExpr();
 
+      // when (Len(chanName[dim]) > 0) <headAssign> <tailAssign>
 			AST.When when = new AST.When();
 			when.col = line;
 			when.line = col;
-
+      // Len(chanName[dim]) > 0
 			exp = new TLAExpr();
 			exp.addLine();
-
 			exp.addToken(PcalTranslate.BuiltInToken("Len("));
 			exp.addToken(PcalTranslate.IdentToken(channelName));
-			
 			if(callExp.tokens != null) {
 				for(int i = 0; i < callExp.tokens.size(); i++) {
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
@@ -1676,29 +1675,27 @@ public class AST
 					}
 				}
 			}
-			
 			exp.addToken(PcalTranslate.BuiltInToken(") > 0 "));
-
+      exp.normalize();
 			when.exp = exp;
 			when.setOrigin(this.getOrigin());
-
+      // <headAssign> = targetVar := Head(chanName[dim])
 			AST.Assign headAssign = new AST.Assign();
 			headAssign.ass = new Vector();
 			headAssign.line = line ;
 			headAssign.col  = col ;
 			headAssign.setOrigin(this.getOrigin());
-			
+			// targetVar
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = targetVar.var;
       sass.lhs.sub = targetExp.cloneAndNormalize();
-      
+      // Head(chanName[dim])
 			TLAExpr expr = new TLAExpr();
 			expr.addLine();
 			expr.addToken(PcalTranslate.BuiltInToken("Head("));
 			expr.addToken(PcalTranslate.IdentToken(channelName));
-			
 			if(callExp.tokens != null) {
 				for(int i = 0; i < callExp.tokens.size(); i++) {
 					Vector tv = (Vector) callExp.tokens.elementAt(i);
@@ -1708,42 +1705,40 @@ public class AST
 					}
 				}
 			}
-			
 			expr.addToken(PcalTranslate.BuiltInToken(")"));
-
+      expr.normalize();
 			sass.rhs = expr;
 			sass.setOrigin(this.getOrigin());
-
+      // set headAssign
 			headAssign.ass.addElement(sass);
-
+      // <tailAssign> = chanName[dim] := Tail(chanName[dim]/@)
 			AST.Assign tailAssign = new AST.Assign();
 			tailAssign.ass = new Vector();
 			tailAssign.line = line ;
 			tailAssign.col  = col ;
 			tailAssign.setOrigin(this.getOrigin());
-			
+			// chanName[dim]
 			sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channelName;
-
 			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp;
+				sass.lhs.sub = callExp.cloneAndNormalize();
 			} else {
 				sass.lhs.sub = new TLAExpr(new Vector());
 			}
-			
+      // Tail(chanName[dim]/@)
 			expr = new TLAExpr();
 			expr.addLine();
-
       String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
                             || channel.dimensions.size() == 0) ? channelName : "@";
       expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + prevChannel + ") ")); 
-
+      expr.normalize();
 			sass.rhs = expr;
-
 			sass.setOrigin(this.getOrigin());
+      // set tailAssign
 			tailAssign.ass.addElement(sass);
+      // set result
 			result.addElement(when);
 			result.addElement(headAssign);
 			result.addElement(tailAssign);

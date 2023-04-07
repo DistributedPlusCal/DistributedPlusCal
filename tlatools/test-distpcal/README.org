@@ -159,8 +159,6 @@
 - LOCAL channel and fifo
 - BUG: can't have local definitions for channels
 
-
 *** TwoProcessesGlobalChannelCLASH
 - local variables with same name in different processes
-- BUG: problem when renaming the variables in "send" call (and
-  probably "receive" call as well when fixed for previous bugs)
+
