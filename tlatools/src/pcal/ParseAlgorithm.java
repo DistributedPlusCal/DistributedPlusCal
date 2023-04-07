@@ -454,7 +454,7 @@ public class ParseAlgorithm
                    AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
                    
                    ExpandMacrosInStmtSeq(thread.body, multiproc.macros);
-                   ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls);
+                   ExpandChannelCallersInStmtSeq(thread.body, proc.decls, vdecls, null);
                    AddLabelsToStmtSeq(thread.body);
                    thread.body = MakeLabeledStmtSeq(thread.body);
                    
@@ -493,7 +493,7 @@ public class ParseAlgorithm
                //For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
                  //to expand the channel callers that are within a procedures body
-                 ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
+                 ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
                } // end For Distributed PlusCal	
                AddLabelsToStmtSeq(prcd.body);
                prcd.body = MakeLabeledStmtSeq(prcd.body);
@@ -561,7 +561,7 @@ public class ParseAlgorithm
            ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
            //For Distributed PlusCal
            if(PcalParams.distpcalFlag) {
-             ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls);
+             ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls, null);
            } // end For Distributed PlusCal
 // LL comment added 11 Mar 2006.
 // I moved the following to after processing the procedures
@@ -578,7 +578,7 @@ public class ParseAlgorithm
                //For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
                  //to expand the channel callers that are within a procedures body
-                 ExpandChannelCallersInStmtSeq(prcd.body, prcd.decls, vdecls);
+                 ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
                } // end For Distributed PlusCal
                AddLabelsToStmtSeq(prcd.body);
                prcd.body = MakeLabeledStmtSeq(prcd.body);
@@ -5034,30 +5034,31 @@ public class ParseAlgorithm
 	 * @param stmtseq
 	 * @param nodeDecls
 	 * @param globalDecls
+	 * @param procLocalDecls local variables of the procedure
 	 * @throws ParseAlgorithmException
 	 */
-	public static void ExpandChannelCallersInStmtSeq(Vector stmtseq, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
+	public static void ExpandChannelCallersInStmtSeq(Vector stmtseq, Vector nodeDecls, Vector globalDecls, Vector procLocalDecls) throws ParseAlgorithmException {
 		int i = 0;
 		while (i < stmtseq.size()) {
 			AST stmt = (AST) stmtseq.elementAt(i);
 
 			if (stmt.getClass().equals(AST.LabelIfObj.getClass())) {
-				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, globalDecls);
-				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, globalDecls);
+				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabThen, nodeDecls, globalDecls, procLocalDecls);
+				ExpandChannelCallersInStmtSeq(((AST.LabelIf) stmt).unlabElse, nodeDecls, globalDecls, procLocalDecls);
 			} else if (stmt.getClass().equals(AST.LabelEitherObj.getClass())) {
 				AST.LabelEither eNode = (AST.LabelEither) stmt;
 				int j = 0;
 				while (j < eNode.clauses.size()) {
-					ExpandChannelCallersInStmtSeq(((AST.Clause) eNode.clauses.elementAt(j)).unlabOr, nodeDecls,globalDecls);
+					ExpandChannelCallersInStmtSeq(((AST.Clause) eNode.clauses.elementAt(j)).unlabOr, nodeDecls,globalDecls, procLocalDecls);
 					j = j + 1;
 				}
 				;
 			} else if (stmt.getClass().equals(AST.WithObj.getClass())) {
-				ExpandChannelCallersInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls);
+				ExpandChannelCallersInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls, procLocalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
-				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls);
+				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls, procLocalDecls);
 			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls, procLocalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5066,7 +5067,7 @@ public class ParseAlgorithm
 				}
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls, procLocalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5075,7 +5076,7 @@ public class ParseAlgorithm
 				}
 				i = i + expansion.size() - 1;
 			} else if (stmt.getClass().equals(AST.ChannelClearObj.getClass())) {
-				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls);
+				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls, procLocalDecls);
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -5093,12 +5094,14 @@ public class ParseAlgorithm
 	/**
 	 * 
 	 * @param call
+	 * @param nodeDecls
+	 * @param globalDecls
+	 * @param procLocalDecls local variables of the procedure; not used so far
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls) throws ParseAlgorithmException {
-
-		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls);
+	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls, Vector procLocalDecls) throws ParseAlgorithmException {
+		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
 
 		Vector result = null;
 		if(call.isBroadcast) {
@@ -5129,14 +5132,19 @@ public class ParseAlgorithm
 	/**
 	 * 
 	 * @param call
+	 * @param nodeDecls
+	 * @param globalDecls
+	 * @param procLocalDecls local variables of the procedure; not used so far
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl)
+	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
 			throws ParseAlgorithmException {
 
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
-		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl);
+    // PcalDebug.reportInfo("** HC receive: "+ call);
+
+		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
+		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, procLocalDecls);
 		if(targetVar == null) {
 			throw new ParseAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
 		}
@@ -5155,19 +5163,23 @@ public class ParseAlgorithm
               last.macroOriginEnd = callOrigin.getEnd();
           }
         };
-        
+
 		return result;
 	}
 
 	/**
 	 * 
 	 * @param call
+	 * @param nodeDecls 
+	 * @param globalDecls
+	 * @param procParamsDecls parameters of the procedure
+	 * @param procLocalDecls local variables of the procedure
 	 * @return
 	 * @throws ParseAlgorithmException
 	 */
-	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl)
+	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
 			throws ParseAlgorithmException {
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl);
+		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
 
 		if(chanVar == null) {
 			PcalDebug.reportInfo("Throw error chanVar == null");
@@ -5200,44 +5212,45 @@ public class ParseAlgorithm
 	 * @param globalDecl
 	 * @return
 	 */
-	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl) {
-		VarDecl chanVar = null;
+	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls) {
+		VarDecl var = null;
+
 		int i = 0;
-
-		while (nodeDecl != null && i < nodeDecl.size()) {
-			AST.VarDecl tempVar = null;
-			try {
-				tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
-			} catch (ClassCastException e) {
-				//incase we are handling a call from a procedure body then the local procedure variables will be of type PVarChar
-				//skip this because it makes no sense that a channel is defined local to a procedure
-				break;
-			}
-			
+    // search in the process variables
+		while (var == null && nodeDecl != null && i < nodeDecl.size()) {
+			AST.VarDecl tempVar = (AST.VarDecl) nodeDecl.elementAt(i);
 			if (tempVar.var.equals(varName)) {
-				chanVar = tempVar;
+				var = tempVar;
 			}
-
 			i = i + 1;
 		};
 
-		if(chanVar == null) {
-			i = 0;
-			while (globalDecl != null && i < globalDecl.size()) {
-				AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
+    i = 0;
+    // search in the process variables
+    while (var == null && globalDecl != null && i < globalDecl.size()) {
+      AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
+      if (tempVar.var.equals(varName)) {
+        var = tempVar;
+      }
+      i = i + 1;
+    }
 
-				if (tempVar.var.equals(varName)) {
-					chanVar = tempVar;
-				}
-				i = i + 1;
-			}
+    i = 0;
+    // search in the local procedure variables
+    while (var == null && procLocalDecls != null && i < procLocalDecls.size()) {
+      AST.VarDecl tempVar = ((AST.PVarDecl)procLocalDecls.elementAt(i)).toVarDecl();
+      if (tempVar.var.equals(varName)) {
+        var = tempVar;
+      }
+      i = i + 1;
+    }
 
-			if(chanVar == null) {
-				PcalDebug.reportInfo("Throwing error from findVarDeclByVarName. ");
-				//throw an error
-			}
-		}
-		return chanVar;
+    // undeclared variable
+    if(var == null) {
+      PcalDebug.reportInfo("The variable "+varName+" has not been declared.");
+    }
+
+    return var;
 	}
   // end For Distributed PlusCal
 

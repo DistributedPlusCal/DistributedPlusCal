@@ -5,8 +5,7 @@ CONSTANT Nodes
 
 (* PlusCal options (-distpcal) *)
 
-(*
---algorithm dummy {
+(*--algorithm dummy {
 
 variables i = 1;
 

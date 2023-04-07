@@ -7,8 +7,7 @@ Nodes == 1 .. N
 
 (* PlusCal options (-distpcal) *)
 
-(*
---algorithm dummy {
+(*--algorithm dummy {
 
 variables i = 1;
 
