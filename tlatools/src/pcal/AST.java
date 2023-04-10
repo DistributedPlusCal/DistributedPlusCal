@@ -1379,85 +1379,82 @@ public class AST
 
 			Vector result = new Vector();
 
-			PcalDebug.reportInfo("Sending a multicast message for an Unordered channel : " + channelName);
-
+      // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
+      //                        IF v1 \in D1, v2 \in D2, ...
+      //                           THEN chan[v1,v2,...] \cup message
+      //                           ELSE chan[v1,v2,...]
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
-			sass.col  = col;
+			sass.col = col;
 			sass.lhs.var = channel.var;
-
 			sass.lhs.sub = new TLAExpr(new Vector<>());
 			
-			TLAExpr expr = new TLAExpr();
-
-
 			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>(); 
+			List dimensionTypes = new ArrayList<>();
+      int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
 
-			TLAExpr thenExp = new TLAExpr();
-			thenExp.addLine();
+			Vector thenExp = new Vector();
+			Vector elseExp = new Vector();
+      StringBuffer dt = new StringBuffer(); // store each dimensionType
 
-			TLAExpr elseExp = new TLAExpr();
-			elseExp.addLine();
-
+      // extract v1,v2,... and D1,D2,...
+      // prepare THEN (the message part)
 			for(int i = 0; i < msg.tokens.size(); i++) {
+				Vector line = (Vector) msg.tokens.elementAt(i);
+				for (int j = 0; j < line.size(); j++) {
+					TLAToken tok = (TLAToken) line.elementAt(j);
 
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-					if(tok.type == TLAToken.IDENT) {
-						
-						if(tok.string.equals("self")) {
-							dimensions.add(SELF);
-							//add to types just to maintain order between the 2 lists
-							dimensionTypes.add(SELF);
-
-						} else {
+          if(buildPhase == 0) {
+            if(tok.type == TLAToken.IDENT) {
 							dimensions.add(tok.string);
-
-							StringBuffer sb = new StringBuffer();
-							
-							//get the rest of the expression
-							tok = (TLAToken) tv.elementAt(++j);
-							while(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								sb.append(" " + tok.string);
-								tok = (TLAToken) tv.elementAt(++j);
-							}
-							dimensionTypes.add(sb.toString());
-						}
-					}
-
-					if(tok.string.equals("|->")) {
-						//everything after |-> is the expression we want to multicast
-						tok = (TLAToken) tv.elementAt(++j);
-
-						//while the next char is , -1 to excluse ] at the end
-						while(j < tv.size() - 1) {
-							thenExp.addToken((TLAToken) tv.elementAt(j));
-							j++;
-						}
-						break;
-					}
-				}
-			}
+							dt = new StringBuffer();
+              buildPhase = 1;
+            } else if(!tok.string.equals("[")) { // if not the leadin "["
+              PcalDebug.reportError("Bad format for message in multicast."+tok.string);
+            }
+          } else {
+            if(buildPhase == 1) {
+              //get the dimension type
+              if(!tok.string.equals(",") && !tok.string.equals("|->")) {
+								dt.append(" " + tok.string);
+							} else {
+                if(tok.string.equals(",")){ // next dimension
+                  dimensionTypes.add(dt.toString());
+                  buildPhase = 0;
+                } else {
+                  if (tok.string.equals("|->")) { // done with dimensions
+                    dimensionTypes.add(dt.toString());
+                    buildPhase = 2;
+                  }
+                }
+              }
+            } else { // buildPhase == 2, ie the expression we want to multicast
+              if (!tok.string.equals("]")) { // if not the ending "]"
+                  thenExp.add((TLAToken) line.elementAt(j));
+              }
+            }
+          }
+        }
+      }
 
 			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
-				throw new ParseAlgorithmException("multicast function expected " + channel.dimensions.size() +" dimentions ");
+			if(channel.dimensions != null
+         && dimensions.size() > 1 // if not using only one variable
+         && channel.dimensions.size() != dimensions.size()) { // then the number of variables should be that of the channel
+				throw new ParseAlgorithmException("Multicast function expected " + channel.dimensions.size() +" dimensions ");
 			}
-			
-			elseExp.addToken(PcalTranslate.IdentToken(channelName));
-			elseExp.addToken(PcalTranslate.IdentToken(dimensions.toString()));
 
-			expr = new TLAExpr();
+      // build ELSE:  channel[v1,v2,...]
+			elseExp.add(PcalTranslate.IdentToken(channelName));
+			elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
+
+			TLAExpr expr = new TLAExpr();
 			expr.addLine();
 
 			expr.addToken(PcalTranslate.BuiltInToken("["));
 
-			//get identifier used in the expression with \cup message
-			if(dimensions.size() == 1) {
+			// build <<v1,v2,...>> \in DOMAIN channelName |-> IF
+			if(dimensions.size() == 1) { // if only one dimension no need for sequence
 				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
 			} else {
 				expr.addToken(PcalTranslate.BuiltInToken("<<"));
@@ -1469,56 +1466,36 @@ public class AST
 			expr.addToken(PcalTranslate.IdentToken(channelName));
 			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 			expr.addToken(PcalTranslate.BuiltInToken(" IF "));
-
+      // build IF body
 			for(int i = 0; i < dimensions.size(); i++) {
-
-				if(dimensions.get(i).equals(SELF)) {
-					expr.addToken(PcalTranslate.IdentToken(SELF));
-					expr.addToken(PcalTranslate.BuiltInToken(" = self "));
-				} else {
-					expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-					expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-				}
-				
-				if(i != dimensions.size() -1) {
-					//fix indentation here, use a stringbuffer and spaceout 
-					expr.addLine();
+        expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
+        expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
+				if(i != dimensions.size() - 1) {
 					expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
 				}
 			}
-
+      expr.addLine();
+      // build THEN body 
+      // fix indentation here
 			expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
-
 			expr.addToken(PcalTranslate.IdentToken(channelName));
 			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-
-			expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
-			expr.addToken(PcalTranslate.BuiltInToken(" {"));
-			
-
-			for(int i = 0; i < thenExp.tokens.size(); i++) {
-
-				Vector tv = (Vector) thenExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
+			expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
+			expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
+      // insert the message part
+      for(int i = 0; i < thenExp.size(); i++) {
+					TLAToken tok = (TLAToken) thenExp.elementAt(i);
 					tok.column = 0;
-					expr.addToken(tok);
-				}
+          expr.addToken(tok);
 			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken("} "));
-
+			expr.addToken(PcalTranslate.BuiltInToken("} ")); // specific to Channel
+      expr.addLine();
 			expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
-
-			for(int i = 0; i < elseExp.tokens.size(); i++) {
-
-				Vector tv = (Vector) elseExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					expr.addToken(tok);
-				}
+      // insert the ELSE body
+			for(int i = 0; i < elseExp.size(); i++) {
+        TLAToken tok = (TLAToken) elseExp.elementAt(i);
+        expr.addToken(tok);
 			}
-
 			expr.addToken(PcalTranslate.BuiltInToken("]"));
 			expr.normalize();
 			sass.rhs = expr;
@@ -1870,152 +1847,126 @@ public class AST
 		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
-			PcalDebug.reportInfo("Sending a multicast message for a FIFOChannel : " + channelName);
 
+      // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
+      //                        IF v1 \in D1, v2 \in D2, ...
+      //                           THEN Append(chan[v1,v2,...], message)
+      //                           ELSE chan[v1,v2,...]
 			AST.SingleAssign sass = new AST.SingleAssign();
 			sass.line = line;
 			sass.col  = col;
 			sass.lhs.var = channel.var;
-
-			TLAExpr expr = new TLAExpr();
-
 			sass.lhs.sub = new TLAExpr(new Vector());
 
 			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>(); 
+			List dimensionTypes = new ArrayList<>();
+      int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
 
-			TLAExpr thenExp = new TLAExpr();
-			thenExp.addLine();
+			Vector thenExp = new Vector();
+			Vector elseExp = new Vector();
+      StringBuffer dt = new StringBuffer(); // store each dimensionType
 
-			TLAExpr elseExp = new TLAExpr();
-			elseExp.addLine();
-
+      // extract v1,v2,... and D1,D2,...
+      // prepare THEN (the message part)
 			for(int i = 0; i < msg.tokens.size(); i++) {
+				Vector line = (Vector) msg.tokens.elementAt(i);
+				for (int j = 0; j < line.size(); j++) {
+					TLAToken tok = (TLAToken) line.elementAt(j);
 
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					
-					if(tok.type == TLAToken.IDENT) {
-						
-						if(tok.string.equals("self")) {
-							dimensions.add(SELF);
-							//add to types just to maintain order between the 2 lists
-							dimensionTypes.add(SELF);
-
-						} else {
+          if(buildPhase == 0) {
+            if(tok.type == TLAToken.IDENT) {
 							dimensions.add(tok.string);
-
-							StringBuffer sb = new StringBuffer();
-							
-							//get the rest of the expression
-							tok = (TLAToken) tv.elementAt(++j);
-							while(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								sb.append(" " + tok.string);
-								tok = (TLAToken) tv.elementAt(++j);
-							}
-							dimensionTypes.add(sb.toString());
-						}
-					}
-
-					if(tok.string.equals("|->")) {
-						//everything after |-> is the expression we want to multicast
-						tok = (TLAToken) tv.elementAt(++j);
-
-						//while the next char is , -1 to excluse ] at the end
-						while(j < tv.size() - 1) {
-							thenExp.addToken((TLAToken) tv.elementAt(j));
-							j++;
-						}
-						break;
-					}
-				}
-			}
+							dt = new StringBuffer();
+              buildPhase = 1;
+            } else if(!tok.string.equals("[")) { // if not the leadin "["
+              PcalDebug.reportError("Bad format for message in multicast."+tok.string);
+            }
+          } else {
+            if(buildPhase == 1) {
+              //get the dimension type
+              if(!tok.string.equals(",") && !tok.string.equals("|->")) {
+								dt.append(" " + tok.string);
+							} else {
+                if(tok.string.equals(",")){ // next dimension
+                  dimensionTypes.add(dt.toString());
+                  buildPhase = 0;
+                } else {
+                  if (tok.string.equals("|->")) { // done with dimensions
+                    dimensionTypes.add(dt.toString());
+                    buildPhase = 2;
+                  }
+                }
+              }
+            } else { // buildPhase == 2, ie the expression we want to multicast
+              if (!tok.string.equals("]")) { // if not the ending "]"
+                  thenExp.add((TLAToken) line.elementAt(j));
+              }
+            }
+          }
+        }
+      }
 
 			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
-				throw new ParseAlgorithmException("multicast function expected " + channel.dimensions.size() +" dimentions ");
+			if(channel.dimensions != null
+         && dimensions.size() > 1 // if not using only one variable
+         && channel.dimensions.size() != dimensions.size()) { // then the number of variables should be that of the channel
+				throw new ParseAlgorithmException("Multicast function expected " + channel.dimensions.size() +" dimensions ");
 			}
-			
-			elseExp.addToken(PcalTranslate.IdentToken(channelName));
-			elseExp.addToken(PcalTranslate.IdentToken(dimensions.toString()));
 
-			expr = new TLAExpr();
+      // build ELSE:  channel[v1,v2,...]
+			elseExp.add(PcalTranslate.IdentToken(channelName));
+			elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
+
+			TLAExpr expr = new TLAExpr();
 			expr.addLine();
+
 			expr.addToken(PcalTranslate.BuiltInToken("["));
-			if(dimensions.size() == 1) {
+
+			// build <<v1,v2,...>> \in DOMAIN channelName |-> IF
+			if(dimensions.size() == 1) { // if only one dimension no need for sequence
 				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
 			} else {
 				expr.addToken(PcalTranslate.BuiltInToken("<<"));
 				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
 				expr.addToken(PcalTranslate.BuiltInToken(">>"));
 			}
+
 			expr.addToken(PcalTranslate.BuiltInToken(" \\in DOMAIN "));
 			expr.addToken(PcalTranslate.IdentToken(channelName));
 			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 			expr.addToken(PcalTranslate.BuiltInToken(" IF "));
-
+      // build IF body
 			for(int i = 0; i < dimensions.size(); i++) {
-
-				if(dimensions.get(i).equals(SELF)) {
-					expr.addToken(PcalTranslate.IdentToken(SELF));
-					expr.addToken(PcalTranslate.BuiltInToken(" = self "));
-				} else {
-					expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-					expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-				}
-				
-				if(i != dimensions.size() -1) {
-					//fix indentation here, use a stringbuffer and spaceout 
-					expr.addLine();
+        expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
+        expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
+				if(i != dimensions.size() - 1) {
 					expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
 				}
 			}
-
+      expr.addLine();
+      // build THEN body
+      // fix indentation here
 			expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
-
-			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Append("));
-
-			for(int i = 0; i < elseExp.tokens.size(); i++) {
-
-				Vector tv = (Vector) elseExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					expr.addToken(tok);
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(", "));
-
-			for(int i = 0; i < thenExp.tokens.size(); i++) {
-				
-				Vector tv = (Vector) thenExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
+			expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
+			expr.addToken(PcalTranslate.IdentToken(channelName));
+			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
+			expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
+      // insert the message part
+      for(int i = 0; i < thenExp.size(); i++) {
+					TLAToken tok = (TLAToken) thenExp.elementAt(i);
 					tok.column = 0;
-					expr.addToken(tok);
-				}
+          expr.addToken(tok);
 			}
-			
-
-			expr.addToken(PcalTranslate.BuiltInToken(")"));
-			
+			expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
+      expr.addLine();
 			expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
-
-			for(int i = 0; i < elseExp.tokens.size(); i++) {
-
-				Vector tv = (Vector) elseExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					expr.addToken(tok);
-				}
+      // insert the ELSE body
+			for(int i = 0; i < elseExp.size(); i++) {
+        TLAToken tok = (TLAToken) elseExp.elementAt(i);
+        expr.addToken(tok);
 			}
-
 			expr.addToken(PcalTranslate.BuiltInToken("]"));
 			expr.normalize();
-			
 			sass.rhs = expr;
 
 			sass.setOrigin(this.getOrigin());

@@ -39,10 +39,10 @@ variable c = 4;
     R:
 	receive(ch[Id], c);
     \* should use label, otherwise translation not correct (condition on size on separate label)
-    Rf: 
+    Rf:
 	receive(fif, c);
     \* should use label, otherwise translation not correct (condition on size on separate label)
-    RF: 
+    RF:
 	receive(fi[Id], c);
     cur := c+3;
 }
