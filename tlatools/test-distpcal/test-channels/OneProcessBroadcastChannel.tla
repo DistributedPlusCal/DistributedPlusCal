@@ -11,7 +11,7 @@ NNodes == N..5
 variables c = 2, r = 22, TO = {<<1,1>>, <<2,2>>};
 channels ch1[Nodes],ch2[Nodes][Nodes];
 
-macro broadcastMacro(chan,m)
+macro broadcast(chan,m)
 {
     multicast(chan,[ag \in DOMAIN chan |-> m]);
 }
@@ -22,11 +22,11 @@ variable cur = 10, loc = 0;
     Send1:
     multicast(ch1,[ag \in DOMAIN ch1 |-> ag]);
     SendM1:
-    broadcastMacro(ch1,cur);
+    broadcast(ch1,cur);
     Send2: 
     multicast(ch2,[ag \in DOMAIN ch2 |-> loc]);
     SendM2:
-    broadcastMacro(ch2,cur);
+    broadcast(ch2,cur);
 }
 
 process ( w \in Nodes )

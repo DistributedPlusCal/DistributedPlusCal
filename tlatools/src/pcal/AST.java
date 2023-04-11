@@ -113,7 +113,6 @@ public class AST
     //For Distributed PlusCal	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
-    public static AST.ChannelClearCall ChannelClearObj;
 
     public static final String SELF = "slf";
     // end For Distributed PlusCal	
@@ -235,7 +234,6 @@ public class AST
         // For Distributed PlusCal	
         ChannelSenderObj =  new AST.ChannelSendCall();
         ChannelReceiverObj =  new AST.ChannelReceiveCall();
-        ChannelClearObj = new AST.ChannelClearCall();
         // end For Distributed PlusCal	
       }
 
@@ -1089,9 +1087,7 @@ public class AST
    	List dimensions = null;
      public abstract Vector send(TLAExpr msg, TLAExpr callExp);
    	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
-   	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
-   	public abstract Vector clear(Channel channel) throws ParseAlgorithmException;
 
      @Override
      public String toString()
@@ -1254,127 +1250,6 @@ public class AST
 		}
 
 		@Override
-		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
-
-			Vector result = new Vector();
-			PcalDebug.reportInfo("HC channel: "+ channel);
-			PcalDebug.reportInfo("HC callExp: "+ callExp);
-			PcalDebug.reportInfo("HC callExp VALs: "+ callExp.tokens);
-
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-
-			sass.lhs.sub = new TLAExpr(new Vector());
-			
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();    			
-
-			TLAExpr addExpr = new TLAExpr();
-			addExpr.addLine(); 
-			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>(); 
-			
-			for(int i = 0; i < msg.tokens.size(); i++) {
-
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					if(tok.type == TLAToken.IDENT) {
-
-						if(tok.string.equals("self")) {
-							dimensions.add(SELF);
-							//add to types just to maintain order between the 2 lists
-							dimensionTypes.add(SELF);
-							PcalDebug.reportInfo("found self");
-
-						} else {
-							dimensions.add(tok.string);
-
-							StringBuffer sb = new StringBuffer();
-
-							//get the rest of the expression
-							tok = (TLAToken) tv.elementAt(++j);
-							while(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								sb.append(" " + tok.string);
-								tok = (TLAToken) tv.elementAt(++j);
-							}
-							dimensionTypes.add(sb.toString());
-						}
-					}
-
-
-					if(tok.string.equals("|->")) {
-						//everything after |-> is the expression we want to broadcast
-						tok = (TLAToken) tv.elementAt(++j);
-
-						//while the next char is , -1 to excluse ] at the end
-						while(j < tv.size() - 1) {
-							addExpr.addToken((TLAToken) tv.elementAt(j));
-							j++;
-						}
-						break;
-					}
-				}
-			}
-
-			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
-				throw new ParseAlgorithmException("broadcast function expected " + channel.dimensions.size() +" dimentions ");
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken("["));
-
-			for(int i = 0; i < dimensions.size(); i++) {
-
-				expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-				expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-
-				if(i != dimensions.size() -1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-
-			expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
-			expr.addToken(PcalTranslate.BuiltInToken(" {"));
-			
-
-			for(int i = 0; i < addExpr.tokens.size(); i++) {
-
-				Vector tv = (Vector) addExpr.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					tok.column = 0;
-					expr.addToken(tok);
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken("} "));
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
-			expr.normalize();
-
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-			result.addElement(assign);
-			return result;
-		}
-
-		@Override
 		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
@@ -1514,65 +1389,6 @@ public class AST
 			return result;
 		}
 
-		@Override
-		public Vector clear(Channel channel) throws ParseAlgorithmException {
-			Vector result = new Vector();
-
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector());
-
-			sass.setOrigin(this.getOrigin());
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-
-			for(int i = 0; i < channel.dimensions.size(); i++) {
-				String dimension = (String) channel.dimensions.get(i);
-
-        // HC: is _ enough for fresh vars? is it needed?
-				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
-
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
-				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-				expr.addToken(PcalTranslate.IdentToken(dimension));
-
-
-				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
-			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
-			expr.setOrigin(this.getOrigin());
-			expr.normalize();
-
-			sass.rhs = expr;
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-
-			return result;
-		}
-   	
    }
    
    public static class FIFOChannel extends Channel{
@@ -1730,125 +1546,6 @@ public class AST
 		
 		
 		@Override
-		public Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException {
-
-			Vector result = new Vector();
-			PcalDebug.reportInfo("Sending a broadcast message for a FIFOChannel : " + channelName);
-
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-
-			TLAExpr expr = new TLAExpr();
-
-			sass.lhs.sub = new TLAExpr(new Vector());
-
-			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>(); 
-
-			TLAExpr addedExp = new TLAExpr();
-			addedExp.addLine();
-
-			for(int i = 0; i < msg.tokens.size(); i++) {
-
-				Vector tv = (Vector) msg.tokens.elementAt(i);
-
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-
-					if(tok.type == TLAToken.IDENT) {
-						
-						if(tok.string.equals("self")) {
-							dimensions.add(SELF);
-							//add to types just to maintain order between the 2 lists
-							dimensionTypes.add(SELF);
-							PcalDebug.reportInfo("found self");
-
-						} else {
-							dimensions.add(tok.string);
-
-							StringBuffer sb = new StringBuffer();
-							
-							//get the rest of the expression
-							tok = (TLAToken) tv.elementAt(++j);
-							while(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								sb.append(" " + tok.string);
-								tok = (TLAToken) tv.elementAt(++j);
-							}
-							dimensionTypes.add(sb.toString());
-						}
-					}
-
-					if(tok.string.equals("|->")) {
-						//everything after |-> is the expression we want to multicast
-						tok = (TLAToken) tv.elementAt(++j);
-
-						//while the next char is , -1 to excluse ] at the end
-						while(j < tv.size() - 1) {
-							addedExp.addToken((TLAToken) tv.elementAt(j));
-							j++;
-						}
-						break;
-					}
-				}
-			}
-
-			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null && channel.dimensions.size() != dimensions.size()) {
-				throw new ParseAlgorithmException("broadcast function expected " + channel.dimensions.size() +" dimentions ");
-			}
-			
-			expr = new TLAExpr();
-			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken("["));
-			for(int i = 0; i < dimensions.size(); i++) {
-
-				expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-				expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-
-				if(i != dimensions.size() -1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" Append("));
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-			expr.addToken(PcalTranslate.BuiltInToken(", "));
-
-			for(int i = 0; i < addedExp.tokens.size(); i++) {
-
-				Vector tv = (Vector) addedExp.tokens.elementAt(i);
-				for (int j = 0; j < tv.size(); j++) {
-					TLAToken tok = (TLAToken) tv.elementAt(j);
-					tok.column = 0;
-					expr.addToken(tok);
-				}
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(")"));
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-			expr.normalize();
-
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-			result.addElement(assign);
-			return result;
-		}
-		
-		@Override
 		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
 
 			Vector result = new Vector();
@@ -1988,64 +1685,6 @@ public class AST
 			return result;
 		}
 
-		@Override
-		public Vector clear(Channel channel) throws ParseAlgorithmException {
-			Vector result = new Vector();
-
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector());
-					
-			sass.setOrigin(this.getOrigin());
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-
-			for(int i = 0; i < channel.dimensions.size(); i++) {
-				String dimension = (String) channel.dimensions.get(i);
-
-        // HC: is _ enough for fresh vars?
-				String tempVarName = "_" + dimension.toLowerCase().charAt(0) + i;
-
-				if(i == 0) {
-					expr.addToken(PcalTranslate.BuiltInToken("["));
-				}
-				expr.addToken(PcalTranslate.IdentToken(tempVarName));
-				expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-				expr.addToken(PcalTranslate.IdentToken(dimension));
-
-
-				if(channel.dimensions.size() != 1 && i != channel.dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(", "));
-				}
-			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-
-			expr.addToken(PcalTranslate.BuiltInToken("<<"));
-			expr.addToken(PcalTranslate.BuiltInToken(">>"));
-
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-
-			expr.setOrigin(this.getOrigin());
-			expr.normalize();
-
-			sass.rhs = expr;
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-
-			return result;
-		}
    }
 
    public static class ChannelSendCall extends AST{
@@ -2053,14 +1692,13 @@ public class AST
    	public String channelName = null ;
    	public TLAExpr callExp = new TLAExpr(new Vector());
    	public String name = "";
-   	public Boolean isBroadcast = false;
    	
    	public Boolean isMulticast = false;
    	public ChannelSendCall() {};
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
-   			"[type |-> \"ChannelSender\", (b:" + isBroadcast + ")" + NewLine() +
+   			"[type |-> \"ChannelSender\", (m:" + isMulticast + ")" + NewLine() +
    			" name |-> \"" + name + "\"," + NewLine() +
    			Indent(" channel |-> ") + channelName +
    			EndIndent() + NewLine() +
@@ -2079,15 +1717,6 @@ public class AST
       return channel.send(msg, callExp);
    	}
    	
-   	/**
-   	 * 
-   	 * @param channel
-   	 * @return
-   	 * @throws ParseAlgorithmException 
-   	 */
-		public Vector generateBroadcastBodyTemplate(Channel channel) throws ParseAlgorithmException {
-   		return channel.broadcast(channel, channelName, msg, callExp);
-		}
 		/**
 		 * @param channel
 		 * @return
@@ -2126,29 +1755,7 @@ public class AST
 		   return channel.receive(channel, channelName, targetVar, callExp, targetExp);
 	   }
    }
-
    
-   public static class ChannelClearCall extends AST{
-	   public String name = "";
-	   public Channel channel = null;
-	   public String channelName = null;
-	   public ChannelClearCall() {};
-	   public String toString()
-	   { return 
-			   Indent(lineCol()) + 
-			   "[type |-> \"ChannelClearCall\"," + NewLine() +
-   			 " name |-> \"" + name + "\"," + NewLine() +
-			   " channelName |-> " + channelName + "]" + NewLine() +
-			   " channel |-> " + channel + "]" +
-			   EndIndent() ;
-	   }
-
-	   public Vector generateBodyTemplate(Channel channel) throws ParseAlgorithmException {
-		   return channel.clear(channel);
-	   }
-   }
-
-  
   public static class Thread extends AST{
 	  public String    name  = "";
     public int fairness = UNFAIR_PROC ; // unused for the moment

@@ -1313,12 +1313,10 @@ public class ParseAlgorithm
        if (PeekPastAlgToken(1).charAt(0)=='(')
          {
            //For Distributed pluscal
-           if(nextTok.equals("send") || nextTok.equals("broadcast") || nextTok.equals("multicast")) {
+           if(nextTok.equals("send") || nextTok.equals("multicast")) {
              return getSendToChannelCall(nextTok);
            } else if(nextTok.equals("receive")) {
              return getReceiveFromChannelCall(nextTok);
-           } else if(nextTok.equals("clear")) {
-             return getClearChannelCall(nextTok);
            } else { // end For Distributed PlusCal
              return GetMacroCall() ;
            }
@@ -3288,8 +3286,6 @@ public class ParseAlgorithm
 
               if (result.name.equals("multicast"))
                 result.isMulticast = true;
-              else if (result.name.equals("broadcast"))
-                result.isBroadcast = true;
               
               result.channelName = chanstmt.channelName;
               result.callExp = chanstmt.callExp.cloneAndNormalize() ;
@@ -3428,37 +3424,6 @@ public class ParseAlgorithm
 
                 result.targetExp = newExpr.cloneAndNormalize();
               }
-
-              return result;
-            } ;
-
-          if ( stmt.getClass().equals( AST.ChannelClearObj.getClass() ) )
-            {
-              AST.ChannelClearCall chanstmt = (AST.ChannelClearCall) stmt;
-              AST.ChannelClearCall result = new AST.ChannelClearCall();
-              result.col  = chanstmt.col ;
-              result.line = chanstmt.line ;
-              result.macroCol  = chanstmt.macroCol ;
-              result.macroLine = chanstmt.macroLine ;
-              result.setOrigin(chanstmt.getOrigin()) ;
-              if (macroLine > 0)
-                { result.macroLine = macroLine ;
-                  result.macroCol  = macroCol ;
-                } ; 
-
-              result.name = chanstmt.name;
-              result.channelName = chanstmt.channelName;
-              // HC: if the channel nad for the operation is one of the parameters
-              int ind = params.indexOf(chanstmt.channelName);
-              if( ind != -1 ){
-                // TLAExpr argInd = (TLAExpr) args.elementAt(ind) ;
-                TLAToken tok = ((TLAExpr) args.elementAt(ind)).tokenAt(new IntPair(0,0));
-                if( tok.type == TLAToken.IDENT ) {
-                  result.channelName = tok.string;
-                }
-              }
-
-              result.channel = chanstmt.channel;
 
               return result;
             } ;
@@ -4954,9 +4919,7 @@ public class ParseAlgorithm
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
 
-		if(nextTok.equals("broadcast")) {
-			result.isBroadcast = true;
-		} else if(nextTok.equals("multicast")) {
+    if(nextTok.equals("multicast")) {
 			result.isMulticast = true;
 		}
 
@@ -4994,32 +4957,6 @@ public class ParseAlgorithm
 
 		result.targetVarName = GetAlgToken();
 		result.targetExp = GetExpr();
-
-		//if there is more than one parameter an error is thrown
-		GobbleThis(")");
-		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
-		GobbleThis(";");
-
-		return result;
-	}
-
-	public static AST.ChannelClearCall getClearChannelCall(String nextTok) throws ParseAlgorithmException {
-		AST.ChannelClearCall result = new AST.ChannelClearCall();
-		result.name = GetAlgToken() ;
-		MustGobbleThis("(");
-
-		result.col = curTokCol[0] + 1;
-		result.line = curTokLine[0] + 1;
-		/******************************************************************
-		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-		 * LAT[0] contains the next token. *
-		 ******************************************************************/
-		PCalLocation beginLoc = null;
-		PCalLocation endLoc = null;
-		result.channelName = GetAlgToken();
-
-		beginLoc = GetLastLocationStart();
-		endLoc = GetLastLocationEnd();
 
 		//if there is more than one parameter an error is thrown
 		GobbleThis(")");
@@ -5075,16 +5012,7 @@ public class ParseAlgorithm
 					j = j - 1;
 				}
 				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ChannelClearObj.getClass())) {
-				Vector expansion = ExpandClearCall(((AST.ChannelClearCall) stmt), nodeDecls, globalDecls, procLocalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
-				}
-				i = i + expansion.size() - 1;
-			}
+			} 
 			i = i + 1;
 		}
 
@@ -5104,12 +5032,9 @@ public class ParseAlgorithm
 		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
 
 		Vector result = null;
-		if(call.isBroadcast) {
-			result = call.generateBroadcastBodyTemplate((AST.Channel) varDecl);
-		} if(call.isMulticast){
+		if(call.isMulticast){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
-
-		}else if(!call.isBroadcast && !call.isMulticast){
+		} else {
 			//construct body based on type 
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
@@ -5164,44 +5089,6 @@ public class ParseAlgorithm
           }
         };
 
-		return result;
-	}
-
-	/**
-	 * 
-	 * @param call
-	 * @param nodeDecls 
-	 * @param globalDecls
-	 * @param procParamsDecls parameters of the procedure
-	 * @param procLocalDecls local variables of the procedure
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
-	public static Vector ExpandClearCall(AST.ChannelClearCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
-			throws ParseAlgorithmException {
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
-
-		if(chanVar == null) {
-			PcalDebug.reportInfo("Throw error chanVar == null");
-			//throw and exceptionExpandClearCall
-		}
-		
-		//construct body based on type 
-		Vector result = call.generateBodyTemplate((AST.Channel)chanVar);
-		PcalDebug.reportInfo("Body constructed OK.");
-		
-		if (result.size() > 0) 
-        { AST first = (AST) result.elementAt(0) ;
-          first.lbl = call.lbl;
-          first.lblLocation = call.lblLocation;
-          Region callOrigin = call.getOrigin();
-          if (callOrigin != null) {
-              first.macroOriginBegin = callOrigin.getBegin();
-              AST last = (AST) result.elementAt(result.size() - 1) ;
-              last.macroOriginEnd = callOrigin.getEnd();
-          }
-        };
-        
 		return result;
 	}
 	
