@@ -1688,17 +1688,17 @@ public class AST
    }
 
    public static class ChannelSendCall extends AST{
-   	TLAExpr msg = null;
+   	public String type = "";
    	public String channelName = null ;
    	public TLAExpr callExp = new TLAExpr(new Vector());
-   	public String name = "";
+   	public TLAExpr msg = null;
    	
    	public ChannelSendCall() {};
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
-   			"[ChannelSender," + NewLine() +
-   			" name |-> \"" + name + "\"," + NewLine() +
+   			"[ChannelSender:" + NewLine() +
+   			" type |-> \"" + type + "\"," + NewLine() +
    			Indent(" channel |-> ") + channelName +
    			EndIndent() + NewLine() +
    			Indent(" callExp |-> ") + callExp +

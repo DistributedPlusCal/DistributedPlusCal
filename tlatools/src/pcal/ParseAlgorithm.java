@@ -3282,7 +3282,7 @@ public class ParseAlgorithm
                   result.macroCol  = macroCol ;
                 } ; 
 
-              result.name = chanstmt.name;
+              result.type = chanstmt.type;
 
               result.channelName = chanstmt.channelName;
               result.callExp = chanstmt.callExp.cloneAndNormalize() ;
@@ -4897,7 +4897,7 @@ public class ParseAlgorithm
 
 	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();
-		result.name = GetAlgToken() ;
+		result.type = GetAlgToken() ;
 
 		MustGobbleThis("(");
 
@@ -5026,7 +5026,7 @@ public class ParseAlgorithm
 
 		Vector result = null;
     // construct body based on type of send call
-		if(call.name.equals("multicast")){
+		if(call.type.equals("multicast")){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
 		} else {
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
