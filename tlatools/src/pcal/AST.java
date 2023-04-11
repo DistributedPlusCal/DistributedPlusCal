@@ -1693,12 +1693,11 @@ public class AST
    	public TLAExpr callExp = new TLAExpr(new Vector());
    	public String name = "";
    	
-   	public Boolean isMulticast = false;
    	public ChannelSendCall() {};
    	public String toString()
    	{ return 
    			Indent(lineCol()) + 
-   			"[type |-> \"ChannelSender\", (m:" + isMulticast + ")" + NewLine() +
+   			"[ChannelSender," + NewLine() +
    			" name |-> \"" + name + "\"," + NewLine() +
    			Indent(" channel |-> ") + channelName +
    			EndIndent() + NewLine() +

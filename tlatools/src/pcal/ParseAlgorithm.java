@@ -3284,9 +3284,6 @@ public class ParseAlgorithm
 
               result.name = chanstmt.name;
 
-              if (result.name.equals("multicast"))
-                result.isMulticast = true;
-              
               result.channelName = chanstmt.channelName;
               result.callExp = chanstmt.callExp.cloneAndNormalize() ;
               result.callExp.substituteForAll(args, params) ;
@@ -4919,10 +4916,6 @@ public class ParseAlgorithm
 		beginLoc = GetLastLocationStart();
 		endLoc = GetLastLocationEnd();
 
-    if(nextTok.equals("multicast")) {
-			result.isMulticast = true;
-		}
-
 		GobbleThis(",");
 		result.msg = GetExpr();
 
@@ -5032,10 +5025,10 @@ public class ParseAlgorithm
 		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
 
 		Vector result = null;
-		if(call.isMulticast){
+    // construct body based on type of send call
+		if(call.name.equals("multicast")){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
 		} else {
-			//construct body based on type 
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
 
