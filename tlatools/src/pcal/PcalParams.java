@@ -367,6 +367,26 @@ public final class PcalParams
 	  exp.normalize() ;
 	  return exp ;
   }  
+
+  //For Distributed PlusCal	
+  /*************************************************************************
+   * Parameters related to language definition.                             *
+   *************************************************************************/
+  public static TLAExpr DefaultInit(int channelType){
+	  Vector<TLAToken> line = new Vector<TLAToken>() ;
+    if(channelType == AST.CHANNEL_TYPE_UNORDERED){
+      line.addElement(new TLAToken("{", 0, 0)) ;
+      line.addElement(new TLAToken("}", 0, 0)) ;
+    } else { //suppose that the only alternative is AST.CHANNEL_TYPE_FIFO
+      line.addElement(new TLAToken("<<", 0, 0)) ;
+      line.addElement(new TLAToken(">>", 0, 0)) ;
+    }
+	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+	  vec.addElement(line) ;
+	  TLAExpr exp = new TLAExpr(vec) ;
+	  exp.normalize() ;
+	  return exp ;
+  }  
   
  }  
 

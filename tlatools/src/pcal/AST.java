@@ -113,8 +113,12 @@ public class AST
     //For Distributed PlusCal	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
-
-    public static final String SELF = "slf";
+    
+    /**********************************************************************
+     * Constants for the types of channels                               *
+     **********************************************************************/
+    public static final int CHANNEL_TYPE_UNORDERED = 0;
+    public static final int CHANNEL_TYPE_FIFO = 1;
     // end For Distributed PlusCal	
 
     public int col ;
@@ -1076,18 +1080,16 @@ public class AST
          } ;
        return result + " >>" + EndIndent();
      }
-
-
-   //classes For Distributed PlusCal
       
    //For Distributed PlusCal	
    public static abstract class Channel extends VarDecl{
 
    	public Channel() {};
-   	List dimensions = null;
+     public List dimensions = null;
+     
      public abstract Vector send(TLAExpr msg, TLAExpr callExp);
-   	public abstract Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
-   	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
+     public abstract Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
+     public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
 
      @Override
      public String toString()

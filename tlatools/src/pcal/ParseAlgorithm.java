@@ -243,15 +243,6 @@ public class ParseAlgorithm
     **********************************************************************/
    public static boolean pSyntax;
    public static boolean cSyntax;
-
-  
-  //For Distributed PlusCal
-  /**********************************************************************
-    * Constants for the types of channels                               *
-    **********************************************************************/
-   private static final String CHANNEL_TYPE_UNORDERED = "Unordered";
-   private static final String CHANNEL_TYPE_FIFO = "FIFO";
-  // end For Distributed PlusCal
   
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
@@ -4825,14 +4816,14 @@ public class ParseAlgorithm
   public static Vector GetChannelDecls() throws ParseAlgorithmException {
 
 		String tok = PeekAtAlgToken(1);
-		String channelType = "";
+		int channelType = -1;
 		
 		if (tok.equals("channel") || tok.equals("channels")) {
 			MustGobbleThis(tok);
-			channelType = CHANNEL_TYPE_UNORDERED;
+			channelType = AST.CHANNEL_TYPE_UNORDERED;
 		} else { // only fifo alternative available so far
 			GobbleThis(tok);
-			channelType = CHANNEL_TYPE_FIFO;
+			channelType = AST.CHANNEL_TYPE_FIFO;
 		}
 
 		Vector result = new Vector();
@@ -4850,15 +4841,16 @@ public class ParseAlgorithm
 		return result;
 	}
   	
-	public static VarDecl GetChannelDecl(String channelType) throws ParseAlgorithmException
+	public static VarDecl GetChannelDecl(int channelType) throws ParseAlgorithmException
   {	AST.Channel pv;
-		if (channelType.equals(CHANNEL_TYPE_UNORDERED)) {
+		if (channelType == AST.CHANNEL_TYPE_UNORDERED) {
 			pv = new AST.UnorderedChannel();
 			pv.val = PcalParams.DefaultChannelInit();
-		} else { // suppose that the only alternative is CHANNEL_TYPE_FIFO
+		} else { // suppose that the only alternative is AST.CHANNEL_TYPE_FIFO
 			pv = new AST.FIFOChannel();
 			pv.val = PcalParams.DefaultFifoInit();
 		}
+    // pv.val = PcalParams.DefaultChannelInit(channelType);
 		pv.var = GetAlgToken();
 		pv.isEq = true;	 // in fact, never assigned
 		PCalLocation beginLoc = GetLastLocationStart();
