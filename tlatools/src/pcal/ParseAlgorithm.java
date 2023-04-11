@@ -1314,9 +1314,9 @@ public class ParseAlgorithm
          {
            //For Distributed pluscal
            if(nextTok.equals("send") || nextTok.equals("multicast")) {
-             return getSendToChannelCall(nextTok);
+             return GetSendToChannelCall(nextTok);
            } else if(nextTok.equals("receive")) {
-             return getReceiveFromChannelCall(nextTok);
+             return GetReceiveFromChannelCall(nextTok);
            } else { // end For Distributed PlusCal
              return GetMacroCall() ;
            }
@@ -4895,7 +4895,7 @@ public class ParseAlgorithm
 		return pv;
 	}
 
-	public static AST.ChannelSendCall getSendToChannelCall(String nextTok) throws ParseAlgorithmException {
+	public static AST.ChannelSendCall GetSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();
 		result.type = GetAlgToken() ;
 
@@ -4926,7 +4926,7 @@ public class ParseAlgorithm
 		return result;
 	}
 
-	public static AST.ChannelReceiveCall getReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
+	public static AST.ChannelReceiveCall GetReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
 		result.name = GetAlgToken() ;
 		MustGobbleThis("(");
