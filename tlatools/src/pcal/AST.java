@@ -1087,7 +1087,7 @@ public class AST
 
    	public Channel() {};
    	List dimensions = null;
-   	public abstract Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp);
+     public abstract Vector send(TLAExpr msg, TLAExpr callExp);
    	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
    	public abstract Vector broadcast(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) throws ParseAlgorithmException;
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
@@ -1111,7 +1111,10 @@ public class AST
    	public UnorderedChannel() {};
    	
    	@Override
-   	public Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) {
+   	public Vector send(TLAExpr msg, TLAExpr callExp) {
+      Channel channel = this;
+      String channelName = this.var;
+
    		Vector result = new Vector();
 
    		AST.SingleAssign sass = new AST.SingleAssign();
@@ -1131,11 +1134,10 @@ public class AST
       
       String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
                             || channel.dimensions.size() == 0)  ? channelName : "@";
-      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
 
-   		expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
-   		expr.addToken(PcalTranslate.BuiltInToken("{"));
-
+      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); // specific to Channel
+   		expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
+   		expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
    		for(int i = 0; i < msg.tokens.size(); i++) {
    			Vector tv = (Vector) msg.tokens.elementAt(i);
    			for (int j = 0; j < tv.size(); j++) {
@@ -1143,7 +1145,8 @@ public class AST
    				expr.addToken(tok);
    			}
    		}
-   		expr.addToken(PcalTranslate.BuiltInToken("}"));
+   		expr.addToken(PcalTranslate.BuiltInToken("}")); // specific to Channel
+
       expr.normalize();
    		sass.rhs = expr;
 
@@ -1162,16 +1165,13 @@ public class AST
    		return result;
    	}
 
-
 		@Override
 		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
-
 			Vector result = new Vector();
-
-			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
 
 			TLAExpr exp = new TLAExpr();
 
+			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
       // with freshVar \in chanName[dim] do <assign>
 			AST.With with = new AST.With();
 			with.col = line;
@@ -1579,8 +1579,10 @@ public class AST
    	public FIFOChannel() {};
    	
 		@Override
-		public Vector send(Channel channel, String channelName, TLAExpr msg, TLAExpr callExp) {
-
+		public Vector send(TLAExpr msg, TLAExpr callExp) {
+      Channel channel = this;
+      String channelName = this.var;
+      
    		Vector result = new Vector();
    		
 			AST.SingleAssign sass = new AST.SingleAssign();
@@ -1600,8 +1602,10 @@ public class AST
       
       String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
                             || channel.dimensions.size() == 0) ? channelName : "@";
-      expr.addToken(PcalTranslate.BuiltInToken(" Append(" + prevChannel + ", ")); 
 
+      expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
+      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); // specific to FIFO
+      expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
       for(int i = 0; i < msg.tokens.size(); i++) {
         Vector tv = (Vector) msg.tokens.elementAt(i);
         for (int j = 0; j < tv.size(); j++) {
@@ -1609,7 +1613,8 @@ public class AST
           expr.addToken(tok);
         }
       }
-			expr.addToken(PcalTranslate.BuiltInToken(")"));
+			expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
+
       expr.normalize();
 			sass.rhs = expr;
 
@@ -1627,7 +1632,7 @@ public class AST
 			
 			return result;
 		}
-		
+
 		@Override
 		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
 			Vector result = new Vector();
@@ -2071,7 +2076,7 @@ public class AST
      	 * @return
      	 */
    	public Vector generateBodyTemplate(Channel channel) {
-   			return channel.send(channel, channelName, msg, callExp);
+      return channel.send(msg, callExp);
    	}
    	
    	/**
