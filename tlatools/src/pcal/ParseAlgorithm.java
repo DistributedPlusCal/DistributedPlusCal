@@ -3342,8 +3342,6 @@ public class ParseAlgorithm
                 { result.macroLine = macroLine ;
                   result.macroCol  = macroCol ;
                 } ; 
-
-              result.name = chanstmt.name;
               result.channelName = chanstmt.channelName;
               result.callExp = chanstmt.callExp.cloneAndNormalize() ;
               result.callExp.substituteForAll(args, params) ;
@@ -4928,7 +4926,7 @@ public class ParseAlgorithm
 
 	public static AST.ChannelReceiveCall GetReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
-		result.name = GetAlgToken() ;
+		MustGobbleThis("receive");
 		MustGobbleThis("(");
 
 		result.col = curTokCol[0] + 1;
@@ -4956,6 +4954,8 @@ public class ParseAlgorithm
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
 
+    PcalDebug.reportInfo("** HC send: "+ result);
+    
 		return result;
 	}
 

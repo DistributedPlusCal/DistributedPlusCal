@@ -1731,15 +1731,13 @@ public class AST
 	   public String channelName = "";
 	   public TLAExpr callExp = new TLAExpr(new Vector());
 	   public Vector args;
-	   public String name = "";
 	   public String targetVarName = "";
 	   public TLAExpr targetExp = new TLAExpr(new Vector());
 	   public ChannelReceiveCall() {};
 	   public String toString()
 	   { return 
 			   Indent(lineCol()) + 
-			   "[type |-> \"ChannelReceiver\"," + NewLine() +
-   			 " name |-> \"" + name + "\"," + NewLine() +
+			   "[ChannelReceiver:" + NewLine() +
 			   Indent(" channel |-> ") + channelName + "," +
 			   EndIndent() + NewLine() +
 			   Indent(" callExp |-> ") + callExp + "," +
