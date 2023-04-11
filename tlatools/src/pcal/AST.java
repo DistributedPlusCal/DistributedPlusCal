@@ -1086,7 +1086,7 @@ public class AST
    	public Channel() {};
    	List dimensions = null;
      public abstract Vector send(TLAExpr msg, TLAExpr callExp);
-   	public abstract Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
+   	public abstract Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
    	public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
 
      @Override
@@ -1162,7 +1162,10 @@ public class AST
    	}
 
 		@Override
-		public Vector receive(Channel channel, String channelName, VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+      Channel channel = this;
+      String channelName = this.var;
+      
 			Vector result = new Vector();
 
 			TLAExpr exp = new TLAExpr();
@@ -1450,7 +1453,10 @@ public class AST
 		}
 
 		@Override
-		public Vector receive(Channel channel, String channelName,  VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+		public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+      Channel channel = this;
+      String channelName = this.var;
+      
 			Vector result = new Vector();
 
 			TLAExpr exp = new TLAExpr();
@@ -1749,7 +1755,7 @@ public class AST
 	   }
 
 	   public Vector generateBodyTemplate(Channel channel, VarDecl targetVar) {
-		   return channel.receive(channel, channelName, targetVar, callExp, targetExp);
+		   return channel.receive(targetVar, callExp, targetExp);
 	   }
    }
    
