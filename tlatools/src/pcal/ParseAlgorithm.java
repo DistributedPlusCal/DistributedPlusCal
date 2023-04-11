@@ -4842,15 +4842,9 @@ public class ParseAlgorithm
 	}
   	
 	public static VarDecl GetChannelDecl(int channelType) throws ParseAlgorithmException
-  {	AST.Channel pv;
-		if (channelType == AST.CHANNEL_TYPE_UNORDERED) {
-			pv = new AST.UnorderedChannel();
-			pv.val = PcalParams.DefaultChannelInit();
-		} else { // suppose that the only alternative is AST.CHANNEL_TYPE_FIFO
-			pv = new AST.FIFOChannel();
-			pv.val = PcalParams.DefaultFifoInit();
-		}
-    // pv.val = PcalParams.DefaultChannelInit(channelType);
+  {
+    AST.Channel pv = new AST.Channel(channelType);
+    pv.val = PcalParams.DefaultChannelInit(channelType);
 		pv.var = GetAlgToken();
 		pv.isEq = true;	 // in fact, never assigned
 		PCalLocation beginLoc = GetLastLocationStart();
@@ -4945,8 +4939,6 @@ public class ParseAlgorithm
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
-
-    PcalDebug.reportInfo("** HC send: "+ result);
     
 		return result;
 	}
@@ -5050,8 +5042,6 @@ public class ParseAlgorithm
 	 */
 	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
 			throws ParseAlgorithmException {
-
-    // PcalDebug.reportInfo("** HC receive: "+ call);
 
 		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
 		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, procLocalDecls);

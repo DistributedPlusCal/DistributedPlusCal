@@ -1082,617 +1082,432 @@ public class AST
      }
       
    //For Distributed PlusCal	
-   public static abstract class Channel extends VarDecl{
+   public static class Channel extends VarDecl{
+     public List dimensions;
+     public int channelType;     
 
-   	public Channel() {};
-     public List dimensions = null;
+     public Channel(int channelType) {
+       dimensions = new ArrayList<>();
+       this.channelType = channelType;
+     };
+
+     public Vector send(TLAExpr msg, TLAExpr callExp) {
+       Channel channel = this;
+       String channelName = this.var;
+       Vector result = new Vector();
+       
+       AST.SingleAssign sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col  = col;
+       sass.lhs.var = channel.var;
+       
+       TLAExpr expr = new TLAExpr();
+       
+       if(callExp.tokens != null) {
+         sass.lhs.sub = callExp.cloneAndNormalize();
+       }else {
+         sass.lhs.sub = new TLAExpr(new Vector());
+       }
+       
+       expr.addLine();
+       
+       String prevChannel = (channel.dimensions.size() == 0)  ? channelName : "@";
+       
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
+         expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
+         expr.addToken(PcalTranslate.BuiltInToken("{"));
+       } else { // CHANNEL_TYPE_FIFO
+         expr.addToken(PcalTranslate.BuiltInToken(" Append("));
+         expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
+         expr.addToken(PcalTranslate.BuiltInToken(", "));
+       }
+       for(int i = 0; i < msg.tokens.size(); i++) {
+         Vector tv = (Vector) msg.tokens.elementAt(i);
+         for (int j = 0; j < tv.size(); j++) {
+           TLAToken tok = (TLAToken) tv.elementAt(j);
+           expr.addToken(tok);
+         }
+       }
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         expr.addToken(PcalTranslate.BuiltInToken("}"));
+       } else { // CHANNEL_TYPE_FIFO
+         expr.addToken(PcalTranslate.BuiltInToken(")"));
+       }
+       expr.normalize();
+       sass.rhs = expr;
+       sass.setOrigin(this.getOrigin());
+       
+       AST.Assign assign = new AST.Assign();
+       assign.ass = new Vector();
+       assign.line = line ;
+       assign.col  = col ;
+       assign.setOrigin(this.getOrigin());
+       
+       assign.ass.addElement(sass);
+       
+       result.addElement(assign);
+       
+       return result;
+     }
      
-     public abstract Vector send(TLAExpr msg, TLAExpr callExp);
-     public abstract Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp);
-     public abstract Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException;
+     public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp){    
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         return receiveForUnorderedChannel(targetVar, callExp, targetExp);
+       } else { // CHANNEL_TYPE_FIFO
+         return receiveForFifoChannel(targetVar, callExp, targetExp);
+       }
+     }
+
+     private Vector receiveForUnorderedChannel(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+       Channel channel = this;
+       String channelName = this.var;
+       Vector result = new Vector();
+       
+       TLAExpr exp = new TLAExpr();
+       
+       String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
+       // with freshVar \in chanName[dim] do <assign>
+       AST.With with = new AST.With();
+       with.col = line;
+       with.line = col;
+       with.var = tempVarName;
+       with.isEq = false;
+       // chanName[dim]
+       exp = new TLAExpr();
+       exp.addLine();
+       exp.addToken(PcalTranslate.IdentToken(channelName));
+       if(callExp.tokens != null) {
+         for(int i = 0; i < callExp.tokens.size(); i++) {
+           Vector tv = (Vector) callExp.tokens.elementAt(i);
+           for (int j = 0; j < tv.size(); j++) {
+             TLAToken tok = (TLAToken) tv.elementAt(j);
+             exp.addToken(tok);
+           }
+         }
+       }
+       exp.normalize();
+       with.exp = exp;
+       with.setOrigin(this.getOrigin());
+       // assign = <sass1> + <sass2>
+       AST.Assign assign = new AST.Assign();
+       assign.ass = new Vector();
+       assign.line = line ;
+       assign.col  = col ;
+       assign.setOrigin(this.getOrigin());
+       // sass1 = targetVar := freshVar
+       AST.SingleAssign sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col  = col;
+       // targetVar
+       sass.lhs.var = targetVar.var;
+       sass.lhs.sub = targetExp.cloneAndNormalize();
+       // freshVar
+       TLAExpr expr = new TLAExpr();
+       expr.addLine();
+       expr.addToken(PcalTranslate.IdentToken(tempVarName));
+       expr.normalize();
+       sass.rhs = expr;
+       sass.setOrigin(this.getOrigin());
+       // set sass1
+       assign.ass.addElement(sass);
+       // sass2 = chanName[dim] :=
+       sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col  = col;
+       // chanName[dim]
+       sass.lhs.var = channelName;
+       if(callExp.tokens != null) {
+         sass.lhs.sub = callExp.cloneAndNormalize();
+       }else {
+         sass.lhs.sub = new TLAExpr(new Vector());
+       }
+       // chanName/@ \ { freshVar }
+       expr = new TLAExpr();
+       expr.addLine();
+       String prevChannel = (channel.dimensions.size() == 0) ? channelName : "@";
+       expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
+       
+       expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
+       expr.addToken(PcalTranslate.BuiltInToken("{"));
+       expr.addToken(PcalTranslate.IdentToken(tempVarName));
+       expr.addToken(PcalTranslate.BuiltInToken("}"));
+       expr.normalize();
+       sass.rhs = expr;
+       sass.setOrigin(this.getOrigin());
+       // set sass2
+       assign.ass.addElement(sass);
+       // set body for With
+       Vector doBody = new Vector();
+       doBody.addElement(assign);
+       with.Do = doBody;
+       // set result
+       result.addElement(with);
+       
+       return result;
+     }
+     
+     private Vector receiveForFifoChannel(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
+       Channel channel = this;
+       String channelName = this.var;
+       Vector result = new Vector();
+       
+       TLAExpr exp = new TLAExpr();
+       
+       // when (Len(chanName[dim]) > 0) <headAssign> <tailAssign>
+       AST.When when = new AST.When();
+       when.col = line;
+       when.line = col;
+       // Len(chanName[dim]) > 0
+       exp = new TLAExpr();
+       exp.addLine();
+       exp.addToken(PcalTranslate.BuiltInToken("Len("));
+       exp.addToken(PcalTranslate.IdentToken(channelName));
+       if(callExp.tokens != null) {
+         for(int i = 0; i < callExp.tokens.size(); i++) {
+           Vector tv = (Vector) callExp.tokens.elementAt(i);
+           for (int j = 0; j < tv.size(); j++) {
+             TLAToken tok = (TLAToken) tv.elementAt(j);
+             exp.addToken(tok);
+           }
+         }
+       }
+       exp.addToken(PcalTranslate.BuiltInToken(") > 0 "));
+       exp.normalize();
+       when.exp = exp;
+       when.setOrigin(this.getOrigin());
+       // <headAssign> = targetVar := Head(chanName[dim])
+       AST.Assign headAssign = new AST.Assign();
+       headAssign.ass = new Vector();
+       headAssign.line = line ;
+       headAssign.col  = col ;
+       headAssign.setOrigin(this.getOrigin());
+       // targetVar
+       AST.SingleAssign sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col  = col;
+       sass.lhs.var = targetVar.var;
+       sass.lhs.sub = targetExp.cloneAndNormalize();
+       // Head(chanName[dim])
+       TLAExpr expr = new TLAExpr();
+       expr.addLine();
+       expr.addToken(PcalTranslate.BuiltInToken("Head("));
+       expr.addToken(PcalTranslate.IdentToken(channelName));
+       if(callExp.tokens != null) {
+         for(int i = 0; i < callExp.tokens.size(); i++) {
+           Vector tv = (Vector) callExp.tokens.elementAt(i);
+           for (int j = 0; j < tv.size(); j++) {
+             TLAToken tok = (TLAToken) tv.elementAt(j);
+             expr.addToken(tok);
+           }
+         }
+       }
+       expr.addToken(PcalTranslate.BuiltInToken(")"));
+       expr.normalize();
+       sass.rhs = expr;
+       sass.setOrigin(this.getOrigin());
+       // set headAssign
+       headAssign.ass.addElement(sass);
+       // <tailAssign> = chanName[dim] := Tail(chanName[dim]/@)
+       AST.Assign tailAssign = new AST.Assign();
+       tailAssign.ass = new Vector();
+       tailAssign.line = line ;
+       tailAssign.col  = col ;
+       tailAssign.setOrigin(this.getOrigin());
+       // chanName[dim]
+       sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col  = col;
+       sass.lhs.var = channelName;
+       if(callExp.tokens != null) {
+         sass.lhs.sub = callExp.cloneAndNormalize();
+       } else {
+         sass.lhs.sub = new TLAExpr(new Vector());
+       }
+       // Tail(chanName[dim]/@)
+       expr = new TLAExpr();
+       expr.addLine();
+       String prevChannel = (channel.dimensions.size() == 0) ? channelName : "@";
+       expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + prevChannel + ") ")); 
+       expr.normalize();
+       sass.rhs = expr;
+       sass.setOrigin(this.getOrigin());
+       // set tailAssign
+       tailAssign.ass.addElement(sass);
+       // set result
+       result.addElement(when);
+       result.addElement(headAssign);
+       result.addElement(tailAssign);
+       
+       return result;
+     }
+     
+     public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
+       Vector result = new Vector();
+
+       // For CHANNEL_TYPE_UNORDERED
+       // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
+       //                        IF v1 \in D1, v2 \in D2, ...
+       //                           THEN chan[v1,v2,...] \cup message
+       //                           ELSE chan[v1,v2,...]
+       // For CHANNEL_TYPE_FIFO
+       // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
+       //                        IF v1 \in D1, v2 \in D2, ...
+       //                           THEN Append(chan[v1,v2,...], message)
+       //                           ELSE chan[v1,v2,...]
+       AST.SingleAssign sass = new AST.SingleAssign();
+       sass.line = line;
+       sass.col = col;
+       sass.lhs.var = channel.var;
+       sass.lhs.sub = new TLAExpr(new Vector<>());
+			
+       List dimensions = new ArrayList<>(); 
+       List dimensionTypes = new ArrayList<>();
+       int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
+
+       Vector thenExp = new Vector();
+       Vector elseExp = new Vector();
+       StringBuffer dt = new StringBuffer(); // store each dimensionType
+
+       // extract v1,v2,... and D1,D2,...
+       // prepare THEN (the message part)
+       for(int i = 0; i < msg.tokens.size(); i++) {
+         Vector line = (Vector) msg.tokens.elementAt(i);
+         for (int j = 0; j < line.size(); j++) {
+           TLAToken tok = (TLAToken) line.elementAt(j);
+           if(buildPhase == 0) {
+             if(tok.type == TLAToken.IDENT) {
+               dimensions.add(tok.string);
+               dt = new StringBuffer();
+               buildPhase = 1;
+             } else if(!tok.string.equals("[")) { // if not the leadin "["
+               PcalDebug.reportError("Bad format for message in multicast."+tok.string);
+             }
+           } else {
+             if(buildPhase == 1) {
+               //get the dimension type
+               if(!tok.string.equals(",") && !tok.string.equals("|->")) {
+                 dt.append(" " + tok.string);
+               } else {
+                 if(tok.string.equals(",")){ // next dimension
+                   dimensionTypes.add(dt.toString());
+                   buildPhase = 0;
+                 } else {
+                   if (tok.string.equals("|->")) { // done with dimensions
+                     dimensionTypes.add(dt.toString());
+                     buildPhase = 2;
+                   }
+                 }
+               }
+             } else { // buildPhase == 2, ie the expression we want to multicast
+               if (!tok.string.equals("]")) { // if not the ending "]"
+                 thenExp.add((TLAToken) line.elementAt(j));
+               }
+             }
+           }
+         }
+       }
+       
+       //compare with dimensions within a channel and throw an error if we find a length mismatch
+       if(channel.dimensions != null
+          && dimensions.size() > 1 // if not using only one variable
+          && channel.dimensions.size() != dimensions.size()) { // then the number of variables should be that of the channel
+         throw new ParseAlgorithmException("Multicast function expected " + channel.dimensions.size() +" dimensions ");
+       }
+       
+       // build ELSE:  channel[v1,v2,...]
+       elseExp.add(PcalTranslate.IdentToken(channelName));
+       elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
+
+       TLAExpr expr = new TLAExpr();
+       expr.addLine();
+
+       expr.addToken(PcalTranslate.BuiltInToken("["));
+
+       // build <<v1,v2,...>> \in DOMAIN channelName |-> IF
+       if(dimensions.size() == 1) { // if only one dimension no need for sequence
+         expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
+       } else {
+         expr.addToken(PcalTranslate.BuiltInToken("<<"));
+         expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
+         expr.addToken(PcalTranslate.BuiltInToken(">>"));
+       }
+			
+       expr.addToken(PcalTranslate.BuiltInToken(" \\in DOMAIN "));
+       expr.addToken(PcalTranslate.IdentToken(channelName));
+       expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+       expr.addToken(PcalTranslate.BuiltInToken(" IF "));
+       // build IF body
+       for(int i = 0; i < dimensions.size(); i++) {
+         expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
+         expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
+         if(i != dimensions.size() - 1) {
+           expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
+         }
+       }
+       expr.addLine();
+       // build THEN body 
+       // fix indentation here
+       expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
+       if(channelType == CHANNEL_TYPE_FIFO) {
+         expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
+       }
+       expr.addToken(PcalTranslate.IdentToken(channelName));
+       expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
+         expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
+       } else { // CHANNEL_TYPE_FIFO
+         expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
+       }
+       // insert the message part
+       for(int i = 0; i < thenExp.size(); i++) {
+         TLAToken tok = (TLAToken) thenExp.elementAt(i);
+         tok.column = 0;
+         expr.addToken(tok);
+       }
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         expr.addToken(PcalTranslate.BuiltInToken("} ")); // specific to Channel
+       } else { // CHANNEL_TYPE_FIFO
+         expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
+       }
+       expr.addLine();
+       expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
+       // insert the ELSE body
+       for(int i = 0; i < elseExp.size(); i++) {
+         TLAToken tok = (TLAToken) elseExp.elementAt(i);
+         expr.addToken(tok);
+       }
+       expr.addToken(PcalTranslate.BuiltInToken("]"));
+       expr.normalize();
+       sass.rhs = expr;
+       
+       sass.setOrigin(this.getOrigin());
+       
+       AST.Assign assign = new AST.Assign();
+       assign.ass = new Vector();
+       assign.line = line ;
+       assign.col  = col ;
+       assign.setOrigin(this.getOrigin());
+       
+       assign.ass.addElement(sass);
+       
+       result.addElement(assign);
+       return result;
+     }
 
      @Override
      public String toString()
-     { String dimensions = this.dimensions == null ? "[]" : this.dimensions.toString();
+     {
+       // String dimensions = this.dimensions == null ? "[]" : this.dimensions.toString();
        return
          Indent(lineCol()) +
                     "[chan |-> \"" + var + "\", " +
                     "eqOrIn |-> " + boolToEqOrIn(isEq) + ", " +
                     "val |-> " + val.toString() +  ", " +
-                    "dim |-> " + dimensions + "]" +
+                    "dim |-> " + dimensions.toString() + "]" +
          EndIndent() ;
      }
-   }
-   
-   public static class UnorderedChannel extends Channel{
-
-   	public UnorderedChannel() {};
-   	
-   	@Override
-   	public Vector send(TLAExpr msg, TLAExpr callExp) {
-      Channel channel = this;
-      String channelName = this.var;
-
-   		Vector result = new Vector();
-
-   		AST.SingleAssign sass = new AST.SingleAssign();
-   		sass.line = line;
-   		sass.col  = col;
-   		sass.lhs.var = channel.var;
-
-   		TLAExpr expr = new TLAExpr();
-
-   		if(callExp.tokens != null) {
-        sass.lhs.sub = callExp.cloneAndNormalize();
-   		}else {
-   			sass.lhs.sub = new TLAExpr(new Vector());
-   		}
-
-   		expr.addLine();
-      
-      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
-                            || channel.dimensions.size() == 0)  ? channelName : "@";
-
-      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); // specific to Channel
-   		expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
-   		expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
-   		for(int i = 0; i < msg.tokens.size(); i++) {
-   			Vector tv = (Vector) msg.tokens.elementAt(i);
-   			for (int j = 0; j < tv.size(); j++) {
-   				TLAToken tok = (TLAToken) tv.elementAt(j);
-   				expr.addToken(tok);
-   			}
-   		}
-   		expr.addToken(PcalTranslate.BuiltInToken("}")); // specific to Channel
-
-      expr.normalize();
-   		sass.rhs = expr;
-
-   		sass.setOrigin(this.getOrigin());
-
-   		AST.Assign assign = new AST.Assign();
-   		assign.ass = new Vector();
-   		assign.line = line ;
-   		assign.col  = col ;
-   		assign.setOrigin(this.getOrigin());
-   		
-   		assign.ass.addElement(sass);
-
-   		result.addElement(assign);
-
-   		return result;
-   	}
-
-		@Override
-		public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
-      Channel channel = this;
-      String channelName = this.var;
-      
-			Vector result = new Vector();
-
-			TLAExpr exp = new TLAExpr();
-
-			String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
-      // with freshVar \in chanName[dim] do <assign>
-			AST.With with = new AST.With();
-			with.col = line;
-			with.line = col;
-			with.var = tempVarName;
-			with.isEq = false;
-      // chanName[dim]
-			exp = new TLAExpr();
-			exp.addLine();
-			exp.addToken(PcalTranslate.IdentToken(channelName));
-			if(callExp.tokens != null) {
-				for(int i = 0; i < callExp.tokens.size(); i++) {
-					Vector tv = (Vector) callExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						exp.addToken(tok);
-					}
-				}
-			}
-      exp.normalize();
-			with.exp = exp;
-			with.setOrigin(this.getOrigin());
-      // assign = <sass1> + <sass2>
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-      // sass1 = targetVar := freshVar
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-      // targetVar
-			sass.lhs.var = targetVar.var;
-      sass.lhs.sub = targetExp.cloneAndNormalize();
-      // freshVar
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-			expr.addToken(PcalTranslate.IdentToken(tempVarName));
-      expr.normalize();
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-      // set sass1
-			assign.ass.addElement(sass);
-      // sass2 = chanName[dim] :=
-			sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-      // chanName[dim]
-			sass.lhs.var = channelName;
-			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp.cloneAndNormalize();
-			}else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-      // chanName/@ \ { freshVar }
-			expr = new TLAExpr();
-			expr.addLine();
-      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
-                            || channel.dimensions.size() == 0) ? channelName : "@";
-      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
-
-			expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-			expr.addToken(PcalTranslate.IdentToken(tempVarName));
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-      expr.normalize();
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-      // set sass2
-			assign.ass.addElement(sass);
-      // set body for With
-			Vector doBody = new Vector();
-			doBody.addElement(assign);
-			with.Do = doBody;
-      // set result
-			result.addElement(with);
-
-			return result;
-		}
-
-		@Override
-		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
-
-			Vector result = new Vector();
-
-      // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
-      //                        IF v1 \in D1, v2 \in D2, ...
-      //                           THEN chan[v1,v2,...] \cup message
-      //                           ELSE chan[v1,v2,...]
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col = col;
-			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector<>());
-			
-			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>();
-      int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
-
-			Vector thenExp = new Vector();
-			Vector elseExp = new Vector();
-      StringBuffer dt = new StringBuffer(); // store each dimensionType
-
-      // extract v1,v2,... and D1,D2,...
-      // prepare THEN (the message part)
-			for(int i = 0; i < msg.tokens.size(); i++) {
-				Vector line = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < line.size(); j++) {
-					TLAToken tok = (TLAToken) line.elementAt(j);
-
-          if(buildPhase == 0) {
-            if(tok.type == TLAToken.IDENT) {
-							dimensions.add(tok.string);
-							dt = new StringBuffer();
-              buildPhase = 1;
-            } else if(!tok.string.equals("[")) { // if not the leadin "["
-              PcalDebug.reportError("Bad format for message in multicast."+tok.string);
-            }
-          } else {
-            if(buildPhase == 1) {
-              //get the dimension type
-              if(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								dt.append(" " + tok.string);
-							} else {
-                if(tok.string.equals(",")){ // next dimension
-                  dimensionTypes.add(dt.toString());
-                  buildPhase = 0;
-                } else {
-                  if (tok.string.equals("|->")) { // done with dimensions
-                    dimensionTypes.add(dt.toString());
-                    buildPhase = 2;
-                  }
-                }
-              }
-            } else { // buildPhase == 2, ie the expression we want to multicast
-              if (!tok.string.equals("]")) { // if not the ending "]"
-                  thenExp.add((TLAToken) line.elementAt(j));
-              }
-            }
-          }
-        }
-      }
-
-			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null
-         && dimensions.size() > 1 // if not using only one variable
-         && channel.dimensions.size() != dimensions.size()) { // then the number of variables should be that of the channel
-				throw new ParseAlgorithmException("Multicast function expected " + channel.dimensions.size() +" dimensions ");
-			}
-
-      // build ELSE:  channel[v1,v2,...]
-			elseExp.add(PcalTranslate.IdentToken(channelName));
-			elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-
-			expr.addToken(PcalTranslate.BuiltInToken("["));
-
-			// build <<v1,v2,...>> \in DOMAIN channelName |-> IF
-			if(dimensions.size() == 1) { // if only one dimension no need for sequence
-				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
-			} else {
-				expr.addToken(PcalTranslate.BuiltInToken("<<"));
-				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
-				expr.addToken(PcalTranslate.BuiltInToken(">>"));
-			}
-			
-			expr.addToken(PcalTranslate.BuiltInToken(" \\in DOMAIN "));
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-			expr.addToken(PcalTranslate.BuiltInToken(" IF "));
-      // build IF body
-			for(int i = 0; i < dimensions.size(); i++) {
-        expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-        expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-				if(i != dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
-				}
-			}
-      expr.addLine();
-      // build THEN body 
-      // fix indentation here
-			expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-			expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
-			expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
-      // insert the message part
-      for(int i = 0; i < thenExp.size(); i++) {
-					TLAToken tok = (TLAToken) thenExp.elementAt(i);
-					tok.column = 0;
-          expr.addToken(tok);
-			}
-			expr.addToken(PcalTranslate.BuiltInToken("} ")); // specific to Channel
-      expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
-      // insert the ELSE body
-			for(int i = 0; i < elseExp.size(); i++) {
-        TLAToken tok = (TLAToken) elseExp.elementAt(i);
-        expr.addToken(tok);
-			}
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-			expr.normalize();
-			sass.rhs = expr;
-
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-			return result;
-		}
-
-   }
-   
-   public static class FIFOChannel extends Channel{
-   	public FIFOChannel() {};
-   	
-		@Override
-		public Vector send(TLAExpr msg, TLAExpr callExp) {
-      Channel channel = this;
-      String channelName = this.var;
-      
-   		Vector result = new Vector();
-   		
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-
-			TLAExpr expr = new TLAExpr();
-			
-			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp.cloneAndNormalize();
-			}else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-			
-			expr.addLine();
-      
-      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
-                            || channel.dimensions.size() == 0) ? channelName : "@";
-
-      expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
-      expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); // specific to FIFO
-      expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
-      for(int i = 0; i < msg.tokens.size(); i++) {
-        Vector tv = (Vector) msg.tokens.elementAt(i);
-        for (int j = 0; j < tv.size(); j++) {
-          TLAToken tok = (TLAToken) tv.elementAt(j);
-          expr.addToken(tok);
-        }
-      }
-			expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
-
-      expr.normalize();
-			sass.rhs = expr;
-
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-			
-			return result;
-		}
-
-		@Override
-		public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp) {
-      Channel channel = this;
-      String channelName = this.var;
-      
-			Vector result = new Vector();
-
-			TLAExpr exp = new TLAExpr();
-
-      // when (Len(chanName[dim]) > 0) <headAssign> <tailAssign>
-			AST.When when = new AST.When();
-			when.col = line;
-			when.line = col;
-      // Len(chanName[dim]) > 0
-			exp = new TLAExpr();
-			exp.addLine();
-			exp.addToken(PcalTranslate.BuiltInToken("Len("));
-			exp.addToken(PcalTranslate.IdentToken(channelName));
-			if(callExp.tokens != null) {
-				for(int i = 0; i < callExp.tokens.size(); i++) {
-					Vector tv = (Vector) callExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						exp.addToken(tok);
-					}
-				}
-			}
-			exp.addToken(PcalTranslate.BuiltInToken(") > 0 "));
-      exp.normalize();
-			when.exp = exp;
-			when.setOrigin(this.getOrigin());
-      // <headAssign> = targetVar := Head(chanName[dim])
-			AST.Assign headAssign = new AST.Assign();
-			headAssign.ass = new Vector();
-			headAssign.line = line ;
-			headAssign.col  = col ;
-			headAssign.setOrigin(this.getOrigin());
-			// targetVar
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = targetVar.var;
-      sass.lhs.sub = targetExp.cloneAndNormalize();
-      // Head(chanName[dim])
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken("Head("));
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			if(callExp.tokens != null) {
-				for(int i = 0; i < callExp.tokens.size(); i++) {
-					Vector tv = (Vector) callExp.tokens.elementAt(i);
-					for (int j = 0; j < tv.size(); j++) {
-						TLAToken tok = (TLAToken) tv.elementAt(j);
-						expr.addToken(tok);
-					}
-				}
-			}
-			expr.addToken(PcalTranslate.BuiltInToken(")"));
-      expr.normalize();
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-      // set headAssign
-			headAssign.ass.addElement(sass);
-      // <tailAssign> = chanName[dim] := Tail(chanName[dim]/@)
-			AST.Assign tailAssign = new AST.Assign();
-			tailAssign.ass = new Vector();
-			tailAssign.line = line ;
-			tailAssign.col  = col ;
-			tailAssign.setOrigin(this.getOrigin());
-			// chanName[dim]
-			sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channelName;
-			if(callExp.tokens != null) {
-				sass.lhs.sub = callExp.cloneAndNormalize();
-			} else {
-				sass.lhs.sub = new TLAExpr(new Vector());
-			}
-      // Tail(chanName[dim]/@)
-			expr = new TLAExpr();
-			expr.addLine();
-      String prevChannel = (channel.dimensions == null //eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
-                            || channel.dimensions.size() == 0) ? channelName : "@";
-      expr.addToken(PcalTranslate.BuiltInToken(" Tail(" + prevChannel + ") ")); 
-      expr.normalize();
-			sass.rhs = expr;
-			sass.setOrigin(this.getOrigin());
-      // set tailAssign
-			tailAssign.ass.addElement(sass);
-      // set result
-			result.addElement(when);
-			result.addElement(headAssign);
-			result.addElement(tailAssign);
-
-			return result;
-		}
-		
-		
-		@Override
-		public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
-
-			Vector result = new Vector();
-
-      // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
-      //                        IF v1 \in D1, v2 \in D2, ...
-      //                           THEN Append(chan[v1,v2,...], message)
-      //                           ELSE chan[v1,v2,...]
-			AST.SingleAssign sass = new AST.SingleAssign();
-			sass.line = line;
-			sass.col  = col;
-			sass.lhs.var = channel.var;
-			sass.lhs.sub = new TLAExpr(new Vector());
-
-			List dimensions = new ArrayList<>(); 
-			List dimensionTypes = new ArrayList<>();
-      int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
-
-			Vector thenExp = new Vector();
-			Vector elseExp = new Vector();
-      StringBuffer dt = new StringBuffer(); // store each dimensionType
-
-      // extract v1,v2,... and D1,D2,...
-      // prepare THEN (the message part)
-			for(int i = 0; i < msg.tokens.size(); i++) {
-				Vector line = (Vector) msg.tokens.elementAt(i);
-				for (int j = 0; j < line.size(); j++) {
-					TLAToken tok = (TLAToken) line.elementAt(j);
-
-          if(buildPhase == 0) {
-            if(tok.type == TLAToken.IDENT) {
-							dimensions.add(tok.string);
-							dt = new StringBuffer();
-              buildPhase = 1;
-            } else if(!tok.string.equals("[")) { // if not the leadin "["
-              PcalDebug.reportError("Bad format for message in multicast."+tok.string);
-            }
-          } else {
-            if(buildPhase == 1) {
-              //get the dimension type
-              if(!tok.string.equals(",") && !tok.string.equals("|->")) {
-								dt.append(" " + tok.string);
-							} else {
-                if(tok.string.equals(",")){ // next dimension
-                  dimensionTypes.add(dt.toString());
-                  buildPhase = 0;
-                } else {
-                  if (tok.string.equals("|->")) { // done with dimensions
-                    dimensionTypes.add(dt.toString());
-                    buildPhase = 2;
-                  }
-                }
-              }
-            } else { // buildPhase == 2, ie the expression we want to multicast
-              if (!tok.string.equals("]")) { // if not the ending "]"
-                  thenExp.add((TLAToken) line.elementAt(j));
-              }
-            }
-          }
-        }
-      }
-
-			//compare with dimensions within a channel and throw an error if we find a length mismatch
-			if(channel.dimensions != null
-         && dimensions.size() > 1 // if not using only one variable
-         && channel.dimensions.size() != dimensions.size()) { // then the number of variables should be that of the channel
-				throw new ParseAlgorithmException("Multicast function expected " + channel.dimensions.size() +" dimensions ");
-			}
-
-      // build ELSE:  channel[v1,v2,...]
-			elseExp.add(PcalTranslate.IdentToken(channelName));
-			elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
-
-			TLAExpr expr = new TLAExpr();
-			expr.addLine();
-
-			expr.addToken(PcalTranslate.BuiltInToken("["));
-
-			// build <<v1,v2,...>> \in DOMAIN channelName |-> IF
-			if(dimensions.size() == 1) { // if only one dimension no need for sequence
-				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
-			} else {
-				expr.addToken(PcalTranslate.BuiltInToken("<<"));
-				expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
-				expr.addToken(PcalTranslate.BuiltInToken(">>"));
-			}
-
-			expr.addToken(PcalTranslate.BuiltInToken(" \\in DOMAIN "));
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-			expr.addToken(PcalTranslate.BuiltInToken(" IF "));
-      // build IF body
-			for(int i = 0; i < dimensions.size(); i++) {
-        expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-        expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
-				if(i != dimensions.size() - 1) {
-					expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
-				}
-			}
-      expr.addLine();
-      // build THEN body
-      // fix indentation here
-			expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
-			expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
-			expr.addToken(PcalTranslate.IdentToken(channelName));
-			expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-			expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
-      // insert the message part
-      for(int i = 0; i < thenExp.size(); i++) {
-					TLAToken tok = (TLAToken) thenExp.elementAt(i);
-					tok.column = 0;
-          expr.addToken(tok);
-			}
-			expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
-      expr.addLine();
-			expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));
-      // insert the ELSE body
-			for(int i = 0; i < elseExp.size(); i++) {
-        TLAToken tok = (TLAToken) elseExp.elementAt(i);
-        expr.addToken(tok);
-			}
-			expr.addToken(PcalTranslate.BuiltInToken("]"));
-			expr.normalize();
-			sass.rhs = expr;
-
-			sass.setOrigin(this.getOrigin());
-
-			AST.Assign assign = new AST.Assign();
-			assign.ass = new Vector();
-			assign.line = line ;
-			assign.col  = col ;
-			assign.setOrigin(this.getOrigin());
-
-			assign.ass.addElement(sass);
-
-			result.addElement(assign);
-			return result;
-		}
-
    }
 
    public static class ChannelSendCall extends AST{

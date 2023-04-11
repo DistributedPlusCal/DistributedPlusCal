@@ -4575,8 +4575,7 @@ public class PcalTLAGen
         }        
         //For Distributed PlusCal
         // HC: fix bug FIFO (06/04/21)
-        if((decl instanceof AST.FIFOChannel || decl instanceof AST.UnorderedChannel)
-           && ((Channel) decl).dimensions != null // eventually remove this condition (when dimensions is always initialized, possibly to the empty list)
+        if(decl instanceof AST.Channel 
            && ((Channel) decl).dimensions.size() != 0) {
           RewriteVarDeclDimensions(((Channel)decl));
         } // end For Distributed PlusCal
@@ -5030,12 +5029,12 @@ public class PcalTLAGen
 
 		expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 		
-		if(decl instanceof AST.FIFOChannel) {
-			expr.addToken(PcalTranslate.BuiltInToken("<<"));
-			expr.addToken(PcalTranslate.BuiltInToken(">>"));
-		} else {
+		if(decl.channelType == AST.CHANNEL_TYPE_UNORDERED) {
 			expr.addToken(PcalTranslate.BuiltInToken("{"));
 			expr.addToken(PcalTranslate.BuiltInToken("}"));
+		} else { // AST.CHANNEL_TYPE_FIFO
+			expr.addToken(PcalTranslate.BuiltInToken("<<"));
+			expr.addToken(PcalTranslate.BuiltInToken(">>"));
 		}
 		
 		expr.addToken(PcalTranslate.BuiltInToken("]"));

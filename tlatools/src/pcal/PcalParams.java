@@ -337,42 +337,11 @@ public final class PcalParams
       return true ;
   }
 
-  
   //For Distributed PlusCal	
   /*************************************************************************
    * Parameters related to language definition.                             *
    *************************************************************************/
-  public static TLAExpr DefaultChannelInit(){
-	  Vector<TLAToken> line = new Vector<TLAToken>() ;
-	  line.addElement(new TLAToken("{", 0, 0)) ;
-	  line.addElement(new TLAToken("}", 0, 0)) ;
-	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
-	  vec.addElement(line) ;
-	  TLAExpr exp = new TLAExpr(vec) ;
-	  exp.normalize() ;
-	  return exp ;
-  }
-
-  //For Distributed PlusCal	
-  /*************************************************************************
-   * Parameters related to language definition.                             *
-   *************************************************************************/
-  public static TLAExpr DefaultFifoInit(){
-	  Vector<TLAToken> line = new Vector<TLAToken>() ;
-	  line.addElement(new TLAToken("<<", 0, 0)) ;
-	  line.addElement(new TLAToken(">>", 0, 0)) ;
-	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
-	  vec.addElement(line) ;
-	  TLAExpr exp = new TLAExpr(vec) ;
-	  exp.normalize() ;
-	  return exp ;
-  }  
-
-  //For Distributed PlusCal	
-  /*************************************************************************
-   * Parameters related to language definition.                             *
-   *************************************************************************/
-  public static TLAExpr DefaultInit(int channelType){
+  public static TLAExpr DefaultChannelInit(int channelType){
 	  Vector<TLAToken> line = new Vector<TLAToken>() ;
     if(channelType == AST.CHANNEL_TYPE_UNORDERED){
       line.addElement(new TLAToken("{", 0, 0)) ;
