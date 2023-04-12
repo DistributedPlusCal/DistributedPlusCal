@@ -117,8 +117,9 @@ public class AST
     /**********************************************************************
      * Constants for the types of channels                               *
      **********************************************************************/
-    public static final int CHANNEL_TYPE_UNORDERED = 0;
-    public static final int CHANNEL_TYPE_FIFO = 1;
+    public static final int CHANNEL_TYPE_SET = 0;
+    public static final int CHANNEL_TYPE_BAG = 1;
+    public static final int CHANNEL_TYPE_FIFO = 2;
     // end For Distributed PlusCal	
 
     public int col ;
@@ -1113,7 +1114,7 @@ public class AST
        
        String prevChannel = (channel.dimensions.size() == 0)  ? channelName : "@";
        
-       if(channelType == CHANNEL_TYPE_UNORDERED) {
+       if(channelType == CHANNEL_TYPE_SET) {
          expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
          expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
          expr.addToken(PcalTranslate.BuiltInToken("{"));
@@ -1129,7 +1130,7 @@ public class AST
            expr.addToken(tok);
          }
        }
-       if(channelType == CHANNEL_TYPE_UNORDERED) {
+       if(channelType == CHANNEL_TYPE_SET) {
          expr.addToken(PcalTranslate.BuiltInToken("}"));
        } else { // CHANNEL_TYPE_FIFO
          expr.addToken(PcalTranslate.BuiltInToken(")"));
@@ -1152,7 +1153,7 @@ public class AST
      }
      
      public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp){    
-       if(channelType == CHANNEL_TYPE_UNORDERED) {
+       if(channelType == CHANNEL_TYPE_SET) {
          return receiveForUnorderedChannel(targetVar, callExp, targetExp);
        } else { // CHANNEL_TYPE_FIFO
          return receiveForFifoChannel(targetVar, callExp, targetExp);
@@ -1345,7 +1346,7 @@ public class AST
      public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
        Vector result = new Vector();
 
-       // For CHANNEL_TYPE_UNORDERED
+       // For CHANNEL_TYPE_SET
        // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
        //                        IF v1 \in D1, v2 \in D2, ...
        //                           THEN chan[v1,v2,...] \cup message
@@ -1454,7 +1455,7 @@ public class AST
        }
        expr.addToken(PcalTranslate.IdentToken(channelName));
        expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-       if(channelType == CHANNEL_TYPE_UNORDERED) {
+       if(channelType == CHANNEL_TYPE_SET) {
          expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
          expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
        } else { // CHANNEL_TYPE_FIFO
@@ -1466,7 +1467,7 @@ public class AST
          tok.column = 0;
          expr.addToken(tok);
        }
-       if(channelType == CHANNEL_TYPE_UNORDERED) {
+       if(channelType == CHANNEL_TYPE_SET) {
          expr.addToken(PcalTranslate.BuiltInToken("} ")); // specific to Channel
        } else { // CHANNEL_TYPE_FIFO
          expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO

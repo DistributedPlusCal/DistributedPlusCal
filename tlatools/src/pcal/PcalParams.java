@@ -343,7 +343,7 @@ public final class PcalParams
    *************************************************************************/
   public static TLAExpr DefaultChannelInit(int channelType){
 	  Vector<TLAToken> line = new Vector<TLAToken>() ;
-    if(channelType == AST.CHANNEL_TYPE_UNORDERED){
+    if(channelType == AST.CHANNEL_TYPE_SET){
       line.addElement(new TLAToken("{", 0, 0)) ;
       line.addElement(new TLAToken("}", 0, 0)) ;
     } else { //suppose that the only alternative is AST.CHANNEL_TYPE_FIFO

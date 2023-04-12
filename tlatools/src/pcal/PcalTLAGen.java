@@ -5029,7 +5029,7 @@ public class PcalTLAGen
 
 		expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 		
-		if(decl.channelType == AST.CHANNEL_TYPE_UNORDERED) {
+		if(decl.channelType == AST.CHANNEL_TYPE_SET) {
 			expr.addToken(PcalTranslate.BuiltInToken("{"));
 			expr.addToken(PcalTranslate.BuiltInToken("}"));
 		} else { // AST.CHANNEL_TYPE_FIFO
