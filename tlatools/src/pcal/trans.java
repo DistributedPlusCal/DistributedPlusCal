@@ -1675,9 +1675,13 @@ class trans {
                 }
                 PcalParams.LabelRoot = args[nextArg];
             } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
-              //For Distributed PlusCal
+              // For Distributed PlusCal
             	PcalParams.distpcalFlag = true;
-                PcalDebug.reportInfo("Distributed pluscal option enabled");
+              PcalDebug.reportInfo("Distributed pluscal option enabled");
+            } else if (option.equals("-setchannels") || (inFile && option.equals("setchannels"))){
+              // For Distributed PlusCal
+            	PcalParams.setChannels = true;
+              PcalDebug.reportInfo("Channels implemented with sets.");
             }
             // else if (option.equals("-readOnly") || (pcal && option.equals("readOnly"))) {
             // PcalParams.readOnly = true;

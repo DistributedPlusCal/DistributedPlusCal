@@ -1,5 +1,5 @@
 ------------------------ MODULE OneProcessProcedures -------------------------
-EXTENDS TLC, Integers, Sequences
+EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2
 

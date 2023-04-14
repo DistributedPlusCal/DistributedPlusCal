@@ -1,9 +1,9 @@
 ------------------------ MODULE NoProcessChannels -------------------------
-EXTENDS Naturals, Sequences, TLC
+EXTENDS Naturals, Sequences, Bags, TLC
 
 N == 3
 Nodes == 1..2
-Id == 3
+Id == N
 
 (* PlusCal options (-label -distpcal) *)
 

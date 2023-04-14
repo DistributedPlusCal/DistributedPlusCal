@@ -60,8 +60,10 @@ public final class PcalParams
         PcalTLAGen.wrapColumn = 78;
         PcalTLAGen.ssWrapColumn = 45;
         tlaPcalMapping = null ;
-        //For Distributed PlusCal	
+        // For Distributed PlusCal	
         distpcalFlag = false;
+        setChannels = false;
+        // end Distributed PlusCal
     }
     
     
@@ -157,11 +159,17 @@ public final class PcalParams
      *********************************************************************/
     public static boolean FairAlgorithm = false ; 
 
-    //For Distributed PlusCal	
+    // For Distributed PlusCal	
     /*********************************************************************
     * True iff the -distpcal option is chosen.                              *
     *********************************************************************/
     public static boolean distpcalFlag = false ;
+  
+    /*********************************************************************
+    * True iff the -setchannels option is chosen.                              *
+    *********************************************************************/
+    public static boolean setChannels = false ;
+    // end Distributed PlusCal
   
   /*************************************************************************
   * Parameters related to language definition.                             *
@@ -343,13 +351,18 @@ public final class PcalParams
    *************************************************************************/
   public static TLAExpr DefaultChannelInit(int channelType){
 	  Vector<TLAToken> line = new Vector<TLAToken>() ;
-    if(channelType == AST.CHANNEL_TYPE_SET){
-      line.addElement(new TLAToken("{", 0, 0)) ;
-      line.addElement(new TLAToken("}", 0, 0)) ;
-    } else { //suppose that the only alternative is AST.CHANNEL_TYPE_FIFO
+    if(channelType == AST.CHANNEL_TYPE_UNORDERED){
+      if(PcalParams.setChannels){
+        line.addElement(new TLAToken("{", 0, 0)) ;
+        line.addElement(new TLAToken("}", 0, 0)) ;
+      } else {
+        line.addElement(new TLAToken("<<", 0, 0)) ;
+        line.addElement(new TLAToken(">>", 0, 0)) ;
+      }
+    } else if(channelType == AST.CHANNEL_TYPE_FIFO){ 
       line.addElement(new TLAToken("<<", 0, 0)) ;
       line.addElement(new TLAToken(">>", 0, 0)) ;
-    }
+    } 
 	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
 	  vec.addElement(line) ;
 	  TLAExpr exp = new TLAExpr(vec) ;

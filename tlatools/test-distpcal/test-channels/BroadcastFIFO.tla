@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessBroadcastChannel -------------------------
+------------------------ MODULE BroadcastFIFO -------------------------
 EXTENDS TLC, Integers, Sequences
 
 N == 3
@@ -9,7 +9,7 @@ NNodes == N..5
 
 (*--algorithm dummy  {
 variables c = 2, r = 22, TO = {<<1,1>>, <<2,2>>};
-channels ch1[Nodes],ch2[Nodes][Nodes];
+fifos ch1[Nodes],ch2[Nodes][Nodes];
 
 macro broadcast(chan,m)
 {
@@ -20,7 +20,7 @@ process ( sid = 3 )
 variable cur = 10, loc = 0;
 {
     Send1:
-    multicast(ch1,[ag \in DOMAIN ch1 |-> ag]);
+    multicast(ch1,[ag \in DOMAIN ch1 |-> cur]);
     SendM1:
     broadcast(ch1,cur);
     Send2: 
@@ -36,8 +36,8 @@ variable loc = 0;
     receive(ch1[self],loc);
 }
 {
-    \* force deadlock to look at the trace
-    await loc > 4;
+    R2:
+    receive(ch1[self],loc);
 }
 }
 *)

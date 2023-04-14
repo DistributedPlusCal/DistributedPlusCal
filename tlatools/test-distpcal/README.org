@@ -132,18 +132,49 @@
 
 ** Test Channels
 
+*** BagChannel
+- one process (ID)
+- channel 0/1/2-dimensional
+- fifo 0/1/2-dimensional
+- deadlocks if "-setchannels" option used (since identical messages
+  are collapsed with a set implementation)
+*** BroadcastChannel
+- channel 0/1/2-dimensional
+- broadcasts message using multicast operator and broadcast macro
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+*** BroadcastFIFO
+- same as BroadcastChannel but with
+  - FIFO 0/1/2-dimensional
+- broadcasts message using multicas operator and broadcast macro
+- shouldn't deadlock
+	
+*** MulticastChannel
+- channel 1/2-dimensional
+- multicast with different expressions
+- expressions on several lines
+- deadlocks if "-setchannels" option used
+*** MulticastFIFO
+- same as MulticastChannel but with
+  - FIFO 1/2-dimensional
+- shouldn't deadlock
+	
 *** NoProcessChannels
 - no process
 - channel 0/1/2-dimensional
 - fifo 0/1/2-dimensional
 - send and receive on all channels
 
+
+
+
+
 *** TwoProcessesGlobalChannel
 - two processes
 - global channel and fifo
 - Channel/fifo declaration with dimension other than identifier (Nodes \cup {Id})
 - send/receive on channel
-
+	
 *** OneProcessThreadsMacrosChannel0dimension
 - two processes, multiple threads
 - global channel dimension 0
@@ -161,4 +192,6 @@
 
 *** TwoProcessesGlobalChannelCLASH
 - local variables with same name in different processes
+
+
 

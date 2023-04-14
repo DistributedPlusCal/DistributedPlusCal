@@ -4820,7 +4820,7 @@ public class ParseAlgorithm
 		
 		if (tok.equals("channel") || tok.equals("channels")) {
 			MustGobbleThis(tok);
-			channelType = AST.CHANNEL_TYPE_SET;
+			channelType = AST.CHANNEL_TYPE_UNORDERED;
 		} else { // only fifo alternative available so far
 			GobbleThis(tok);
 			channelType = AST.CHANNEL_TYPE_FIFO;

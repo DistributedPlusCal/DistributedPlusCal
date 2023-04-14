@@ -117,8 +117,7 @@ public class AST
     /**********************************************************************
      * Constants for the types of channels                               *
      **********************************************************************/
-    public static final int CHANNEL_TYPE_SET = 0;
-    public static final int CHANNEL_TYPE_BAG = 1;
+    public static final int CHANNEL_TYPE_UNORDERED = 1;
     public static final int CHANNEL_TYPE_FIFO = 2;
     // end For Distributed PlusCal	
 
@@ -1114,15 +1113,26 @@ public class AST
        
        String prevChannel = (channel.dimensions.size() == 0)  ? channelName : "@";
        
-       if(channelType == CHANNEL_TYPE_SET) {
-         expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
-         expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
-         expr.addToken(PcalTranslate.BuiltInToken("{"));
-       } else { // CHANNEL_TYPE_FIFO
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         if(PcalParams.setChannels){
+           expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
+           expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
+           expr.addToken(PcalTranslate.BuiltInToken("{"));
+         } else {
+           expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
+           expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
+           expr.addToken(PcalTranslate.BuiltInToken("["));
+           String freshVar = "_" + channelName.toLowerCase().charAt(0) + line + col;
+           expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+           expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+           expr.addToken(PcalTranslate.BuiltInToken("{"));
+         }
+       } else if(channelType == CHANNEL_TYPE_FIFO) {
          expr.addToken(PcalTranslate.BuiltInToken(" Append("));
          expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
          expr.addToken(PcalTranslate.BuiltInToken(", "));
        }
+       // insert the message part
        for(int i = 0; i < msg.tokens.size(); i++) {
          Vector tv = (Vector) msg.tokens.elementAt(i);
          for (int j = 0; j < tv.size(); j++) {
@@ -1130,9 +1140,16 @@ public class AST
            expr.addToken(tok);
          }
        }
-       if(channelType == CHANNEL_TYPE_SET) {
-         expr.addToken(PcalTranslate.BuiltInToken("}"));
-       } else { // CHANNEL_TYPE_FIFO
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         if(PcalParams.setChannels){
+           expr.addToken(PcalTranslate.BuiltInToken("}"));
+         } else {
+           expr.addToken(PcalTranslate.BuiltInToken("}"));
+           expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+           expr.addToken(PcalTranslate.BuiltInToken("1"));
+           expr.addToken(PcalTranslate.BuiltInToken("]"));
+         }
+       } else if(channelType == CHANNEL_TYPE_FIFO) {
          expr.addToken(PcalTranslate.BuiltInToken(")"));
        }
        expr.normalize();
@@ -1153,9 +1170,9 @@ public class AST
      }
      
      public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp){    
-       if(channelType == CHANNEL_TYPE_SET) {
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
          return receiveForUnorderedChannel(targetVar, callExp, targetExp);
-       } else { // CHANNEL_TYPE_FIFO
+       } else { // (channelType == CHANNEL_TYPE_FIFO) {
          return receiveForFifoChannel(targetVar, callExp, targetExp);
        }
      }
@@ -1177,6 +1194,9 @@ public class AST
        // chanName[dim]
        exp = new TLAExpr();
        exp.addLine();
+       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+         exp.addToken(PcalTranslate.BuiltInToken("DOMAIN "));
+       } 
        exp.addToken(PcalTranslate.IdentToken(channelName));
        if(callExp.tokens != null) {
          for(int i = 0; i < callExp.tokens.size(); i++) {
@@ -1206,7 +1226,23 @@ public class AST
        // freshVar
        TLAExpr expr = new TLAExpr();
        expr.addLine();
+       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+         expr.addToken(PcalTranslate.BuiltInToken(channelName)); 
+         if(callExp.tokens != null) {
+           for(int i = 0; i < callExp.tokens.size(); i++) {
+             Vector tv = (Vector) callExp.tokens.elementAt(i);
+             for (int j = 0; j < tv.size(); j++) {
+               TLAToken tok = (TLAToken) tv.elementAt(j);
+               expr.addToken(tok);
+             }
+           }
+         }
+         expr.addToken(PcalTranslate.BuiltInToken("["));
+       }
        expr.addToken(PcalTranslate.IdentToken(tempVarName));
+       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+         expr.addToken(PcalTranslate.BuiltInToken("]"));
+       }
        expr.normalize();
        sass.rhs = expr;
        sass.setOrigin(this.getOrigin());
@@ -1229,10 +1265,24 @@ public class AST
        String prevChannel = (channel.dimensions.size() == 0) ? channelName : "@";
        expr.addToken(PcalTranslate.BuiltInToken(prevChannel)); 
        
-       expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
-       expr.addToken(PcalTranslate.BuiltInToken("{"));
-       expr.addToken(PcalTranslate.IdentToken(tempVarName));
-       expr.addToken(PcalTranslate.BuiltInToken("}"));
+       if(PcalParams.setChannels){
+         expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
+         expr.addToken(PcalTranslate.BuiltInToken("{"));
+         expr.addToken(PcalTranslate.IdentToken(tempVarName));
+         expr.addToken(PcalTranslate.BuiltInToken("}"));
+       } else {
+         expr.addToken(PcalTranslate.BuiltInToken(" (-) "));
+         expr.addToken(PcalTranslate.BuiltInToken("["));
+         String freshVar = "_" + channelName.toLowerCase().charAt(0) + (line+1) + (col+1);
+         expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+         expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+         expr.addToken(PcalTranslate.BuiltInToken("{"));
+         expr.addToken(PcalTranslate.IdentToken(tempVarName));
+         expr.addToken(PcalTranslate.BuiltInToken("}"));
+         expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+         expr.addToken(PcalTranslate.BuiltInToken("1"));
+         expr.addToken(PcalTranslate.BuiltInToken("]"));
+       }
        expr.normalize();
        sass.rhs = expr;
        sass.setOrigin(this.getOrigin());
@@ -1448,18 +1498,27 @@ public class AST
        }
        expr.addLine();
        // build THEN body 
-       // fix indentation here
+       // indentation can improved
        expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
        if(channelType == CHANNEL_TYPE_FIFO) {
-         expr.addToken(PcalTranslate.BuiltInToken(" Append(")); // specific to FIFO
+         expr.addToken(PcalTranslate.BuiltInToken(" Append("));
        }
        expr.addToken(PcalTranslate.IdentToken(channelName));
        expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
-       if(channelType == CHANNEL_TYPE_SET) {
-         expr.addToken(PcalTranslate.BuiltInToken(" \\cup ")); // specific to Channel
-         expr.addToken(PcalTranslate.BuiltInToken("{")); // specific to Channel
-       } else { // CHANNEL_TYPE_FIFO
-         expr.addToken(PcalTranslate.BuiltInToken(", ")); // specific to FIFO
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         if(PcalParams.setChannels){
+           expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
+           expr.addToken(PcalTranslate.BuiltInToken("{"));
+         } else {
+           expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
+           expr.addToken(PcalTranslate.BuiltInToken("["));
+           String freshVar = "_" + channelName.toLowerCase().charAt(0) + line + col;
+           expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+           expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+           expr.addToken(PcalTranslate.BuiltInToken("{"));
+         }
+       } else if(channelType == CHANNEL_TYPE_FIFO) {
+         expr.addToken(PcalTranslate.BuiltInToken(", "));
        }
        // insert the message part
        for(int i = 0; i < thenExp.size(); i++) {
@@ -1467,10 +1526,17 @@ public class AST
          tok.column = 0;
          expr.addToken(tok);
        }
-       if(channelType == CHANNEL_TYPE_SET) {
-         expr.addToken(PcalTranslate.BuiltInToken("} ")); // specific to Channel
-       } else { // CHANNEL_TYPE_FIFO
-         expr.addToken(PcalTranslate.BuiltInToken(")")); // specific to FIFO
+       if(channelType == CHANNEL_TYPE_UNORDERED) {
+         if(PcalParams.setChannels){
+           expr.addToken(PcalTranslate.BuiltInToken("} "));
+         } else {
+           expr.addToken(PcalTranslate.BuiltInToken("}"));
+           expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+           expr.addToken(PcalTranslate.BuiltInToken("1"));
+           expr.addToken(PcalTranslate.BuiltInToken("]"));
+         }
+       } else if(channelType == CHANNEL_TYPE_FIFO) {
+         expr.addToken(PcalTranslate.BuiltInToken(")"));
        }
        expr.addLine();
        expr.addToken(PcalTranslate.BuiltInToken(" ELSE "));

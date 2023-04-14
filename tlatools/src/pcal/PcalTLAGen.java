@@ -5029,14 +5029,19 @@ public class PcalTLAGen
 
 		expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
 		
-		if(decl.channelType == AST.CHANNEL_TYPE_SET) {
-			expr.addToken(PcalTranslate.BuiltInToken("{"));
-			expr.addToken(PcalTranslate.BuiltInToken("}"));
-		} else { // AST.CHANNEL_TYPE_FIFO
+		if(decl.channelType == AST.CHANNEL_TYPE_UNORDERED) { 
+      if(PcalParams.setChannels){
+        expr.addToken(PcalTranslate.BuiltInToken("{"));
+        expr.addToken(PcalTranslate.BuiltInToken("}"));
+      } else {
+        expr.addToken(PcalTranslate.BuiltInToken("<<"));
+        expr.addToken(PcalTranslate.BuiltInToken(">>"));
+      }
+		} else if(decl.channelType == AST.CHANNEL_TYPE_FIFO) {
 			expr.addToken(PcalTranslate.BuiltInToken("<<"));
 			expr.addToken(PcalTranslate.BuiltInToken(">>"));
 		}
-		
+    
 		expr.addToken(PcalTranslate.BuiltInToken("]"));
 
 		expr.setOrigin(decl.val.getOrigin());

@@ -1,9 +1,8 @@
------------------------- MODULE OneProcessMulticastChannel -------------------------
-EXTENDS TLC, Integers, Sequences
+------------------------ MODULE MulticastChannel -------------------------
+EXTENDS TLC, Integers, Sequences, Bags
 
 N == 3
 Nodes == 1..N-1
-NNodes == N..5
 
 (* PlusCal options (-label -distpcal) *)
 
@@ -11,10 +10,11 @@ NNodes == N..5
 variables c = 2, r = 22, TO = {<<1,1>>, <<2,2>>};
 channels ch1[Nodes],ch2[Nodes][Nodes];
 
-process ( sid = 3 )
+process ( sid = N )
 variable cur = 1, loc = 0;
 {
     SendM1:
+    multicast(ch1,[ag \in DOMAIN ch1 |-> ag]);
     multicast(ch1,[ag \in DOMAIN ch1 |-> ag]);
     SendM2:
     multicast(ch2,[n = 1, m \in Nodes |-> n]);
@@ -34,8 +34,8 @@ variable loc = 0;
     receive(ch1[self],loc);
 }
 {
-    \* force deadlock to look at the trace
-    await loc > 4;
+    Rb:
+    receive(ch1[self],loc);
 }
 }
 *)
