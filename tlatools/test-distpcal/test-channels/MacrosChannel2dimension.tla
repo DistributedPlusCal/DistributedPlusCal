@@ -1,4 +1,4 @@
------------------------- MODULE MacrosChannel2dimensions -------------------------
+------------------------ MODULE MacrosChannel2dimension -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2
