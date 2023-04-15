@@ -113,7 +113,10 @@ public class AST
     //For Distributed PlusCal	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
-    
+    /**********************************************************************
+     * index for fresh variables (for send and receive operations)
+     **********************************************************************/
+    private static int varIndex=1;
     /**********************************************************************
      * Constants for the types of channels                               *
      **********************************************************************/
@@ -1122,7 +1125,7 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "_" + channelName.toLowerCase().charAt(0) + line + col;
+           String freshVar = "_v" + varIndex++;
            expr.addToken(PcalTranslate.BuiltInToken(freshVar));
            expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
@@ -1184,7 +1187,7 @@ public class AST
        
        TLAExpr exp = new TLAExpr();
        
-       String tempVarName = "_" + channelName.toLowerCase().charAt(0) + line + col;
+       String tempVarName = "_" + channelName.toLowerCase().charAt(0) + varIndex++;
        // with freshVar \in chanName[dim] do <assign>
        AST.With with = new AST.With();
        with.col = line;
@@ -1273,7 +1276,7 @@ public class AST
        } else {
          expr.addToken(PcalTranslate.BuiltInToken(" (-) "));
          expr.addToken(PcalTranslate.BuiltInToken("["));
-         String freshVar = "_" + channelName.toLowerCase().charAt(0) + (line+1) + (col+1);
+         String freshVar = "_v" + varIndex++;
          expr.addToken(PcalTranslate.BuiltInToken(freshVar));
          expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
          expr.addToken(PcalTranslate.BuiltInToken("{"));
@@ -1512,7 +1515,7 @@ public class AST
          } else {
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "_" + channelName.toLowerCase().charAt(0) + line + col;
+           String freshVar = "_v" + varIndex++;
            expr.addToken(PcalTranslate.BuiltInToken(freshVar));
            expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
