@@ -68,9 +68,6 @@ package pcal;
 
 import java.util.Vector;
 
-//For Distributed PlusCal
-import pcal.AST.Thread;
-// end For Distributed PlusCal
 import pcal.exception.PcalSymTabException;
 
 public class PcalSymTab {
@@ -176,7 +173,8 @@ public class PcalSymTab {
         // Added 13 Jan 2011 by LL 
 
         //For Distributed PlusCal
-        public Vector<Thread> threads;
+        public Vector<AST.Thread> threads;
+        // end For Distributed PlusCal
       
         public ProcessEntry(AST.Process p) {
             this.name = p.name;
@@ -217,6 +215,13 @@ public class PcalSymTab {
               }
             }
         }
+
+      // For Distributed PlusCal
+      public String toString(){
+        return "Process "+name+" [pc = <"+iPC+">, Threads = "+threads;
+      }
+      // end For Distributed PlusCal
+      
     } /* End of ProcessEntry */
 
     /**

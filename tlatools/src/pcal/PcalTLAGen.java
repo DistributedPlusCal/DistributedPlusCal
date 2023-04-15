@@ -2790,7 +2790,6 @@ public class PcalTLAGen
                 } else {
                   is.append("/\\ stack = [self \\in ProcSet |-> ");
                 }
-                
                 int colPC = is.length();
                 if (boxUnderCASE)
                   colPC = colPC - 3;
@@ -2811,47 +2810,29 @@ public class PcalTLAGen
                       addExprToTLA(pe.id);
                       addRightParen(pe.id.getOrigin());
                     }
-                    
-                    if(pe.iPC.length() > 1) {
-                      is = new StringBuffer(" -> <<");
-                      String[] stringArray = pe.iPC.toString().split(",");
-                      for(int i = 0; i < stringArray.length; i++) {
-                        is.append(" <<>> ");
-                        if(i != stringArray.length-1) {
-                          is.append(",");
-                        }
+
+                    // any process has at least one thread and thus,
+                    // the stack should be initialized to a sequence
+                    // (of sequences)
+                    is = new StringBuffer(" -> <<");
+                    String[] stringArray = pe.iPC.toString().split(",");
+                    for(int i = 0; i < stringArray.length; i++) {
+                      is.append(" <<>> ");
+                      if(i != stringArray.length-1) {
+                        is.append(",");
                       }
-                    } else {
-                      is = new StringBuffer(" -> \"");
-                      is.append(pe.iPC);
                     }
-                    
                     if (n == st.processes.size() - 1) {
-                      if(pe.iPC.length() > 1) {
                         is.append(">>]");
-                      } else {
-                        is.append("\"]");
-                      }
-                    }
-                    else if (!boxUnderCASE) {
-                      if(pe.iPC.length() > 1) {
+                    } else if (!boxUnderCASE) {
                         is.append(">> []");
-                      } else {
-                        is.append("\" []");
-                      }
-                    }
-                    else {
-                      if(pe.iPC.length() > 1) {
+                    } else {
                         is.append(">>");
-                      } else {
-                        is.append("\"");
-                      }
                     }
                   } // end if (useCase)
                   else {
-                    String[] stringArray = pe.iPC.toString().split(",");
-                    
                     is.append("<<");
+                    String[] stringArray = pe.iPC.toString().split(",");
                     for(int i = 0; i < stringArray.length; i++) {
                       is.append(" <<>> ");
                       if(i != stringArray.length-1) {
@@ -2930,43 +2911,24 @@ public class PcalTLAGen
                             addRightParen(pe.id.getOrigin());
 
                         }
-                        //For Distributed PlusCal
+                        // For Distributed PlusCal
                         if(PcalParams.distpcalFlag) {
-                          if(pe.iPC.length() > 1) {
-                            is = new StringBuffer(" -> <<");
-                            String[] stringArray = pe.iPC.toString().split(",");
-                            for(int i = 0; i < stringArray.length; i++) {
-                              is.append("\"" + stringArray[i].trim() + "\"");
-                        
-                              if(i != stringArray.length-1) {
-                                is.append(",");
-                              }
+                          // any process has at least one thread and
+                          // thus, PC should be initialized to a sequence
+                          is = new StringBuffer(" -> <<");
+                          String[] stringArray = pe.iPC.toString().split(",");
+                          for(int i = 0; i < stringArray.length; i++) {
+                            is.append("\"" + stringArray[i].trim() + "\"");
+                            if(i != stringArray.length-1) {
+                              is.append(",");
                             }
-                          } else {
-                            is = new StringBuffer(" -> \"");
-                            is.append(pe.iPC);
                           }
-                    
                           if (p == st.processes.size() - 1) {
-                            if(pe.iPC.length() > 1) {
                               is.append(">>]");
-                            } else {
-                              is.append("\"]");
-                            }
-                          }
-                          else if (!boxUnderCASE) {
-                            if(pe.iPC.length() > 1) {
+                          } else if (!boxUnderCASE) {
                               is.append(">> []");
-                            } else {
-                              is.append("\" []");
-                            }
-                          }
-                          else {
-                            if(pe.iPC.length() > 1) {
+                          } else {
                               is.append(">>");
-                            } else {
-                              is.append("\"");
-                            }
                           }
                         } else { // end For Distributed PlusCal
                           // is.append(" -> \"");
