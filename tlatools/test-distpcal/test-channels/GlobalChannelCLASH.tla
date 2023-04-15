@@ -1,4 +1,4 @@
------------------------- MODULE TwoProcessesGlobalChannelCLASH -------------------------
+------------------------ MODULE GlobalChannelCLASH -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2

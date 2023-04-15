@@ -130,14 +130,10 @@
 
 
 
-** Test Channels
+* Test Channels
 
-*** BagChannel
-- one process (ID)
-- channel 0/1/2-dimensional
-- fifo 0/1/2-dimensional
-- deadlocks if "-setchannels" option used (since identical messages
-  are collapsed with a set implementation)
+** Multicast
+	 
 *** BroadcastChannel
 - channel 0/1/2-dimensional
 - broadcasts message using multicast operator and broadcast macro
@@ -149,6 +145,12 @@
 - broadcasts message using multicas operator and broadcast macro
 - shouldn't deadlock
 	
+*** MulticastChannelSimple
+- channel 1/2-dimensional
+- multicast with simple expressions
+*** MulticastFIFOSimple
+- same as MulticastChannelSimple but with
+  - FIFO 1/2-dimensional
 *** MulticastChannel
 - channel 1/2-dimensional
 - multicast with different expressions
@@ -159,6 +161,26 @@
   - FIFO 1/2-dimensional
 - shouldn't deadlock
 	
+
+** Send/Receive 
+
+*** BagChannel
+- one process (ID)
+- channel 0/1/2-dimensional
+- fifo 0/1/2-dimensional
+- deadlocks if "-setchannels" option used (since identical messages
+  are collapsed with a set implementation)
+
+*** MacrosChannel1dimension
+- same as OneProcessesThreadsMacrosChannel0dimension but with 1-dimensional channels
+*** MacrosChannelNdimension
+- same as OneProcessesThreadsMacrosChannel0dimension but with 2-dimensional channels
+
+*** MacrosChannels
+- macros with channel dimension and array in parameters
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+
 *** NoProcessChannels
 - no process
 - channel 0/1/2-dimensional
@@ -166,25 +188,24 @@
 - send and receive on all channels
 
 
+*** OneProcessThreadsMacrosChannel0dimension
+- two processes, multiple threads
+- global channel dimension 0
+- macros for send and receive
 
-
-
+*** Send0dimension 
+- one process, 2 threads
+- send and receive on 0 dimensional channel 
+- message and receiver can be array
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+	
 *** TwoProcessesGlobalChannel
 - two processes
 - global channel and fifo
 - Channel/fifo declaration with dimension other than identifier (Nodes \cup {Id})
 - send/receive on channel
 	
-*** OneProcessThreadsMacrosChannel0dimension
-- two processes, multiple threads
-- global channel dimension 0
-- macros for send and receive
-
-*** OneProcessThreadsMacrosChannel1dimension
-- same as OneProcessesThreadsMacrosChannel0dimension but with 1-dimensional channels
-*** OneProcessThreadsMacrosChannelNdimension
-- same as OneProcessesThreadsMacrosChannel0dimension but with 2-dimensional channels
-
 *** TwoProcessesLocalChannel
 - two processes
 - LOCAL channel and fifo
@@ -194,4 +215,18 @@
 - local variables with same name in different processes
 
 
+
+
+** Procedures
+
+*** OneProcessProcedures
+- one process with 2 threads
+- 2 procedures: send and receive
+- sends and receives messages with and without procedures
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+*** OneProcessProceduresChanParams
+- procedures containing send/receive operations and with parameters
+  which are channel names or message receivers
+- shouldn't compile
 

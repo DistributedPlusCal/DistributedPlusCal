@@ -6,8 +6,6 @@ Nodes == 1..2
 (* PlusCal options (-label -distpcal) *)
 
 (*--algorithm dummy  {
-variables c = 2, r = 22;
-channels ch, ch1[Nodes];
 
 \* shouldn't use chan as a parameter
 procedure sendToChannel(chanS,mes)

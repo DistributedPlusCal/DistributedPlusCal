@@ -29,9 +29,9 @@ process ( w \in Nodes )
 variable cur = 1, loc = 0;
 {
     Send:
-    send(ch1[1],c+10+self);
+    send(ch1[1],c);
     SendM:
-    call sendToChannel(1,c+20+self);
+    call sendToChannel(1,c);
     After:
     cur := cur + 1;
 }
@@ -40,8 +40,6 @@ variable cur = 1, loc = 0;
     receive(ch1[1],cur);
     ReceiveM:
     call receiveFromChannel(1);
-    \* generate a deadlock to take a look at the trace
-    receive(ch,cur);
 }
 }
 *)

@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessThreadsMacrosChannels -------------------------
+------------------------ MODULE MacrosChannels -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2
@@ -35,10 +35,10 @@ variable c = 3, d = 1, e = 7;
     send(ch1[1],d);
     SM1:
     d := d+40;
-    sendMacro(ch1[1],ar[1]+40+self);
+    sendMacro(ch1[1],ar[1]);
     SM2:
     d := d+80;
-    sendMacroDim(ch1,d+self,1);
+    sendMacroDim(ch1,d,1);
 }
 {
     R1:

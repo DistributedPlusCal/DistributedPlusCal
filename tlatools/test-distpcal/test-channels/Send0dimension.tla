@@ -1,28 +1,28 @@
------------------------- MODULE OneProcessThreadsChannels -------------------------
+------------------------ MODULE Send0dimension -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2
 Id == 3
 
-(* PlusCal options (-label -distpcal) *)
+(* PlusCal options (-label -distpcal -setchannels) *)
 
 (*--algorithm message_queue {
 
 variables ar = [ ind \in Nodes |-> ind ],  
           cur = 22;
 
-channels ch, ch1[Nodes \cup {Id}];
+channels ch;
 
 process ( pid \in Nodes )
 variable c = 3;
 {
 	c := c+self;
     SL:
-    send(ch, c+self);
+    send(ch, c);
     SG:
-    send(ch, cur+self+11);
+    send(ch, cur);
     SA:
-    send(ch, ar[1]+self);
+    send(ch, ar[1]);
 }
 {
     RL:

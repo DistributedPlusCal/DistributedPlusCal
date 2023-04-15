@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessThreadsMacrosChannel2dimensions -------------------------
+------------------------ MODULE MacrosChannel2dimensions -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
 Nodes == 1..2

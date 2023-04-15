@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessSendFIFO -------------------------
+------------------------ MODULE MulticastFIFOSimple -------------------------
 EXTENDS TLC, Integers, Sequences
 
 N == 3
@@ -8,7 +8,7 @@ NNodes == N..5
 (* PlusCal options (-label -distpcal) *)
 
 (*--algorithm dummy  {
-variables c = 2, r = 22, TO = {<<1,1>>, <<2,2>>};
+variables c = 2, r = 22;
 fifos ch, ch1[Nodes],ch2[Nodes][Nodes];
 
 process ( sid = 3 )

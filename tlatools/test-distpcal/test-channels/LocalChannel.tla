@@ -1,4 +1,4 @@
------------------------- MODULE TwoProcessesLocalChannel -------------------------
+------------------------ MODULE LocalChannel -------------------------
 EXTENDS TLC, Integers, Sequences
 
 Nodes == 1 .. 2
