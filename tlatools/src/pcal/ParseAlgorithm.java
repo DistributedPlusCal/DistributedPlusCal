@@ -116,7 +116,7 @@ import pcal.exception.UnrecoverableException;
 import tla2tex.Debug;
 
 //For Distributed PlusCal
-import java.util.ArrayList;
+// import java.util.ArrayList;
 import pcal.AST.VarDecl;
 // end For Distributed PlusCal	
 
@@ -4852,7 +4852,7 @@ public class ParseAlgorithm
 		pv.col = lastTokCol;
 		pv.line = lastTokLine;
 		
-    pv.dimensions = new ArrayList<>();
+    pv.dimensions = new Vector();
     boolean moreDimensions = PeekAtAlgToken(1).equals("[");
 
     while (moreDimensions) {

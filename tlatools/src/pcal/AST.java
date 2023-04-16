@@ -64,8 +64,6 @@
 package pcal;
 import java.util.Vector;
 //For Distributed PlusCal	
-import java.util.ArrayList;
-import java.util.List;
 import pcal.exception.ParseAlgorithmException;
 // end For Distributed PlusCal	
 
@@ -1086,11 +1084,11 @@ public class AST
       
    //For Distributed PlusCal	
    public static class Channel extends VarDecl{
-     public List dimensions;
+     public Vector dimensions;
      public int channelType;     
 
      public Channel(int channelType) {
-       dimensions = new ArrayList<>();
+       dimensions = new Vector(); // of Strings, the domains for each dimension
        this.channelType = channelType;
      };
 
@@ -1414,9 +1412,9 @@ public class AST
        sass.col = col;
        sass.lhs.var = channel.var;
        sass.lhs.sub = new TLAExpr(new Vector<>());
-			
-       List dimensions = new ArrayList<>(); 
-       List dimensionTypes = new ArrayList<>();
+
+       Vector dimensions = new Vector(); 
+       Vector dimensionTypes = new Vector();
        int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
 
        Vector thenExp = new Vector();
@@ -1434,7 +1432,7 @@ public class AST
                dimensions.add(tok.string);
                dt = new StringBuffer();
                buildPhase = 1;
-             } else if(!tok.string.equals("[")) { // if not the leadin "["
+             } else if(!tok.string.equals("[")) { // if not the leading "["
                PcalDebug.reportError("Bad format for message in multicast."+tok.string);
              }
            } else {
