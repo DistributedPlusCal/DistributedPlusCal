@@ -63,7 +63,7 @@
 ***************************************************************************/
 package pcal;
 import java.util.Vector;
-//For Distributed PlusCal	
+// For Distributed PlusCal	
 import pcal.exception.ParseAlgorithmException;
 // end For Distributed PlusCal	
 
@@ -439,8 +439,6 @@ public class AST
                  Indent(" body   |-> ") + 
                     VectorToSeqString(body) + "]" + 
                  // For Distributed PlusCal	
-                 // Indent(" body   |-> ") + 
-                     // VectorToSeqString(body) + "]" +
                  Indent(" body   |-> ") + 
                  ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
                  Indent(",  threads   |-> ") +
@@ -1260,6 +1258,7 @@ public class AST
        }else {
          sass.lhs.sub = new TLAExpr(new Vector());
        }
+       // chanName/@  (-) [fv \in {message} |-> 1]
        // chanName/@ \ { freshVar }
        expr = new TLAExpr();
        expr.addLine();
@@ -1397,7 +1396,12 @@ public class AST
      public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
        Vector result = new Vector();
 
-       // For CHANNEL_TYPE_SET
+       // For CHANNEL_TYPE_UNORDERED - bag
+       // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
+       //                        IF v1 \in D1, v2 \in D2, ...
+       //                           THEN chan[v1,v2,...] (+) [fv \in {message} |-> 1]
+       //                           ELSE chan[v1,v2,...]
+       // For CHANNEL_TYPE_UNORDERED set
        // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
        //                        IF v1 \in D1, v2 \in D2, ...
        //                           THEN chan[v1,v2,...] \cup message
@@ -1567,7 +1571,6 @@ public class AST
      @Override
      public String toString()
      {
-       // String dimensions = this.dimensions == null ? "[]" : this.dimensions.toString();
        return
          Indent(lineCol()) +
                     "[chan |-> \"" + var + "\", " +

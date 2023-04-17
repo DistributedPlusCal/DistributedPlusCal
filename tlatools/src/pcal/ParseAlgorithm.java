@@ -115,11 +115,6 @@ import pcal.exception.TokenizerException;
 import pcal.exception.UnrecoverableException;
 import tla2tex.Debug;
 
-//For Distributed PlusCal
-// import java.util.ArrayList;
-import pcal.AST.VarDecl;
-// end For Distributed PlusCal	
-
 public class ParseAlgorithm
 { 
     private static PcalCharReader charReader;
@@ -151,9 +146,11 @@ public class ParseAlgorithm
     * procedures called within the current process or procedure.
     */
 
-   //For Distributed PlusCal
-   // the fairness of the current thread
-   // use a global variable but we could use a parameter in GetProcess
+   // For Distributed PlusCal
+   /** 
+    * indicates the fairness of the current thread
+    * use a global variable but we could use a parameter in GetProcess
+    */
    public static int fairnessThread = AST.UNFAIR_PROC;
    // end For Distributed PlusCal
 
@@ -343,7 +340,7 @@ public class ParseAlgorithm
        if ( PeekAtAlgToken(1).equals("variable")
            || PeekAtAlgToken(1).equals("variables"))
          { vdecls = GetVarDecls() ; } ;
-       //For Distributed PlusCal
+       // For Distributed PlusCal
        if (PcalParams.distpcalFlag)  {
          if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("channels") ) {
            vdecls.addAll(GetChannelDecls());
@@ -409,7 +406,7 @@ public class ParseAlgorithm
                     	fairness = AST.SF_PROC;
                     }
                 };
-             //For Distributed PlusCal
+             // For Distributed PlusCal
              // propagate the fairness of the process to the threads
              fairnessThread = fairness;
              // end For Distributed PlusCal
@@ -481,7 +478,7 @@ public class ParseAlgorithm
                   (AST.Procedure) multiproc.prcds.elementAt(i) ;
                currentProcedure = prcd.name ;
                ExpandMacrosInStmtSeq(prcd.body, multiproc.macros);
-               //For Distributed PlusCal
+               // For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
                  //to expand the channel callers that are within a procedures body
                  ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
@@ -550,7 +547,7 @@ public class ParseAlgorithm
            uniproc.body = GetStmtSeq() ;
            CheckForDuplicateMacros(uniproc.macros) ;
            ExpandMacrosInStmtSeq(uniproc.body, uniproc.macros) ;
-           //For Distributed PlusCal
+           // For Distributed PlusCal
            if(PcalParams.distpcalFlag) {
              ExpandChannelCallersInStmtSeq(uniproc.body, null, uniproc.decls, null);
            } // end For Distributed PlusCal
@@ -566,7 +563,7 @@ public class ParseAlgorithm
                   (AST.Procedure) uniproc.prcds.elementAt(i) ;
                currentProcedure = prcd.name ;
                ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
-               //For Distributed PlusCal
+               // For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
                  //to expand the channel callers that are within a procedures body
                  ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
@@ -658,7 +655,7 @@ public class ParseAlgorithm
            omitStutteringWhenDone = false;
            return;
        } ;
-       //For Distributed PlusCal
+       // For Distributed PlusCal
        // HC: we can have multiple threads and no PC (like for multiple processes)
        // if (PcalParams.distpcalFlag) {
            // omitPC = false;
@@ -4841,7 +4838,7 @@ public class ParseAlgorithm
 		return result;
 	}
   	
-	public static VarDecl GetChannelDecl(int channelType) throws ParseAlgorithmException
+	public static AST.VarDecl GetChannelDecl(int channelType) throws ParseAlgorithmException
   {
     AST.Channel pv = new AST.Channel(channelType);
     pv.val = PcalParams.DefaultChannelInit(channelType);
@@ -5006,7 +5003,7 @@ public class ParseAlgorithm
 	 * @throws ParseAlgorithmException
 	 */
 	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls, Vector procLocalDecls) throws ParseAlgorithmException {
-		VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
+		AST.VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
 
 		Vector result = null;
     // construct body based on type of send call
@@ -5043,8 +5040,8 @@ public class ParseAlgorithm
 	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
 			throws ParseAlgorithmException {
 
-		VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
-		VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, procLocalDecls);
+		AST.VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
+		AST.VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, procLocalDecls);
 		if(targetVar == null) {
 			throw new ParseAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
 		}
@@ -5074,8 +5071,8 @@ public class ParseAlgorithm
 	 * @param globalDecl
 	 * @return
 	 */
-	static VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls) {
-		VarDecl var = null;
+	static AST.VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls) {
+		AST.VarDecl var = null;
 
 		int i = 0;
     // search in the process variables

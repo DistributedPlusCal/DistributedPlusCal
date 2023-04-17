@@ -193,6 +193,33 @@ public final class PcalParams
         return exp ;
       }
 
+      // For Distributed PlusCal
+      public static TLAExpr DefaultChannelInit(int channelType)
+      /*********************************************************************************
+       * Returns the values of the empty channel for the different types of channel.   *
+       *********************************************************************************/
+      {
+        Vector<TLAToken> line = new Vector<TLAToken>() ;
+        if(channelType == AST.CHANNEL_TYPE_UNORDERED){
+          if(PcalParams.setChannels){
+            line.addElement(new TLAToken("{", 0, 0)) ;
+            line.addElement(new TLAToken("}", 0, 0)) ;
+          } else {
+            line.addElement(new TLAToken("<<", 0, 0)) ;
+            line.addElement(new TLAToken(">>", 0, 0)) ;
+          }
+        } else if(channelType == AST.CHANNEL_TYPE_FIFO){ 
+          line.addElement(new TLAToken("<<", 0, 0)) ;
+          line.addElement(new TLAToken(">>", 0, 0)) ;
+        }
+        Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
+        vec.addElement(line) ;
+        TLAExpr exp = new TLAExpr(vec) ;
+        exp.normalize() ;
+        return exp ;
+      }
+      // end For Distributed PlusCal
+
     /***********************************************************************
     * The strings identifying the beginning of the algorithm in the .tla   *
     * file.                                                                *
@@ -345,32 +372,6 @@ public final class PcalParams
       return true ;
   }
 
-  //For Distributed PlusCal	
-  /*************************************************************************
-   * Parameters related to language definition.                             *
-   *************************************************************************/
-  public static TLAExpr DefaultChannelInit(int channelType){
-	  Vector<TLAToken> line = new Vector<TLAToken>() ;
-    if(channelType == AST.CHANNEL_TYPE_UNORDERED){
-      if(PcalParams.setChannels){
-        line.addElement(new TLAToken("{", 0, 0)) ;
-        line.addElement(new TLAToken("}", 0, 0)) ;
-      } else {
-        line.addElement(new TLAToken("<<", 0, 0)) ;
-        line.addElement(new TLAToken(">>", 0, 0)) ;
-      }
-    } else if(channelType == AST.CHANNEL_TYPE_FIFO){ 
-      line.addElement(new TLAToken("<<", 0, 0)) ;
-      line.addElement(new TLAToken(">>", 0, 0)) ;
-    } 
-	  Vector<Vector<TLAToken>> vec = new Vector<Vector<TLAToken>>() ;
-	  vec.addElement(line) ;
-	  TLAExpr exp = new TLAExpr(vec) ;
-	  exp.normalize() ;
-	  return exp ;
-  }  
-  
- }  
-
+} 
 /* last modified on Thu 23 Aug 2007 at 10:40:25 PST by lamport */
 
