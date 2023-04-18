@@ -434,9 +434,8 @@ public class ParseAlgorithm
            while (i < multiproc.procs.size())
              { AST.Process proc = 
                    (AST.Process) multiproc.procs.elementAt(i);
-               //For Distributed PlusCal
+               // For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
-                 omitStutteringWhenDone = true;
                  int j = 0;
                  while (j < proc.threads.size()) {
                    AST.Thread thread = (AST.Thread) proc.threads.elementAt(j);
@@ -446,6 +445,7 @@ public class ParseAlgorithm
                    AddLabelsToStmtSeq(thread.body);
                    thread.body = MakeLabeledStmtSeq(thread.body);
                    
+                   omitStutteringWhenDone = true;
                    checkBody(thread.body);
                    omitStutteringWhenDoneValue =
                      omitStutteringWhenDoneValue || omitStutteringWhenDone;

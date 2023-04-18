@@ -108,7 +108,7 @@ public class AST
     public static AST.Macro        MacroObj        ;
     public static AST.MacroCall    MacroCallObj    ;
 
-    //For Distributed PlusCal	
+    // For Distributed PlusCal	
     public static AST.ChannelSendCall ChannelSenderObj;
     public static AST.ChannelReceiveCall ChannelReceiverObj;
     /**********************************************************************
@@ -464,8 +464,6 @@ public class AST
                   VectorToSeqString(decls) + "," + 
                EndIndent() + NewLine() +
                // For Distributed PlusCal	
-               // Indent(" body   |-> ") + 
-                  // VectorToSeqString(body) + "]" +
                Indent(" body   |-> ") + 
                ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
                Indent(",  threads   |-> ") +
