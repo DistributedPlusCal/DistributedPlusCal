@@ -344,7 +344,7 @@ public class ParseAlgorithm
        if (PcalParams.distpcalFlag)  {
          if (PeekAtAlgToken(1).equals("channel") || PeekAtAlgToken(1).equals("channels") ) {
            vdecls.addAll(GetChannelDecls());
-         }
+         } // fifos should follow channel
          if ( PeekAtAlgToken(1).equals("fifo") || PeekAtAlgToken(1).equals("fifos")) {
            vdecls.addAll(GetChannelDecls());
          }
@@ -897,7 +897,7 @@ public class ParseAlgorithm
          { String tok = GetAlgToken() ; } ;
 //       CheckLabeledStmtSeq(result.body) ;
 
-       //For Distributed PlusCal
+       // For Distributed PlusCal
        // use the concatenation of plusLabels of each thread
        if (PcalParams.distpcalFlag) {
          result.plusLabels = plusLabelsProcess;
@@ -928,9 +928,7 @@ public class ParseAlgorithm
        * (p-syntax) or "{" (c-syntax) for the procedure.                   *
        ********************************************************************/
        while (! (   PeekAtAlgToken(1).equals("begin")
-                 || PeekAtAlgToken(1).equals("{") 
-                 //For Distributed PlusCal, when using p-syntax
-                 || PeekAtAlgToken(1).equals("subprocess")) )
+                 || PeekAtAlgToken(1).equals("{") ) )
          { result.addElement(GetPVarDecl()) ;
            GobbleCommaOrSemicolon();
              /**************************************************************
@@ -987,13 +985,12 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("fair")  
                  || PeekAtAlgToken(1).equals("define")  
                  || PeekAtAlgToken(1).equals("macro")  
-                 //For Distributed PlusCal
-                 || PeekAtAlgToken(1).equals("node")
+                 // For Distributed PlusCal
                  || PeekAtAlgToken(1).equals("channel") 
                  || PeekAtAlgToken(1).equals("channels") 
                  || PeekAtAlgToken(1).equals("fifos") 
-                 || PeekAtAlgToken(1).equals("fifo")
-                 || PeekAtAlgToken(1).equals("subprocess") ) )
+                 || PeekAtAlgToken(1).equals("fifo") ) )
+                 // end For Distributed PlusCal
          { result.addElement(GetVarDecl());
           } ;
         return result ;
@@ -1260,7 +1257,7 @@ public class ParseAlgorithm
        if (nextTok.equals("while"))  { return GetWhile() ; } ;
        if (PeekPastAlgToken(1).charAt(0)=='(')
          {
-           //For Distributed pluscal
+           // For Distributed pluscal
            if(nextTok.equals("send") || nextTok.equals("multicast")) {
              return GetSendToChannelCall(nextTok);
            } else if(nextTok.equals("receive")) {
@@ -3214,7 +3211,7 @@ public class ParseAlgorithm
             return result;
           } ;
 
-        //For Distributed pluscal
+        // For Distributed pluscal
         if( PcalParams.distpcalFlag ){
           if ( stmt.getClass().equals( AST.ChannelSenderObj.getClass() ) )
             {
@@ -3229,9 +3226,7 @@ public class ParseAlgorithm
                 { result.macroLine = macroLine ;
                   result.macroCol  = macroCol ;
                 } ; 
-
               result.type = chanstmt.type;
-
               result.channelName = chanstmt.channelName;
               result.callExp = chanstmt.callExp.cloneAndNormalize() ;
               result.callExp.substituteForAll(args, params) ;
@@ -3241,20 +3236,16 @@ public class ParseAlgorithm
               if( ind != -1 ){
                 TLAExpr argChannel = (TLAExpr) args.elementAt(ind) ;
                 TLAToken tok = argChannel.tokenAt(new IntPair(0,0));
-
                 if( tok.type == TLAToken.IDENT ) {
                   result.channelName = tok.string;
                 }
-
                 // use the expression from the argumets
                 // (by removing the first token which is the name of the channel)
                 TLAExpr newExpr = argChannel.cloneAndNormalize();
                 ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
-
-                // add the expression used locally
-                TLAExpr localCallExp = chanstmt.callExp.cloneAndNormalize() ;
-                localCallExp.substituteForAll(args, params) ;
-
+                // add the expression used locally (after substitution of parameters)
+                TLAExpr localCallExp = chanstmt.callExp.cloneAndNormalize();
+                localCallExp.substituteForAll(args, params);
                 int i = 0 ;
                 while (i < localCallExp.tokens.size() )
                   { Vector newline = new Vector() ;
@@ -3267,13 +3258,10 @@ public class ParseAlgorithm
                     newExpr.tokens.add(newline) ;
                     i = i + 1 ;
                   } ;
-
                 result.callExp = newExpr.cloneAndNormalize();
               }
-
               result.msg = chanstmt.msg.cloneAndNormalize() ;
               result.msg.substituteForAll(args, params) ;
-
               return result;
             } ;
 
@@ -3299,20 +3287,16 @@ public class ParseAlgorithm
               if( ind != -1 ){
                 TLAExpr argChannel = (TLAExpr) args.elementAt(ind) ;
                 TLAToken tok = argChannel.tokenAt(new IntPair(0,0));
-
                 if( tok.type == TLAToken.IDENT ) {
                   result.channelName = tok.string;
                 }
-
                 // use the expression from the argumets
                 // (by removing the first token which is the name of the channel)
                 TLAExpr newExpr = argChannel.cloneAndNormalize();
                 ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
-
-                // add the expression used locally
+                // add the expression used locally (after substitution of parameters)
                 TLAExpr localCallExp = chanstmt.callExp.cloneAndNormalize() ;
                 localCallExp.substituteForAll(args, params) ;
-
                 int i = 0 ;
                 while (i < localCallExp.tokens.size() )
                   { Vector newline = new Vector() ;
@@ -3325,33 +3309,27 @@ public class ParseAlgorithm
                     newExpr.tokens.add(newline) ;
                     i = i + 1 ;
                   } ;
-
                 result.callExp = newExpr.cloneAndNormalize();
               }
               result.targetVarName = chanstmt.targetVarName;
               result.targetExp = chanstmt.targetExp.cloneAndNormalize() ;
               result.targetExp.substituteForAll(args, params) ;
-
               // HC: if the target variable is one of the parameters
               // substitute the name and the corresponding expression
               int indT = params.indexOf(chanstmt.targetVarName);
               if( indT != -1 ){
                 TLAExpr argTarget = (TLAExpr) args.elementAt(indT) ;
                 TLAToken tok = argTarget.tokenAt(new IntPair(0,0));
-
                 if( tok.type == TLAToken.IDENT ) {
                   result.targetVarName = tok.string;
                 }
-
                 // use the expression from the argumets
                 // (by removing the first token which is the name of the channel)
                 TLAExpr newExpr = argTarget.cloneAndNormalize();
                 ((Vector) newExpr.tokens.elementAt(0)).removeElementAt(0);
-
-                // add the expression used locally
+                // add the expression used locally (after substitution of parameters)
                 TLAExpr localCallExp = chanstmt.targetExp.cloneAndNormalize() ;
                 localCallExp.substituteForAll(args, params) ;
-
                 int i = 0 ;
                 while (i < localCallExp.tokens.size() )
                   { Vector newline = new Vector() ;
@@ -3364,10 +3342,8 @@ public class ParseAlgorithm
                     newExpr.tokens.add(newline) ;
                     i = i + 1 ;
                   } ;
-
                 result.targetExp = newExpr.cloneAndNormalize();
               }
-
               return result;
             } ;
         } // end For Distributed PlusCal
@@ -3792,9 +3768,6 @@ public class ParseAlgorithm
                 || nxt.equals("define")
                 || nxt.equals("}")
                 || nxt.equals("{")
-                //For Distributed PlusCal
-                || nxt.equals("node")
-                || nxt.equals("subprocess")
               )
              { return ;
              };                   
@@ -4769,30 +4742,47 @@ public class ParseAlgorithm
        }
    }
 
-   //For Distributed PlusCal	
-  public static Vector GetChannelDecls() throws ParseAlgorithmException {
-
-		String tok = PeekAtAlgToken(1);
-		int channelType = -1;
+  // For Distributed PlusCal
+  public static Vector GetChannelDecls() throws ParseAlgorithmException
+    /**********************************************************************
+    * Parses a <ChannelDecls>  as a Vector of AST.VarDecl objects.        *
+    **********************************************************************/
+    { String tok = PeekAtAlgToken(1);
+      int channelType = -1;
 		
-		if (tok.equals("channel") || tok.equals("channels")) {
-			MustGobbleThis(tok);
-			channelType = AST.CHANNEL_TYPE_UNORDERED;
-		} else { // only fifo alternative available so far
-			GobbleThis(tok);
-			channelType = AST.CHANNEL_TYPE_FIFO;
-		}
+      if (tok.equals("channel") || tok.equals("channels")) {
+        MustGobbleThis(tok);
+        channelType = AST.CHANNEL_TYPE_UNORDERED;
+      } else { // only fifo alternative available so far
+        GobbleThis(tok);
+        channelType = AST.CHANNEL_TYPE_FIFO;
+      }
+      Vector result = new Vector();
 
-		Vector result = new Vector();
-
-		while (!(PeekAtAlgToken(1).equals("begin") || PeekAtAlgToken(1).equals("{")
-				|| PeekAtAlgToken(1).equals("procedure") || PeekAtAlgToken(1).equals("process")
-				|| PeekAtAlgToken(1).equals("fair") || PeekAtAlgToken(1).equals("define")
-				|| PeekAtAlgToken(1).equals("macro") || PeekAtAlgToken(1).equals("node")
-				|| PeekAtAlgToken(1).equals("variable") || PeekAtAlgToken(1).equals("variables")
-				|| PeekAtAlgToken(1).equals("fifo") || PeekAtAlgToken(1).equals("fifos")
-				|| PeekAtAlgToken(1).equals("subprocess"))) {
-			// change here if we want to prevent variable declaration between threads
+      /********************************************************************
+       * The <ChannelDecls> nonterminal appears in two places:                 *
+       *                                                                   *
+       * - In a <Process>, where it is terminated by        *
+       *   a "begin" (p-syntax) or "{" (c-syntax).                         *
+       *                                                                   *
+       * - At the beginning of a <Algorithm>, where it is terminated by    *
+       *   "define", "macro", "procedure", "begin" or "{", or "process" .  *
+       *                                                                   *
+       * It always appears after the potential variable(s) declarations.   *
+       * To be completly accurate we shoudl split into channel and fifo.   *
+       * declarations (the latter not followed by fifo(s).                 *
+       ********************************************************************/
+      while (!(   PeekAtAlgToken(1).equals("begin")
+                || PeekAtAlgToken(1).equals("{")
+                || PeekAtAlgToken(1).equals("procedure")
+                || PeekAtAlgToken(1).equals("process")
+                || PeekAtAlgToken(1).equals("fair")
+                || PeekAtAlgToken(1).equals("define")
+                || PeekAtAlgToken(1).equals("macro")
+                || PeekAtAlgToken(1).equals("variable")
+                || PeekAtAlgToken(1).equals("variables")
+                || PeekAtAlgToken(1).equals("fifo")
+                || PeekAtAlgToken(1).equals("fifos") ) ) {
 			result.addElement(GetChannelDecl(channelType));
 		}
 		return result;
@@ -4808,14 +4798,12 @@ public class ParseAlgorithm
 		PCalLocation endLoc = GetLastLocationEnd();
 		pv.col = lastTokCol;
 		pv.line = lastTokLine;
-		
+
     pv.dimensions = new Vector();
     boolean moreDimensions = PeekAtAlgToken(1).equals("[");
-
     while (moreDimensions) {
 			GobbleThis("[");
       String nextDimension = "";
-      
 			String next = PeekAtAlgToken(1);
       while(!next.equals("]")) {
         nextDimension += " "+GetAlgToken();
@@ -4827,87 +4815,49 @@ public class ParseAlgorithm
 		}
 		
 		GobbleCommaOrSemicolon();
-
-		/******************************************************************
-		 * Changed on 24 Mar 2006 from GobbleThis(";") to allow * declarations to be
-		 * separated by commas. *
-		 ******************************************************************/
+    /******************************************************************
+     * Changed on 24 Mar 2006 from GobbleThis(";") to allow              *
+     * declarations to be separated by commas. (similarly to GetVarDecl) *
+     ******************************************************************/
 		pv.setOrigin(new Region(beginLoc, endLoc));
 		return pv;
 	}
 
 	public static AST.ChannelSendCall GetSendToChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelSendCall result = new AST.ChannelSendCall();
-		result.type = GetAlgToken() ;
-
+		result.type = GetAlgToken(); // send or multicast
+		PCalLocation beginLoc = GetLastLocationStart();
 		MustGobbleThis("(");
-
 		result.col = curTokCol[0] + 1;
 		result.line = curTokLine[0] + 1;
-		/******************************************************************
-		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-		 * LAT[0] contains the next token. *
-		 ******************************************************************/
-		PCalLocation beginLoc = null;
-		PCalLocation endLoc = null;
 		result.channelName = GetAlgToken();
-
     result.callExp = GetExpr();
-
-		beginLoc = GetLastLocationStart();
-		endLoc = GetLastLocationEnd();
-
 		GobbleThis(",");
 		result.msg = GetExpr();
-
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
-
 		return result;
 	}
 
 	public static AST.ChannelReceiveCall GetReceiveFromChannelCall(String nextTok) throws ParseAlgorithmException {
 		AST.ChannelReceiveCall result = new AST.ChannelReceiveCall();
 		MustGobbleThis("receive");
+		PCalLocation beginLoc = GetLastLocationStart();
 		MustGobbleThis("(");
-
 		result.col = curTokCol[0] + 1;
 		result.line = curTokLine[0] + 1;
-		/******************************************************************
-		 * We use the fact here that this method is called after * PeekAtAlgToken(1), so
-		 * LAT[0] contains the next token. *
-		 ******************************************************************/
-		PCalLocation beginLoc = null;
-		PCalLocation endLoc = null;
 		result.channelName = GetAlgToken();
-
-		beginLoc = GetLastLocationStart();
-		endLoc = GetLastLocationEnd();
-
 		result.callExp = GetExpr();
-
 		GobbleThis(",");
-
 		result.targetVarName = GetAlgToken();
 		result.targetExp = GetExpr();
-
-		//if there is more than one parameter an error is thrown
 		GobbleThis(")");
 		result.setOrigin(new Region(beginLoc, GetLastLocationEnd()));
 		GobbleThis(";");
-    
 		return result;
 	}
 
-	/**
-	 * 
-	 * @param stmtseq
-	 * @param nodeDecls
-	 * @param globalDecls
-	 * @param procLocalDecls local variables of the procedure
-	 * @throws ParseAlgorithmException
-	 */
 	public static void ExpandChannelCallersInStmtSeq(Vector stmtseq, Vector nodeDecls, Vector globalDecls, Vector procLocalDecls) throws ParseAlgorithmException {
 		int i = 0;
 		while (i < stmtseq.size()) {
@@ -4928,8 +4878,14 @@ public class ParseAlgorithm
 				ExpandChannelCallersInStmtSeq(((AST.With) stmt).Do, nodeDecls, globalDecls, procLocalDecls);
 			} else if (stmt.getClass().equals(AST.WhileObj.getClass())) {
 				ExpandChannelCallersInStmtSeq(((AST.While) stmt).unlabDo, nodeDecls, globalDecls, procLocalDecls);
-			} else if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())) {
-				Vector expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls, procLocalDecls);
+			} else if (   stmt.getClass().equals(AST.ChannelSenderObj.getClass())
+                 || stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
+				Vector expansion;
+        if (stmt.getClass().equals(AST.ChannelSenderObj.getClass())){
+          expansion = ExpandSendCall(((AST.ChannelSendCall) stmt), nodeDecls, globalDecls, procLocalDecls);
+        } else {
+          expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls, procLocalDecls);
+        }
 				stmtseq.remove(i);
 				int j = expansion.size();
 				while (j > 0) {
@@ -4937,42 +4893,21 @@ public class ParseAlgorithm
 					j = j - 1;
 				}
 				i = i + expansion.size() - 1;
-			} else if (stmt.getClass().equals(AST.ChannelReceiverObj.getClass())) {
-				Vector expansion = ExpandReceiveCall(((AST.ChannelReceiveCall) stmt), nodeDecls, globalDecls, procLocalDecls);
-				stmtseq.remove(i);
-				int j = expansion.size();
-				while (j > 0) {
-					stmtseq.insertElementAt(expansion.elementAt(j - 1), i);
-					j = j - 1;
-				}
-				i = i + expansion.size() - 1;
-			} 
+			}
 			i = i + 1;
 		}
-
 		return;
 	}
 	
-	/**
-	 * 
-	 * @param call
-	 * @param nodeDecls
-	 * @param globalDecls
-	 * @param procLocalDecls local variables of the procedure; not used so far
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
 	public static Vector ExpandSendCall(AST.ChannelSendCall call, Vector nodeDecls, Vector globalDecls, Vector procLocalDecls) throws ParseAlgorithmException {
 		AST.VarDecl varDecl = findVarDeclByVarName(call.channelName, nodeDecls, globalDecls, procLocalDecls);
-
 		Vector result = null;
     // construct body based on type of send call
 		if(call.type.equals("multicast")){
 			result = call.generateMulticastBodyTemplate((AST.Channel) varDecl);
-		} else {
+		} else { // send
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
-
 		if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
           first.lbl = call.lbl;
@@ -4984,31 +4919,15 @@ public class ParseAlgorithm
               last.macroOriginEnd = callOrigin.getEnd();
           }
         };
-        
 		return result;
 	}
 
-	/**
-	 * 
-	 * @param call
-	 * @param nodeDecls
-	 * @param globalDecls
-	 * @param procLocalDecls local variables of the procedure; not used so far
-	 * @return
-	 * @throws ParseAlgorithmException
-	 */
 	public static Vector ExpandReceiveCall(AST.ChannelReceiveCall call, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)
 			throws ParseAlgorithmException {
-
 		AST.VarDecl chanVar = findVarDeclByVarName(call.channelName, nodeDecl, globalDecl, procLocalDecls);
 		AST.VarDecl targetVar = findVarDeclByVarName(call.targetVarName, nodeDecl, globalDecl, procLocalDecls);
-		if(targetVar == null) {
-			throw new ParseAlgorithmException("Trying to receive into variable: '" + call.targetVarName + "' which is undefined");
-		}
-
 		//construct body based on type 
 		Vector result = call.generateBodyTemplate((AST.Channel)chanVar, targetVar);
-
 		if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
           first.lbl = call.lbl;
@@ -5020,18 +4939,10 @@ public class ParseAlgorithm
               last.macroOriginEnd = callOrigin.getEnd();
           }
         };
-
 		return result;
 	}
-	
-	/**
-	 * 
-	 * @param varName
-	 * @param nodeDecl
-	 * @param globalDecl
-	 * @return
-	 */
-	static AST.VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls) {
+
+	public static AST.VarDecl findVarDeclByVarName(String varName, Vector nodeDecl, Vector globalDecl, Vector procLocalDecls)  throws ParseAlgorithmException{
 		AST.VarDecl var = null;
 
 		int i = 0;
@@ -5045,7 +4956,7 @@ public class ParseAlgorithm
 		};
 
     i = 0;
-    // search in the process variables
+    // search in the global variables
     while (var == null && globalDecl != null && i < globalDecl.size()) {
       AST.VarDecl tempVar = (AST.VarDecl) globalDecl.elementAt(i);
       if (tempVar.var.equals(varName)) {
@@ -5066,7 +4977,7 @@ public class ParseAlgorithm
 
     // undeclared variable
     if(var == null) {
-      PcalDebug.reportInfo("The variable "+varName+" has not been declared.");
+      throw new ParseAlgorithmException("The variable "+varName+" has not been declared.");
     }
 
     return var;
