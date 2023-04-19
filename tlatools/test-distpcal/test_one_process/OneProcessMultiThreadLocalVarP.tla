@@ -15,12 +15,12 @@ variables
 process pid = 1 
 variable c = 1;
 begin
-			 c := c+1;
-       x := ar[c];
-end process
+	c := c+1;
+    x := ar[c];
+end thread
 begin
-       ar[i] := c;
-end subprocess
+    ar[i] := c;
+end thread
 
 end algorithm;
 *)

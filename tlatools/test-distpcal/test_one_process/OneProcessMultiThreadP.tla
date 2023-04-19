@@ -15,10 +15,10 @@ variables
 process pid = 1
 begin
      x := ar[1];
-end process;
+end thread;
 begin
      ar[i] := 0;
-end subprocess;
+end thread;
 
 end algorithm;
 *)

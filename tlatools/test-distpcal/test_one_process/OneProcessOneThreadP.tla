@@ -21,7 +21,7 @@ begin
         i := i + 1;
 				ar[i] := 0;
 				c := c+1;
-end process
+end thread
 
 end algorithm;
 *)

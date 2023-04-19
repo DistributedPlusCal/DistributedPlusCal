@@ -36,7 +36,7 @@ begin
         call fact(lp,1);
 	 After:
 	      skip;
-end process
+end thread
 
 end algorithm
 *)

@@ -25,22 +25,22 @@ PROCid == 5
         i := i + 1;
         i := i + 10;
         found := TRUE;
-    end process
+    end thread
     begin
         i := i + 2;
         i := i + 20;
         lvpid := ar[1];
-    end subprocess
+    end thread
 
     process qid \in PROCSet2
     begin
         i := i + 3;
         x := ar[1];
-    end process
+    end thread
     begin
         i := i + 4;
         ar[2] := 1;
-    end subprocess
+    end thread
 
     fair process sid = PROCid
     variables lvqid = 1;
@@ -49,11 +49,11 @@ PROCid == 5
         i := i + 5;
         i := i + 50;
         ar[2] := lvqid;
-    end process
+    end thread
     begin
         i := i + 6;
         i := i + 60;
-    end subprocess
+    end thread
 end algorithm
 
 *)

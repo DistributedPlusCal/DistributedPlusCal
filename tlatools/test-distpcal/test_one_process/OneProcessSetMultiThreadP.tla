@@ -7,8 +7,7 @@ Nodes == 1 .. N
 
 (* PlusCal options (-distpcal) *)
 
-(*
---algorithm dummy 
+(*--algorithm dummy 
 
 variables i = 1;
 
@@ -20,14 +19,14 @@ begin
           i := i+1;
 					l := l+2;
   	end while
-end process
+end thread
 begin
 	Read:
   	while ( l < 10 ) do
           i := i+1;
 					l := l+2;    	    
   	end while
-end subprocess
+end thread
 
 end algorithm
 *)

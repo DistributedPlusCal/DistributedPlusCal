@@ -9,7 +9,7 @@ variables
 
 process pid = 1
 begin
-end process
+end thread
 
 end algorithm;
 *)

@@ -480,7 +480,6 @@ public class ParseAlgorithm
                ExpandMacrosInStmtSeq(prcd.body, multiproc.macros);
                // For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
-                 //to expand the channel callers that are within a procedures body
                  ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
                } // end For Distributed PlusCal	
                AddLabelsToStmtSeq(prcd.body);
@@ -565,7 +564,6 @@ public class ParseAlgorithm
                ExpandMacrosInStmtSeq(prcd.body, uniproc.macros);
                // For Distributed PlusCal
                if(PcalParams.distpcalFlag) {
-                 //to expand the channel callers that are within a procedures body
                  ExpandChannelCallersInStmtSeq(prcd.body, null, vdecls, prcd.decls);
                } // end For Distributed PlusCal
                AddLabelsToStmtSeq(prcd.body);
@@ -802,7 +800,7 @@ public class ParseAlgorithm
        plusLabels = new Vector(0);
        minusLabels = new Vector(0);
        proceduresCalled = new Vector(0);
-       //For Distributed PlusCal
+       // For Distributed PlusCal
        // use plusLabels, minusLabels, proceduresCalled to account for
        // plus/minus-labels and proceduresCalled at thread level and
        // concatenate to get the corresponding values at process level
@@ -814,15 +812,10 @@ public class ParseAlgorithm
        if (cSyntax) { GobbleThis(")") ; } ;
        if (result.id.tokens.size()==0)
          { ParsingError("Empty process id at ") ;}
-       //For Distributed PlusCal
-       // HC: doublecheck if (with subprocess)
+       // For Distributed PlusCal
        if (PcalParams.distpcalFlag)  {
          if (   PeekAtAlgToken(1).equals("begin")
-                || PeekAtAlgToken(1).equals("{")
-                // when using p-syntax
-                // HC: still use subprocess?
-                // || PeekAtAlgToken(1).equals("subprocess")
-                )
+                || PeekAtAlgToken(1).equals("{") )
            { result.decls = new Vector(1) ; }
          else
            {
@@ -842,43 +835,10 @@ public class ParseAlgorithm
 
          Vector<AST.Thread> threads = new Vector<>();
          int i = 0;
-         AST.Thread thread = new AST.Thread();
-         thread.index = i++;
-         // the name is used when labels are not used (pc omitted)
-         thread.name = result.name + String.valueOf(thread.index + 1);
-         thread.id = result.id;
-		
-         //read the sub-process delimiter
-         GobbleBeginOrLeftBrace();
-         // reset for the next Thread
-         plusLabels = new Vector(0);
-         minusLabels = new Vector(0);
-         proceduresCalled = new Vector(0);
-         thread.body = GetStmtSeq();
-         // set the values for the thread
-         thread.fairness = fairnessThread;
-         thread.plusLabels = plusLabels;
-         thread.minusLabels = minusLabels;
-         thread.proceduresCalled = proceduresCalled;
-         // and add them to the process level (redundant)
-         plusLabelsProcess.addAll(plusLabels);
-         minusLabelsProcess.addAll(minusLabels);
-         // add procedure only if doesn't already exist
-         for(int ip=0; ip<proceduresCalled.size(); ip++){
-           if(! proceduresCalledProcess.contains(proceduresCalled.elementAt(ip))){
-             proceduresCalledProcess.add(proceduresCalled.elementAt(ip));
-           }
-         }
-         GobbleEndOrRightBrace("process"); // HC: use subprocess?
-	
-         if(pSyntax) {
-           GobbleThis(";");
-         }
-		
-         threads.add(thread);	
+
          if (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { 
            while (PeekAtAlgToken(1).equals("{") || PeekAtAlgToken(1).equals("begin")) { 
-             thread = new AST.Thread();
+             AST.Thread thread = new AST.Thread();
              thread.index = i++;
              // the name is used when labels are not used (pc omitted)
              thread.name = result.name + String.valueOf(thread.index + 1);
@@ -913,7 +873,7 @@ public class ParseAlgorithm
              }
 
              //to make sure this works remove the key node from the algorithm completely
-             GobbleEndOrRightBrace("subprocess");
+             GobbleEndOrRightBrace("thread");
 				
              if(pSyntax) {
                GobbleThis(";");

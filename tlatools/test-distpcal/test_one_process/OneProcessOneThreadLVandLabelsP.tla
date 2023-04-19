@@ -24,7 +24,7 @@ begin
 	  Two:
 				i := i + 1;
 				ar[i] := 0;
-end process
+end thread
 
 end algorithm
 *)

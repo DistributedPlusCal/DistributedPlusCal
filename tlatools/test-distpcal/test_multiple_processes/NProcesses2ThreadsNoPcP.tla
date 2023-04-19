@@ -10,36 +10,36 @@ EXTENDS Naturals, TLC
         while TRUE do
             i := i + 1;
         end while;
-    end process
+    end thread 
     begin
         while TRUE do
             i := i + 2;
         end while;
-    end subprocess
+    end thread
 
     process qid \in 3..4
     begin
         while TRUE do
             i := i + 3;
         end while;
-    end process
+    end thread
     begin
         while TRUE do
             i := i + 4;
         end while;
-    end subprocess
+    end thread
 
     process sid = 5
     begin
         while TRUE do
             i := i + 5;
         end while;
-    end process
+    end thread
     begin
         while TRUE do
             i := i + 6;
         end while;
-    end subprocess
+    end thread
 end algorithm
 
 *)

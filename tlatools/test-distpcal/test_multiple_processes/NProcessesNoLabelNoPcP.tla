@@ -10,21 +10,21 @@ EXTENDS Naturals, TLC
         while TRUE do
             i := i + 1;
         end while;
-    end process
+    end thread
 
     process qid \in 3..4
     begin
         while TRUE do
             i := i + 3;
         end while;
-    end process
+    end thread
 
     process sid = 5
     begin
         while TRUE do
             i := i + 5;
         end while;
-    end process
+    end thread
 end algorithm
 
 *)

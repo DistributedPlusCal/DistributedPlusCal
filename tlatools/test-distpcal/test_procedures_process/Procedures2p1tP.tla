@@ -30,7 +30,7 @@ begin
         call f(lp);
 	 After:
 	      res := lp;
-end process
+end thread
 
 process idm \in Nodes
 variable lpS = 10, resS = 1;
@@ -41,7 +41,7 @@ begin
         call f(lpS);
 	 AfterS:
 	      resS := lpS;
-end process
+end thread
 
 end algorithm
 *)

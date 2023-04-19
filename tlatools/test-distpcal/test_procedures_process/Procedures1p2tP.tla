@@ -30,7 +30,7 @@ begin
         call f(lp);
 	 After:
 	      res := lp;
-end process
+end thread
 begin
    BeforeS:
 	      lp := lp + 1;
@@ -38,7 +38,7 @@ begin
         call f(lp);
 	 AfterS:
 	      res := lp;
-end subprocess
+end thread
 
 end algorithm
 *)

@@ -25,7 +25,7 @@ begin
         call f(lp);
 	 After:
 	      res := lp;
-end process
+end thread
 
 end algorithm
 *)
