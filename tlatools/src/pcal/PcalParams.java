@@ -196,7 +196,8 @@ public final class PcalParams
       // For Distributed PlusCal
       public static TLAExpr DefaultChannelInit(int channelType)
       /*********************************************************************************
-       * Returns the values of the empty channel for the different types of channel.   *
+       * Returns the values of the empty channel for the different types of channel:   *
+       *   UNORDERED (set and bag implementation) and FIFO                             *
        *********************************************************************************/
       {
         Vector<TLAToken> line = new Vector<TLAToken>() ;

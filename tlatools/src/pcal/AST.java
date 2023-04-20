@@ -114,7 +114,7 @@ public class AST
     /**********************************************************************
      * index for fresh variables (for send and receive operations)
      **********************************************************************/
-    private static int varIndex=1;
+    private static int varIndex = 1;
     /**********************************************************************
      * Constants for the types of channels                               *
      **********************************************************************/
@@ -436,14 +436,11 @@ public class AST
                  Indent(" decls  |-> ") + 
                     VectorToSeqString(decls) + "," + 
                  EndIndent() + NewLine() +
-                 Indent(" body   |-> ") + 
-                    VectorToSeqString(body) + "]" + 
-                 // For Distributed PlusCal	
-                 Indent(" body   |-> ") + 
-                 ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
-                 Indent(",  threads   |-> ") +
-                 ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
-                 // end For Distributed PlusCal	
+               // For Distributed PlusCal
+              ((body != null) ?
+               Indent(" body   |-> ") + VectorToSeqString(body) + "]" :
+               Indent(" threads   |-> ") + VectorToSeqString(threads) + "]" ) +
+               // end For Distributed PlusCal
                  EndIndent() + 
               EndIndent() ;
             } 
@@ -463,11 +460,10 @@ public class AST
                Indent(" decls  |-> ") + 
                   VectorToSeqString(decls) + "," + 
                EndIndent() + NewLine() +
-               // For Distributed PlusCal	
-               Indent(" body   |-> ") + 
-               ((body == null) ? "_" :VectorToSeqString(body)) + "]" +  
-               Indent(",  threads   |-> ") +
-               ((threads == null || threads.size() == 0) ? "<<>>" : VectorToSeqString(threads)) + "]" +
+               // For Distributed PlusCal
+              ((body != null) ?
+               Indent(" body   |-> ") + VectorToSeqString(body) + "]" :
+               Indent(" threads   |-> ") + VectorToSeqString(threads) + "]" ) +
                // end For Distributed PlusCal	
                EndIndent() + 
              EndIndent() ;
@@ -1078,7 +1074,7 @@ public class AST
        return result + " >>" + EndIndent();
      }
       
-   //For Distributed PlusCal	
+   // For Distributed PlusCal
    public static class Channel extends VarDecl{
      public Vector dimensions;
      public int channelType;     
@@ -1115,7 +1111,7 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
            expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
-         } else {
+         } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
@@ -1140,7 +1136,7 @@ public class AST
        if(channelType == CHANNEL_TYPE_UNORDERED) {
          if(PcalParams.setChannels){
            expr.addToken(PcalTranslate.BuiltInToken("}"));
-         } else {
+         } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken("}"));
            expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
            expr.addToken(PcalTranslate.BuiltInToken("1"));
@@ -1191,7 +1187,7 @@ public class AST
        // chanName[dim]
        exp = new TLAExpr();
        exp.addLine();
-       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+       if(!PcalParams.setChannels){ // bag
          exp.addToken(PcalTranslate.BuiltInToken("DOMAIN "));
        } 
        exp.addToken(PcalTranslate.IdentToken(channelName));
@@ -1223,7 +1219,7 @@ public class AST
        // freshVar
        TLAExpr expr = new TLAExpr();
        expr.addLine();
-       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+       if(!PcalParams.setChannels){ // bag
          expr.addToken(PcalTranslate.BuiltInToken(channelName)); 
          if(callExp.tokens != null) {
            for(int i = 0; i < callExp.tokens.size(); i++) {
@@ -1237,7 +1233,7 @@ public class AST
          expr.addToken(PcalTranslate.BuiltInToken("["));
        }
        expr.addToken(PcalTranslate.IdentToken(tempVarName));
-       if(!PcalParams.setChannels){ // (channelType == CHANNEL_TYPE_UNORDERED) 
+       if(!PcalParams.setChannels){ // bag
          expr.addToken(PcalTranslate.BuiltInToken("]"));
        }
        expr.normalize();
@@ -1268,7 +1264,7 @@ public class AST
          expr.addToken(PcalTranslate.BuiltInToken("{"));
          expr.addToken(PcalTranslate.IdentToken(tempVarName));
          expr.addToken(PcalTranslate.BuiltInToken("}"));
-       } else {
+       } else { // bag
          expr.addToken(PcalTranslate.BuiltInToken(" (-) "));
          expr.addToken(PcalTranslate.BuiltInToken("["));
          String freshVar = "_v" + varIndex++;
@@ -1512,7 +1508,7 @@ public class AST
          if(PcalParams.setChannels){
            expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
-         } else {
+         } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
            String freshVar = "_v" + varIndex++;
@@ -1532,7 +1528,7 @@ public class AST
        if(channelType == CHANNEL_TYPE_UNORDERED) {
          if(PcalParams.setChannels){
            expr.addToken(PcalTranslate.BuiltInToken("} "));
-         } else {
+         } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken("}"));
            expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
            expr.addToken(PcalTranslate.BuiltInToken("1"));

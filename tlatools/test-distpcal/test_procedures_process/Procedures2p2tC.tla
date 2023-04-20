@@ -1,7 +1,7 @@
 ------------------------ MODULE Procedures2p2tC -------------------------
 EXTENDS TLC, Integers, Sequences
 
-(* PlusCal options (-distpcal) *)
+(* PlusCal options (-label -distpcal) *)
 
 \* CONSTANT N 
 N == 2

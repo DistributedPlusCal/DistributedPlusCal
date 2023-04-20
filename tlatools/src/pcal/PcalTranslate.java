@@ -44,11 +44,12 @@ public class PcalTranslate {
     private static String currentProcedure;  
 
 
-    //For Distributed pluscal
+    // For Distributed pluscal
     /**
      * Indicates that there is no thread in the algorithm
      */
     public final static Integer NO_THREAD = null;
+    // end For Distributed PlusCal
 
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
@@ -184,7 +185,7 @@ public class PcalTranslate {
       { Vector firstLine = new Vector() ;
         int nextCol = 0 ;
         int i = 0 ;
-        //For Distributed pluscal
+        // For Distributed pluscal
         // HC: don't add a space after pc if followed by [...]
         //   otherwise we get, for multi threads, pc[...] [...]
         boolean justPC = false;
@@ -192,13 +193,13 @@ public class PcalTranslate {
         while (i < vec.size())
           { TLAToken tok = ((TLAToken) vec.elementAt(i)).Clone() ;
             tok.column = nextCol ;
-            //For Distributed pluscal
+            // For Distributed pluscal
             if(PcalParams.distpcalFlag) {
               if(tok.string.charAt(0)=='[' && justPC) tok.column -= spaces ;
-            }// end Distributed PlusCal
+            } // end Distributed PlusCal
             firstLine.addElement(tok) ;
             nextCol = nextCol + tok.getWidth() + spaces ;
-            //For Distributed pluscal
+            // For Distributed pluscal
             if(PcalParams.distpcalFlag) {
               if(tok.string.equals("pc")){
                 justPC = true ;
@@ -271,8 +272,9 @@ public class PcalTranslate {
         sAss.lhs.var = id ;
         // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
-          // HC: should add threadIndex only if id == "pc"
-          // if(threadIndex == NO_THREAD || "pc".equals(id)) {
+          // HC: should add threadIndex only if id == "pc" 
+          // (but the method is always called with id == "pc" )
+          // and if there is at least one thread (i.e. one process)
           if(threadIndex == NO_THREAD) {
             sAss.lhs.sub = MakeExpr(new Vector());
           } else {
@@ -324,10 +326,11 @@ public class PcalTranslate {
         AST.When checkPC = new AST.When();
         Vector toks = new Vector();
         toks.addElement(AddedToken("pc"));
-        //For Distributed pluscal
+        // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
+          // HC: should add threadIndex only if there is
+          // at least one thread (i.e. one process)
           if(threadIndex != NO_THREAD) {
-            // toks.addElement(BuiltInToken(threadIndex == NO_THREAD ? "[1]" : ("[" + String.valueOf(threadIndex + 1) + "]")));
             toks.addElement(BuiltInToken("[" + String.valueOf(threadIndex + 1) + "]"));
           }
         } // end Distributed PlusCal

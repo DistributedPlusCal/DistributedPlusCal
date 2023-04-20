@@ -38,13 +38,14 @@ public class PcalTLAGen
        // For the time being, it is set to wrapColumn - 33.  We may want
        // to do something cleverer or else make it a user option.
 
+    // Private class variables
+
     //For Distributed PlusCal
     // index for fresh variables (for SubProcSet)
     // make it public if we want to set it as a parameter
-    private static int varIndex=1;
+    private static int varIndex = 1;
 
-    // Private class variables
-    /** The tlacode field accumulates the translation as it is constructed.  It 
+  /** The tlacode field accumulates the translation as it is constructed.  It 
      * should be a vector of separate lines.  Keiths original implementation put
      * multiple lines in a single element of tlacode in:
      *   
