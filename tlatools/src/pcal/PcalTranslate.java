@@ -526,7 +526,7 @@ public class PcalTranslate {
         newast.isEq = ast.isEq;
         newast.id = ast.id;
         newast.decls = ast.decls;
-        //For Distributed pluscal 
+        // For Distributed pluscal 
         if(PcalParams.distpcalFlag) {
           newast.threads = new Vector(ast.threads.size(), 10);
           for (AST.Thread thread : ast.threads) {
@@ -1175,17 +1175,21 @@ public class PcalTranslate {
         sass.line = ast.line ;
         sass.col  = ast.col ;
         sass.lhs.var = "stack";
-        //For Distributed pluscal
-        // sass.lhs.sub = MakeExpr(new Vector());
-        if(threadIndex == NO_THREAD) {
-        	sass.lhs.sub = MakeExpr(new Vector());
-        } else {
-        	TLAExpr expr = new TLAExpr();
-        	expr.addLine();
+        // For Distributed pluscal
+        if(PcalParams.distpcalFlag) {
+          if(threadIndex == NO_THREAD) {
+            sass.lhs.sub = MakeExpr(new Vector());
+          } else {
+            TLAExpr expr = new TLAExpr();
+            expr.addLine();
             TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
             expr.addToken(tok);
             sass.lhs.sub = expr;
-        } // end Distributed PlusCal
+          }
+        } else { // end Distributed PlusCal
+          // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
+          sass.lhs.sub = MakeExpr(new Vector());
+        }
         TLAExpr expr = new TLAExpr();
         expr.addLine();
         expr.addToken(BuiltInToken("<<"));
@@ -1264,17 +1268,21 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
-            //For Distributed pluscal
-            // sass.lhs.sub = MakeExpr(new Vector());
-            if(threadIndex == NO_THREAD) {
+            // For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+              if(threadIndex == NO_THREAD) {
+                sass.lhs.sub = MakeExpr(new Vector());
+              } else {
+                TLAExpr expression = new TLAExpr();
+                expression.addLine();
+                TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+                expression.addToken(tok);
+                sass.lhs.sub = expression;
+              }
+            } else { // end Distributed PlusCal
+              // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
               sass.lhs.sub = MakeExpr(new Vector());
-            } else {
-              TLAExpr expression = new TLAExpr();
-              expression.addLine();
-              TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
-              expression.addToken(tok);
-              sass.lhs.sub = expression;
-            } // end Distributed PlusCal
+            }
             sass.rhs = (TLAExpr) ast.args.elementAt(i);
             ass.ass.addElement(sass);
         }
@@ -1299,19 +1307,23 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
-            //For Distributed pluscal, so that the local procedure
-            // variables are also referenced using thread index when
-            // the procedure is called
-            // sass.lhs.sub = MakeExpr(new Vector());
-            if(threadIndex == NO_THREAD) {
-            	sass.lhs.sub = MakeExpr(new Vector());
-            } else {
-            	TLAExpr exp = new TLAExpr();
-            	exp.addLine();
+            // For Distributed pluscal
+            //   local procedure variables are also referenced using
+            //   thread index when the procedure is called
+            if(PcalParams.distpcalFlag) {
+              if(threadIndex == NO_THREAD) {
+                sass.lhs.sub = MakeExpr(new Vector());
+              } else {
+                TLAExpr exp = new TLAExpr();
+                exp.addLine();
                 TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
                 exp.addToken(tok);
                 sass.lhs.sub = exp;
-            } // end Distributed PlusCal
+              }
+            } else { // end Distributed PlusCal
+              // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
+              sass.lhs.sub = MakeExpr(new Vector());
+            }
             sass.rhs = (TLAExpr) decl.val;
             ass.setOrigin(decl.getOrigin()) ;
             ass.ass.addElement(sass);
@@ -1385,17 +1397,21 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         TLAExpr expr = new TLAExpr();
         sass.lhs.var = "pc";
-        //For Distributed pluscal
-        // sass.lhs.sub = new TLAExpr();
-        if(threadIndex == NO_THREAD) {
-          sass.lhs.sub = new TLAExpr();        
-        } else {
-          TLAExpr exp = new TLAExpr();
-          exp.addLine();
-          TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
-          exp.addToken(tok);
-          sass.lhs.sub = exp;
-        } // end Distributed PlusCal
+        // For Distributed pluscal
+        if(PcalParams.distpcalFlag) {
+          if(threadIndex == NO_THREAD) {
+            sass.lhs.sub = new TLAExpr();        
+          } else {
+            TLAExpr exp = new TLAExpr();
+            exp.addLine();
+            TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
+            exp.addToken(tok);
+            sass.lhs.sub = exp;
+          }
+        } else { // end Distributed PlusCal
+          // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
+          sass.lhs.sub = new TLAExpr();
+        }
         expr.addLine();
         expr.addToken(IdentToken("Head"));
         expr.addToken(BuiltInToken("("));
@@ -1481,17 +1497,21 @@ public class PcalTranslate {
         expr = new TLAExpr();
         sass.lhs.var = "stack";
         //For Distributed pluscal        
-        // sass.lhs.sub = new TLAExpr();
-        if(threadIndex == NO_THREAD) {
-         	// sass.lhs.sub = MakeExpr(new Vector());
-          sass.lhs.sub = new TLAExpr();
-        } else {
-          TLAExpr exp = new TLAExpr();
-          exp.addLine();
+        if(PcalParams.distpcalFlag) {
+          if(threadIndex == NO_THREAD) {
+            // sass.lhs.sub = MakeExpr(new Vector());
+            sass.lhs.sub = new TLAExpr();
+          } else {
+            TLAExpr exp = new TLAExpr();
+            exp.addLine();
             TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
-          exp.addToken(tok);
-          sass.lhs.sub = exp;
-        } // end Distributed PlusCal
+            exp.addToken(tok);
+            sass.lhs.sub = exp;
+          }
+        } else { // end Distributed PlusCal
+          // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
+          sass.lhs.sub = new TLAExpr();
+        }
         expr.addLine();
         expr.addToken(IdentToken("Tail"));
         expr.addToken(BuiltInToken("("));
@@ -1597,17 +1617,21 @@ public class PcalTranslate {
             sass.line = ast.line ;
             sass.col  = ast.col ;
             sass.lhs.var = "stack";
-            //For Distributed PlusCal
-            // sass.lhs.sub = MakeExpr(new Vector());
-            if(threadIndex == NO_THREAD) {
-            	sass.lhs.sub = MakeExpr(new Vector());
-            } else {
-            	TLAExpr exp = new TLAExpr();
-            	exp.addLine();
+            // For Distributed pluscal
+            if(PcalParams.distpcalFlag) {
+              if(threadIndex == NO_THREAD) {
+                sass.lhs.sub = MakeExpr(new Vector());
+              } else {
+                TLAExpr exp = new TLAExpr();
+                exp.addLine();
                 TLAToken tok = BuiltInToken("[" + (threadIndex + 1) + "]");
                 exp.addToken(tok);
                 sass.lhs.sub = exp;
-            }  // end Distributed PlusCal
+              }  // end Distributed PlusCal
+            } else { // end Distributed PlusCal
+              // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
+              sass.lhs.sub = MakeExpr(new Vector());
+            }
             expr = new TLAExpr();
             expr.addLine();
             expr.addToken(BuiltInToken("<<"));
