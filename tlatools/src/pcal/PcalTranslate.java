@@ -285,7 +285,7 @@ public class PcalTranslate {
             sAss.lhs.sub = expr;
           }
         } else { // end Distributed PlusCal
-          // HC: could rely on threadIndex when no distpcalFlag and remove the else
+          // HC: could rely on threadIndex(= NO_THREAD) when no distpcalFlag and remove the else
           sAss.lhs.sub = MakeExpr(new Vector()) ;
         }
         sAss.rhs = exp ;
@@ -508,6 +508,8 @@ public class PcalTranslate {
                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
         }
         currentProcedure = null;  // Added by LL on 7 June 2010
+
+        
         return newast;
     }
         

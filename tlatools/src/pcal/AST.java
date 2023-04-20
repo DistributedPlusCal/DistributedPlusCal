@@ -1088,6 +1088,12 @@ public class AST
        Channel channel = this;
        String channelName = this.var;
        Vector result = new Vector();
+
+       if(! (channelType == CHANNEL_TYPE_UNORDERED
+          || channelType == CHANNEL_TYPE_FIFO) ) {
+            PcalDebug.ReportBug("Unexpected channel type.");
+            return null;
+       }
        
        AST.SingleAssign sass = new AST.SingleAssign();
        sass.line = line;
@@ -1165,8 +1171,11 @@ public class AST
      public Vector receive(VarDecl targetVar, TLAExpr callExp, TLAExpr targetExp){    
        if(channelType == CHANNEL_TYPE_UNORDERED) {
          return receiveForUnorderedChannel(targetVar, callExp, targetExp);
-       } else { // (channelType == CHANNEL_TYPE_FIFO) {
+       } else if(channelType == CHANNEL_TYPE_FIFO) {
          return receiveForFifoChannel(targetVar, callExp, targetExp);
+       } else {
+         PcalDebug.ReportBug("Unexpected channel type.");
+         return null;
        }
      }
 
@@ -1389,6 +1398,12 @@ public class AST
      
      public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
        Vector result = new Vector();
+
+       if(! (channelType == CHANNEL_TYPE_UNORDERED
+          || channelType == CHANNEL_TYPE_FIFO) ) {
+            PcalDebug.ReportBug("Unexpected channel type.");
+            return null;
+       }
 
        // For CHANNEL_TYPE_UNORDERED - bag
        // channelName = [ <<v1,v2,...>> \in DOMAIN channelName |->
