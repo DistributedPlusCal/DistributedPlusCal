@@ -420,9 +420,7 @@ public class PcalTranslate {
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(
                                     ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i),
-                                                     //For Distributed pluscal (add threadIndex)
-                                                     NO_THREAD));
+                                                     ast.prcds.elementAt(i)));
             i = i + 1;
         }
         i = 0;
@@ -465,9 +463,7 @@ public class PcalTranslate {
         newast.setOrigin(ast.getOrigin()) ;
         while (i < ast.prcds.size()) {
             newast.prcds.addElement(ExplodeProcedure((AST.Procedure)
-                                                     ast.prcds.elementAt(i),
-                                                     //For Distributed pluscal (add threadIndex)
-                                                     NO_THREAD));
+                                                     ast.prcds.elementAt(i)));
             i = i + 1;
         }
         i = 0;
@@ -480,10 +476,7 @@ public class PcalTranslate {
         return newast;
     }
 
-    private static AST ExplodeProcedure (AST.Procedure ast,
-                                        //For Distributed pluscal (add threadIndex)
-                                        Integer threadIndex
-                                        ) throws PcalTranslateException {
+    private static AST ExplodeProcedure (AST.Procedure ast) throws PcalTranslateException {
         /*********************************************************************
         * Generate new AST.Procedure with exploded labeled statements.       *
         *********************************************************************/
@@ -506,8 +499,9 @@ public class PcalTranslate {
                 ? st.UseThis(PcalSymTab.LABEL, "Error", "")
                 : nextLS.label;
             newast.body.addAll(ExplodeLabeledStmt(thisLS, next,
-                                                  //For Distributed pluscal (add threadIndex)
-                                                  threadIndex));
+                                                  // For Distributed pluscal (add threadIndex)
+                                                  // a procedure is never defined inside a thread
+                                                  NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
