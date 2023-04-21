@@ -1121,7 +1121,7 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "_v" + varIndex++;
+           String freshVar = "__v" + varIndex++ + "__";
            expr.addToken(PcalTranslate.BuiltInToken(freshVar));
            expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
@@ -1186,12 +1186,12 @@ public class AST
        
        TLAExpr exp = new TLAExpr();
        
-       String tempVarName = "_" + channelName.toLowerCase().charAt(0) + varIndex++;
+       String freshVar = "__" + channelName.toLowerCase().charAt(0) + varIndex++ + "__";
        // with freshVar \in chanName[dim] do <assign>
        AST.With with = new AST.With();
        with.col = line;
        with.line = col;
-       with.var = tempVarName;
+       with.var = freshVar;
        with.isEq = false;
        // chanName[dim]
        exp = new TLAExpr();
@@ -1241,7 +1241,7 @@ public class AST
          }
          expr.addToken(PcalTranslate.BuiltInToken("["));
        }
-       expr.addToken(PcalTranslate.IdentToken(tempVarName));
+       expr.addToken(PcalTranslate.IdentToken(freshVar));
        if(!PcalParams.setChannels){ // bag
          expr.addToken(PcalTranslate.BuiltInToken("]"));
        }
@@ -1271,16 +1271,16 @@ public class AST
        if(PcalParams.setChannels){
          expr.addToken(PcalTranslate.BuiltInToken(" \\ "));
          expr.addToken(PcalTranslate.BuiltInToken("{"));
-         expr.addToken(PcalTranslate.IdentToken(tempVarName));
+         expr.addToken(PcalTranslate.IdentToken(freshVar));
          expr.addToken(PcalTranslate.BuiltInToken("}"));
        } else { // bag
          expr.addToken(PcalTranslate.BuiltInToken(" (-) "));
          expr.addToken(PcalTranslate.BuiltInToken("["));
-         String freshVar = "_v" + varIndex++;
-         expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+         String localFreshVar = "__v" + varIndex++ + "__";
+         expr.addToken(PcalTranslate.BuiltInToken(localFreshVar));
          expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
          expr.addToken(PcalTranslate.BuiltInToken("{"));
-         expr.addToken(PcalTranslate.IdentToken(tempVarName));
+         expr.addToken(PcalTranslate.IdentToken(freshVar));
          expr.addToken(PcalTranslate.BuiltInToken("}"));
          expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
          expr.addToken(PcalTranslate.BuiltInToken("1"));
@@ -1526,7 +1526,7 @@ public class AST
          } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
            expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "_v" + varIndex++;
+           String freshVar = "__v" + varIndex++ + "__";
            expr.addToken(PcalTranslate.BuiltInToken(freshVar));
            expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
            expr.addToken(PcalTranslate.BuiltInToken("{"));

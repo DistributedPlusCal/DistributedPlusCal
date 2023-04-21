@@ -7,9 +7,6 @@ import pcal.exception.PcalTLAGenException;
 import pcal.exception.TLAExprException;
 import util.TLAConstants;
 
-//For Distributed PlusCal
-import pcal.AST.Channel;
-// end Distributed PlusCal
 /****************************************************************************
  * Given an exploded and disambiguated AST, generate the equivalent TLA+.
  * <br>
@@ -304,7 +301,7 @@ public class PcalTLAGen
         mp = true;
         GenVarsAndDefs(ast.decls, ast.prcds, ast.procs, ast.defs);
         GenProcSet();
-        //For Distributed PlusCal
+        // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           GenSubProcSet();
         } // end For Distributed PlusCal
@@ -4539,8 +4536,8 @@ public class PcalTLAGen
         //For Distributed PlusCal
         // HC: fix bug FIFO (06/04/21)
         if(decl instanceof AST.Channel 
-           && ((Channel) decl).dimensions.size() != 0) {
-          RewriteVarDeclDimensions(((Channel)decl));
+           && ((AST.Channel) decl).dimensions.size() != 0) {
+          RewriteVarDeclDimensions(((AST.Channel)decl));
         } // end For Distributed PlusCal
         addExprToTLA(decl.val);
         if (needsParens) {
@@ -4873,7 +4870,7 @@ public class PcalTLAGen
     	
     }
 
-  //For Distributed PlusCal
+  // For Distributed PlusCal
 	/**
 	 * Generates the "SubProcSet == ..." output. 
 	 */
@@ -4882,6 +4879,7 @@ public class PcalTLAGen
 		if (st.processes == null || st.processes.size() == 0)
 			return;
     String ind = "_n" + varIndex++;
+    // generate a new (fresh) variable if this one already exists
     while( InVector(ind,vars) ){
       ind = "_n" + varIndex++;
     }
@@ -4963,7 +4961,7 @@ public class PcalTLAGen
 	 * 
 	 * @param decl
 	 */
-	private void RewriteVarDeclDimensions(Channel decl) {
+	private void RewriteVarDeclDimensions(AST.Channel decl) {
 
 		TLAExpr expr = new TLAExpr();
 		expr.addLine();
