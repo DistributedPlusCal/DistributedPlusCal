@@ -28,7 +28,7 @@ EXTENDS Naturals, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5ffc6afe" /\ chksum(tla) = "a93fbf1")
+\* BEGIN TRANSLATION (chksum(pcal) = "8bbc3f51" /\ chksum(tla) = "c4ac8d3f")
 VARIABLE i
 
 vars == << i >>
@@ -36,8 +36,8 @@ vars == << i >>
 ProcSet == (1..2) \cup (3..4) \cup {5}
 
 SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 1..2 THEN 1..1
-                                 ELSE IF _n1 \in 3..4 THEN 1..1
-                                    ELSE (**5**) 1..1]
+                                   ELSE IF _n1 \in 3..4 THEN 1..1
+                                   ELSE (** _n1 = 5 **) 1..1]
 
 Init == (* Global variables *)
         /\ i = 1
@@ -61,7 +61,6 @@ Next == sid
 Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION 
-
 
 =============================================================================
 {

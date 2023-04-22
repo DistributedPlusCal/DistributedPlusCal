@@ -60,6 +60,13 @@ variable c = 5;
 	receive(fi[Id], cur);
 }
 
+process ( ssid = 7 )
+variable c = 5;
+{
+    SSL:
+    c := c+1;
+}
+
 }
 *)
 ==========================================================

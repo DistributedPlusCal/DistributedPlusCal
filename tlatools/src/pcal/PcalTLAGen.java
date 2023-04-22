@@ -322,19 +322,18 @@ public class PcalTLAGen
          */
         if (mp) {
 
-            //For Distributed PlusCal - move in else
-            // self = selfAsExpr(); // subscript for variables is "self"
-            // end For Distributed PlusCal
-            selfIsSelf = true;
-            /* Add this step to the disjunct of steps with (self) */
-            //For Distributed PlusCal
+            // For Distributed PlusCal 
             if(PcalParams.distpcalFlag) {
               self = procedureSelfAsExpr(); 
+            } else { // end For Distributed PlusCal
+              self = selfAsExpr(); // subscript for variables is "self"
+            }
+            selfIsSelf = true;
+            /* Add this step to the disjunct of steps with (self) */
+            // For Distributed PlusCal
+            if(PcalParams.distpcalFlag) {
               nextStepSelf.addElement(ast.name + "(self, subprocess)");
             } else { // end For Distributed PlusCal
-              //For Distributed PlusCal - move in else
-              self = selfAsExpr(); // subscript for variables is "self"
-              // end For Distributed PlusCal
               nextStepSelf.addElement(ast.name + "(self)");
             }
         } else
@@ -357,8 +356,8 @@ public class PcalTLAGen
          * the labeled statement.
          */
         addLeftParen(ast.getOrigin());        	
-        //For Distributed PlusCal
-        // String argument = (mp) ? "(self)" : "";
+        // For Distributed PlusCal
+        // originally: String argument = (mp) ? "(self)" : "";
         String argument = "";
         if(mp) {
         	if(PcalParams.distpcalFlag) {
@@ -2366,12 +2365,12 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                       //For Distributed PlusCal 
+                       // For Distributed PlusCal 
                        if(PcalParams.distpcalFlag){
                          is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
-                       } else{
+                       } else { // end For Distributed PlusCal
                         is.append("[ self \\in ProcSet |-> ");
-                       } // end For Distributed PlusCal
+                       }
 //                    }
                         addOneTokenToTLA(is.toString());
                         addLeftParen(decl.val.getOrigin());
@@ -2381,7 +2380,7 @@ public class PcalTLAGen
                                               new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
-                        //For Distributed PlusCal
+                        // For Distributed PlusCal
                         if(PcalParams.distpcalFlag) {
                         	addOneTokenToTLA("]");
                         } // end For Distributed PlusCal
@@ -2446,10 +2445,10 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
-                        //For Distributed PlusCal 
+                        // For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
                             is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
-                        }else{ // end For Distributed PlusCal
+                        } else { // end For Distributed PlusCal
                           is.append("[ self \\in ProcSet |-> ");
                         }
 //                    }
@@ -2461,7 +2460,7 @@ public class PcalTLAGen
                                         new Changed(new Vector())));
                         addRightParen(decl.val.getOrigin());
                         addOneTokenToTLA("]");
-                        //For Distributed PlusCal
+                        // For Distributed PlusCal
                         if(PcalParams.distpcalFlag) {
                         	addOneTokenToTLA("]");
                         } // end For Distributed PlusCal
@@ -2793,7 +2792,7 @@ public class PcalTLAGen
                   colPC = colPC - 3;
                 for (int n = 0; n < st.processes.size(); n++) {
                   PcalSymTab.ProcessEntry pe = (PcalSymTab.ProcessEntry) st.processes.elementAt(n);
-                  if (useCase) {
+                  if (useCase) { // if more than one process
                     is.append("self ");
                     if (pe.isEq) {
                       is.append("= ");
@@ -2941,7 +2940,7 @@ public class PcalTLAGen
                         }
                     } // end if (useCase)
                     else {
-                      //For Distributed PlusCal
+                      // For Distributed PlusCal
                       if(PcalParams.distpcalFlag) {
                         String[] stringArray = pe.iPC.toString().split(",");
                         is.append("<<");
@@ -3035,7 +3034,7 @@ public class PcalTLAGen
               * is perfectly correct and easy to understand.              *
               ************************************************************/
             
-        	    //For Distributed PlusCal
+        	    // For Distributed PlusCal
               if(PcalParams.distpcalFlag) {
                 sb.append("/\\ \\A self \\in ProcSet : \\A sub \\in SubProcSet[self]: pc[self][sub] = \"Done\"");
               } else { // end For Distributed PlusCal
@@ -3074,7 +3073,7 @@ public class PcalTLAGen
         // These are procedures in a multiprocess algorithm
         Vector nextSS = new Vector();
         String nextSSstart = "(\\E self \\in ProcSet: ";
-        //For Distributed PlusCal
+        // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
             nextSSstart = "(\\E self \\in ProcSet: \\E subprocess \\in SubProcSet[self] :  ";
         } // end For Distributed PlusCal
@@ -3093,7 +3092,7 @@ public class PcalTLAGen
                 if (sb.length() > 0)
                     sb.append(" \\/ ");
                 sb.append(p.name);
-                //For Distributed PlusCal
+                // For Distributed PlusCal
                 if(PcalParams.distpcalFlag) {
                     sb.append("(self, subprocess)");
                 } else { // end For Distributed PlusCal
@@ -3338,9 +3337,9 @@ public class PcalTLAGen
            for (int i = 0; i < st.processes.size(); i++) {
         	   PcalSymTab.ProcessEntry p = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
         	   AST.Process pAst = p.ast ;
-             //For Distributed PlusCal
+             // For Distributed PlusCal
              if(PcalParams.distpcalFlag) {
-
+           // for each thread, do the same treatement as for a process when no distpcalFlag
            for (int it = 0; it < pAst.threads.size(); it++) {
              AST.Thread tAst = pAst.threads.elementAt(it);
              // as for now, the same as the fairness of its process
@@ -3396,12 +3395,12 @@ public class PcalTLAGen
         		       wfSB.append("(pc[");
         		       wfSB.append(qSelf);
         		       if (tAst.minusLabels.size() == 1) {
-                       wfSB.append("]["+(it+1)+"]");
+                       wfSB.append("]["+(it+1)+"]"); // distpcalFlag: add index
         		           wfSB.append(" # \"");
         		           wfSB.append(tAst.minusLabels.elementAt(0));
         		           wfSB.append("\"");
         		       } else {
-        		           wfSB.append("]["+(it+1)+"]");
+        		           wfSB.append("]["+(it+1)+"]"); // distpcalFlag: add index
         		           wfSB.append(" \\notin {\"");
         		           for (int j = 0; j < tAst.minusLabels.size(); j++) {
         		               wfSB.append(tAst.minusLabels.elementAt(j));
@@ -3456,12 +3455,12 @@ public class PcalTLAGen
                            wfPrcSB.append("(pc[");
                            wfPrcSB.append(qSelf);
                            if (prcAst.minusLabels.size() == 1) {
-                               wfPrcSB.append("]["+(it+1)+"]");
+                               wfPrcSB.append("]["+(it+1)+"]"); // distpcalFlag: add index
                                wfPrcSB.append(" # \"");
                                wfPrcSB.append(prcAst.minusLabels.elementAt(0));
                                wfPrcSB.append("\"");
                            } else {
-                               wfPrcSB.append("]["+(it+1)+"]");
+                               wfPrcSB.append("]["+(it+1)+"]"); // distpcalFlag: add index
                                wfPrcSB.append(" \\notin {\"");
                                for (int j = 0; j < prcAst.minusLabels.size(); j++) {
                                    wfPrcSB.append(prcAst.minusLabels.elementAt(j));
@@ -3474,7 +3473,7 @@ public class PcalTLAGen
                            }
                            wfPrcSB.append(") /\\ ");
                        }
-    
+                       // distpcalFlag: since several threads, we should specify the index
                        String prcName = pe.name + "(" + qSelf + ", " + (it+1) + ")";
                        wfPrcSB.append(prcName);
                        wfPrcSB.append(")");
@@ -3490,7 +3489,7 @@ public class PcalTLAGen
                                }
                                sfPrcSB.append("SF_vars(");
                                sfPrcSB.append(prcAst.plusLabels.elementAt(j));
-                               sfPrcSB.append("(" + qSelf + ", " + (it+1) + ")");
+                               sfPrcSB.append("(" + qSelf + ", " + (it+1) + ")"); // distpcalFlag: add index
                                sfPrcSB.append(")");
                            }
                        }
@@ -3511,7 +3510,7 @@ public class PcalTLAGen
         	              ) ;
                } // end if (fairness != AST.UNFAIR_PROC)
            } // end for on threads
-             } else {
+             } else { // end For Distributed PlusCal
                
         	   int fairness = pAst.fairness;
         	   if (fairness != AST.UNFAIR_PROC) {
@@ -3675,7 +3674,7 @@ public class PcalTLAGen
         	                 prcdFormulas)
         	              ) ;
                } // end if (fairness != AST.UNFAIR_PROC)
-             } // end For Distributed PlusCal
+             }
            }
         } // ends construction of procFairnessFormulas
            
@@ -3737,7 +3736,7 @@ public class PcalTLAGen
         StringBuffer sb = new StringBuffer();
         sb.append("Termination == <>(");
         if (mp) {
-        	//For Distributed PlusCal
+        	// For Distributed PlusCal
         	if(PcalParams.distpcalFlag) {
         		sb.append("\\A self \\in ProcSet: \\A sub \\in SubProcSet[self] : pc[self][sub]");
         	} else { // end For Distributed PlusCal
@@ -3999,7 +3998,7 @@ public class PcalTLAGen
         if (mp)
         {
             if (context.equals("procedure")) {
-            	//for Distributed PlusCal
+            	// For Distributed PlusCal
             	if(PcalParams.distpcalFlag) {
             		s = procedureSelfAsExpr();
             	} else { // end For Distributed PlusCal
@@ -4012,21 +4011,22 @@ public class PcalTLAGen
         return s;
     }
 
-    //For Distributed PlusCal
+    // For Distributed PlusCal
     private static TLAExpr  procedureSelfAsExpr() {
     	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
-        TLAToken selfToken = new TLAToken("self][subprocess", 0, TLAToken.IDENT, true);
-
         Vector tokenVec = new Vector();
-
+        TLAToken selfToken = new TLAToken("self", 0, TLAToken.IDENT, true);
         tokenVec.addElement(selfToken);
-
+        selfToken = new TLAToken("]", 0, TLAToken.BUILTIN, true);
+        tokenVec.addElement(selfToken);
+        selfToken = new TLAToken("[", 0, TLAToken.BUILTIN, true);
+        tokenVec.addElement(selfToken);
+        selfToken = new TLAToken("subprocess", 0, TLAToken.IDENT, true);
+        tokenVec.addElement(selfToken);
         Vector tokens = new Vector();
         tokens.addElement(tokenVec);
-
         TLAExpr expr = new TLAExpr(tokens);
         expr.normalize();
-        
         return expr ;
     } // end For Distributed PlusCal
 
@@ -4885,78 +4885,58 @@ public class PcalTLAGen
     }
 		ps.append("SubProcSet == ["+ind+" \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
-		int positionOfLastIf = 0;
+		// int positionOfLastIf = 0;
+		int positionOfFirstIf = ps.length() - 1;
 		
-		//if there is only one node
+		// if there is only one process
 		if(st.processes.size() == 1) {
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(0);
-
-      // HC: should always be a set
-			// if(node.threads.size() > 1){
-				ps.append("1.." + (node.threads.size()));
-			// } else {
-				// ps.append("1");
-			// }
-			
+      ps.append("1.." + (node.threads.size()));
 			ps.append("]");
 			addOneLineOfTLA(ps.toString());
 			endCurrentLineOfTLA();
 			addOneLineOfTLA("");
 			return;
 		}
-			
+    // when more than one process
 		for (int i = 0; i < st.processes.size(); i++) {
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
-
-			//if this is the last node
-			if(i == st.processes.size() - 1) {
-				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
-				ps.append(" ELSE ");
-				ps.append("(**");
-			} else if(i > 0) {
-				ps = new StringBuffer(NSpaces(positionOfLastIf - col));
-				ps.append(" ELSE ");
-			}
-			
-			if(i != st.processes.size() - 1) {
-				if (node.isEq) {
-					ps.append("IF " + ind + " = ");
-				} else {
-					ps.append("IF " + ind + " \\in ");
-				}
-			}
-			positionOfLastIf = ps.length();
-
+      if(i == st.processes.size() - 1) { // if the last process
+        // ps = new StringBuffer(NSpaces(positionOfLastIf - col));
+        ps = new StringBuffer(NSpaces(positionOfFirstIf));
+        ps.append(" ELSE ");
+        ps.append("(**");
+      } else if(i > 0) { // if not the first or the last one
+        ps = new StringBuffer(NSpaces(positionOfFirstIf));
+        ps.append(" ELSE ");
+      }
+      if(i != st.processes.size() - 1) { // if the last process
+        if (node.isEq) {
+          ps.append("IF " + ind + " = ");
+        } else {
+          ps.append("IF " + ind + " \\in ");
+        }
+      } else {
+        ps.append(" " + ind + " = ");
+      }
+			// positionOfLastIf = ps.length();
 			ps.append(node.id.toPlainString());
-      // ps.append(node.id);
-			if(i != st.processes.size() - 1) {
+			if(i == st.processes.size() - 1) {
+				ps.append(" **) "); // if last process, close the comment
+			} else {
 				ps.append(" THEN ");
 			}
-
-			//if this is the last node
-			if(i == st.processes.size() - 1) {
-				ps.append("**) ");
-			}
-			
-      // HC: should always be a set
-			// if(node.threads.size() > 1){
-				ps.append("1.." + (node.threads.size()));
-			// } else {
-				// ps.append("1");
-			// }
+      ps.append("1.." + (node.threads.size()));
 			
 			if(i == st.processes.size() - 1) {
 				ps.append("]");
 			}
-			
 			addOneLineOfTLA(ps.toString());
-			
 		}
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
 	}
 	
-	//For Distributed PlusCal
 	/**
 	 * 
 	 * @param decl
@@ -5010,7 +4990,6 @@ public class PcalTLAGen
 		decl.val = expr;
 	}
 
- 	//For Distributed PlusCal
  /**
    * Extracts the string for the expression.
    * see addExprToTLA(TLAExpr expr) {
@@ -5036,7 +5015,7 @@ public class PcalTLAGen
     }
     return res;
   }
-
+  // end For Distributed PlusCal
   
     /**********************************************************/
     /* Same as AddSubscriptsToExpr but in DistPcal process local variables */

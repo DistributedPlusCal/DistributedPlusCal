@@ -39,7 +39,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "ae13f5e2" /\ chksum(tla) = "f63a0dd6")
+\* BEGIN TRANSLATION (chksum(pcal) = "1fd0f935" /\ chksum(tla) = "22ecc72f")
 VARIABLES x, i, pc, lvqid
 
 vars == << x, i, pc, lvqid >>
@@ -47,7 +47,7 @@ vars == << x, i, pc, lvqid >>
 ProcSet == (3..4) \cup {5}
 
 SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 3..4 THEN 1..2
-                                 ELSE (**5**) 1..2]
+                                   ELSE (** _n1 = 5 **) 1..2]
 
 Init == (* Global variables *)
         /\ x = 4

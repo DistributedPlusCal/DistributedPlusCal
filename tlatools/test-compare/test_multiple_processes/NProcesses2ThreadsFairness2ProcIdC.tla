@@ -47,7 +47,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "d737fcaa" /\ chksum(tla) = "89688db3")
+\* BEGIN TRANSLATION (chksum(pcal) = "4088e1fb" /\ chksum(tla) = "89688db3")
 CONSTANT defaultInitValue
 VARIABLES x, i, pc, stack, y, lvf, z, lvg
 

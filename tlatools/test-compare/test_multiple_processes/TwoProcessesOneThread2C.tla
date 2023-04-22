@@ -32,7 +32,7 @@ process ( pid2 = 1 )
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8aec4da3" /\ chksum(tla) = "1fc45fc3")
+\* BEGIN TRANSLATION (chksum(pcal) = "80f2f6f1" /\ chksum(tla) = "af76686a")
 VARIABLES ar, x, found, i, pc
 
 vars == << ar, x, found, i, pc >>
@@ -40,7 +40,7 @@ vars == << ar, x, found, i, pc >>
 ProcSet == (2..3) \cup {1}
 
 SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 2..3 THEN 1..1
-                                 ELSE (**1**) 1..1]
+                                   ELSE (** _n1 = 1 **) 1..1]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]

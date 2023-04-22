@@ -40,7 +40,7 @@ process ( pid3 = "P4" )
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "5af073ef" /\ chksum(tla) = "3b1f654a")
+\* BEGIN TRANSLATION (chksum(pcal) = "fa14ed18" /\ chksum(tla) = "30aa801c")
 VARIABLES ar, x, found, i, pc
 
 vars == << ar, x, found, i, pc >>
@@ -48,8 +48,8 @@ vars == << ar, x, found, i, pc >>
 ProcSet == ({"P1", "P2"}) \cup {"P3"} \cup {"P4"}
 
 SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in {"P1","P2"} THEN 1..1
-                                 ELSE IF _n1 = "P3" THEN 1..1
-                                  ELSE (**"P4"**) 1..1]
+                                   ELSE IF _n1 = "P3" THEN 1..1
+                                   ELSE (** _n1 = "P4" **) 1..1]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]

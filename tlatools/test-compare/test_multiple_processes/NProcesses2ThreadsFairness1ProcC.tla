@@ -44,7 +44,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "c86808f1" /\ chksum(tla) = "a14cfcab")
+\* BEGIN TRANSLATION (chksum(pcal) = "9449d94b" /\ chksum(tla) = "ea0441c8")
 CONSTANT defaultInitValue
 VARIABLES x, i, pc, stack, y, lvf, lvqid
 
@@ -53,7 +53,7 @@ vars == << x, i, pc, stack, y, lvf, lvqid >>
 ProcSet == (3..4) \cup {5}
 
 SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in 3..4 THEN 1..2
-                                 ELSE (**5**) 1..2]
+                                   ELSE (** _n1 = 5 **) 1..2]
 
 Init == (* Global variables *)
         /\ x = 4
@@ -166,7 +166,6 @@ Spec == /\ Init /\ [][Next]_vars
 Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
 
 \* END TRANSLATION 
-
 =============================================================================
 {
     "need-error-parse": false,

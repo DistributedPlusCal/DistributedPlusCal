@@ -308,7 +308,7 @@ check_args()
 
 # setup path variables
 jar_file = os.path.join(os.getcwd(), jar_parse)
-test_path = os.path.join(os.path.join(os.getcwd(), main_path),specific_path)
+test_path = os.path.join(os.path.join(os.getcwd(), main_path))
 
 nb_test = {}
 nb_test['comp'] = 0
@@ -321,9 +321,12 @@ nb_test['compare_ok'] = 0
 # get all tla test files
 tests = {}
 
-tmp_files = sorted(glob.glob(os.path.join(test_path, "*.tla"), recursive = True))
+tmp_files = sorted(glob.glob(os.path.join(os.path.join(test_path,specific_path), "*.tla"), recursive = True))
+
+
 for f in tmp_files:
     base_name = os.path.basename(f)
+
     if not base_name.startswith(GEN_FILE_PREFIX) and os.path.isfile(f):
         relpath = os.path.relpath(f, test_path)
         path = os.path.join(compile_path, relpath)
@@ -333,7 +336,7 @@ for f in tmp_files:
             pass
         shutil.copy(f, path)
         tests[base_name] = {"path": path}
-
+        # exit()
 # print test find
 if verbose_level >= 3:
     print("--- Test find ---")
