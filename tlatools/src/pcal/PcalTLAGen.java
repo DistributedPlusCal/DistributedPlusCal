@@ -37,9 +37,9 @@ public class PcalTLAGen
 
     // Private class variables
 
-    //For Distributed PlusCal
-    // index for fresh variables (for SubProcSet)
-    // make it public if we want to set it as a parameter
+    // For Distributed PlusCal
+    //   index for fresh variables (for SubProcSet)
+    //   could make it public if we want to set it as a parameter
     private static int varIndex = 1;
 
   /** The tlacode field accumulates the translation as it is constructed.  It 
@@ -474,7 +474,7 @@ public class PcalTLAGen
         } else
             nextStep.addElement(ast.name);
         
-        //For Distributed PlusCal
+        // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           // HC: the statements for each thread
           for(AST.Thread thread : ast.threads) {
@@ -526,7 +526,7 @@ public class PcalTLAGen
          * only label action.
          */
      
-      //For Distributed PlusCal
+      // For Distributed PlusCal
       if(PcalParams.distpcalFlag) {
         // HC: generate the disjunct of threads
         addLeftParen(ast.getOrigin());
@@ -536,10 +536,10 @@ public class PcalTLAGen
         String indentSpaces = NSpaces(buf.length() + 2);
 
         for (int j = 0; j < ast.threads.size(); j++) {
-          //iterate the threads of each node
+          // iterate the threads of each process
           AST.Thread thread = ast.threads.elementAt(j);
           String disjunct = thread.name + argument;
-          if (j != 0) { //HC: not first thread
+          if (j != 0) { // HC: not first thread
             addOneTokenToTLA(((tlacodeNextLine.length() == 0)? indentSpaces : "") + " \\/ "); 
           }
           addOneTokenToTLA(disjunct);
@@ -664,9 +664,11 @@ public class PcalTLAGen
         /* c is used to determine which vars are in UNCHANGED. */
         Changed c = new Changed(vars);
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
-        	//For Distributed PlusCal
-          // HC: is it consistent with all uses of selfIsSelf for distpcalFlag?
+        	// For Distributed PlusCal
         	if(PcalParams.distpcalFlag){
+            // HC: - for procedures we should take into account the thread calling it
+            //     - no other case where thread index shoud be used (except pc and stack)
+            //       since no variables local to threads
             if( context.equals("procedure")) {
               sb.append("(self, subprocess)");
             } else {
@@ -1056,51 +1058,36 @@ public class PcalTLAGen
                 addLeftParen(sass.getOrigin());
                 TLAExpr sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(Self(context)), c);
                 TLAExpr rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(Self(context)), c);
-                //For Distributed PlusCal
-                // HC: just to handle process local variables in procedures
-                //     use [self] instead of [self][subprocess]
+                // For Distributed PlusCal
                 if(PcalParams.distpcalFlag){
+                  // HC: if in a procedure (context) we use a variable local to a process (set, with \in)
+                  //     (which doesn't make too much sense but is accepted in plain pcal)
+                  //     we should use [self] instead of [self][subprocess]
                   if(context.equals("procedure")){
+                    // AddSubscriptsToExprInProcedure is only used here; can be removed if we remove this call
                     rhs = AddSubscriptsToExprInProcedure(sass.rhs, SubExpr(Self(context)), c);
                   }
                   // if mp, and inside the procedure, extend the self exp for both pc
                   //   and stack variables
-                  if(mp &&
-                     (sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
-                    
-                    sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
-                    rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
-                  }
+                  // HC: this seems to be useless since Self(context) calls procedureSelfAsExpr if mp & context procedure
+                  // if(mp &&
+                     // (sass.lhs.var.equals("stack") || sass.lhs.var.equals("pc")) && context.equals("procedure")) {
+                    // sub = AddSubscriptsToExpr(sass.lhs.sub, SubExpr(procedureSelfAsExpr()), c);
+                    // rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(procedureSelfAsExpr()), c);
+                  // }
                 } // end For Distributed PlusCal
                 if (mp
                         && (sass.lhs.var.equals("pc") || IsProcedureVar(sass.lhs.var) || IsProcessSetVar(sass.lhs.var) || sass.lhs.var
                                 .equals("stack")))
                 {
-                    //For Distributed PlusCal 
+                    // For Distributed PlusCal 
                     if(PcalParams.distpcalFlag){                	
-                      // if the context is not a procedure then we are handling a
-                      //  procedure call and we need to update
-                      // rhs to include the thread index
+                      // if the context is not a procedure, then we
+                      //  are handling a procedure call and we need to
+                      //  update the rhs to include the process id
+                      //  (self if \in or id if =)
                       if(sass.lhs.var.equals("stack") && !context.equals("procedure")) {
-                        // we can't add a sub-expression here since we are not
-                        //  handling a lhs of an assignment object
-                        String requiredString = sass.lhs.sub.toPlainString().substring(sass.lhs.sub.toPlainString().indexOf("[") + 1,
-                                                                                       sass.lhs.sub.toPlainString().indexOf("]"));
-                        
-                        // HC: use the expression self instead of "self" 
-                        // TLAToken selfToken = new TLAToken("self][" + requiredString, 0, TLAToken.IDENT, true);
-                        TLAToken selfToken = new TLAToken(getStringFromExpr(self)+"][" + requiredString, 0, TLAToken.IDENT, true);
-                        
-                        Vector tokenVec = new Vector();
-                        tokenVec.addElement(selfToken);
-                        Vector tokens = new Vector();
-                        tokens.addElement(tokenVec);
-                        
-                        TLAExpr expr = new TLAExpr(tokens);
-                        expr.normalize();
-                        
-                        rhs = AddSubscriptsToExpr(sass.rhs, SubExpr(expr), c);
-                        
+                        rhs = AddSubscriptsToExpr(sass.rhs, AddSelfToSubExpr(getStringFromExpr(self),sass.lhs.sub), c);
                       }
                     } // end For Distributed PlusCal
                     
@@ -1126,17 +1113,19 @@ public class PcalTLAGen
                     sb.append("![");
                     addOneTokenToTLA(sb.toString());
                     addLeftParen(self.getOrigin());
-                    //For Distributed PlusCal
-                    // HC: just to handle process local variables in procedures
+                    // For Distributed PlusCal
                     if(PcalParams.distpcalFlag){
                       if(context.equals("procedure") && IsProcessSetVar(sass.lhs.var)){
+                        // HC: if in a procedure (context) we use a variable local to a process (set, with \in)
+                        //     (which doesn't make too much sense but is accepted in plain pcal)
+                        //     we should use [self] instead of [self][subprocess]
                         addExprToTLA(selfAsExpr());
                       } else {
                         addExprToTLA(self);
                       }
-                    } else {
+                    } else { // end For Distributed PlusCal
                       addExprToTLA(self);
-                    } // end For Distributed PlusCal
+                    }
                     addRightParen(self.getOrigin());
                     
 //                    
@@ -3940,7 +3929,7 @@ public class PcalTLAGen
         }
         /*   ------------------ end testing --------------------------*/
         return expr;
-    }
+     }
 
     /***********************************************************************
      * Given an expression, makes it into a subscript expr.  It is called   *
@@ -3986,6 +3975,43 @@ public class PcalTLAGen
         }
     }
 
+    // For Distributed PlusCal 
+    /***********************************************************************
+     * Adds "[self]" to a given expression.                                 *
+     *                                                                      *
+     * If string is null, then returns null.                                *
+     *                                                                      *
+     * Behaves as SubExpr.                                                  *
+     ***********************************************************************/
+    private static TLAExpr AddSelfToSubExpr(String self, TLAExpr sub)
+    {
+        if (sub != null)
+        { 
+            TLAExpr expr = sub.cloneAndNormalize();
+              // This preserves the origin of the expression
+            for (int i = 0; i < expr.tokens.size(); i++) {
+                Vector tokenVec = (Vector) expr.tokens.elementAt(i);
+                for (int j = 0; j < tokenVec.size(); j++) {
+                   TLAToken tok = (TLAToken) tokenVec.elementAt(j);
+                   tok.column = tok.column + 1;
+                }
+                if (i == 0) {
+                    /*
+                     * Set isAppended field of the "[" and "]" to true iff the first
+                     * token of sub has isAppended field true, which should be the
+                     * case iff it is the "self" token.
+                     */
+                    tokenVec.insertElementAt(
+                          new TLAToken("["+self+"]", 0, TLAToken.BUILTIN, sub.firstToken().isAppended()),
+                          0);
+                }
+            }
+            return expr;
+        } else {
+            return null;
+        }
+    }
+  
     /*********************************************************/
     /* Gives the string to use when subscripting a variable. */
     /*********************************************************/
@@ -4015,13 +4041,7 @@ public class PcalTLAGen
     private static TLAExpr  procedureSelfAsExpr() {
     	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
         Vector tokenVec = new Vector();
-        TLAToken selfToken = new TLAToken("self", 0, TLAToken.IDENT, true);
-        tokenVec.addElement(selfToken);
-        selfToken = new TLAToken("]", 0, TLAToken.BUILTIN, true);
-        tokenVec.addElement(selfToken);
-        selfToken = new TLAToken("[", 0, TLAToken.BUILTIN, true);
-        tokenVec.addElement(selfToken);
-        selfToken = new TLAToken("subprocess", 0, TLAToken.IDENT, true);
+        TLAToken selfToken = new TLAToken("self][subprocess", 0, TLAToken.BUILTIN, true);
         tokenVec.addElement(selfToken);
         Vector tokens = new Vector();
         tokens.addElement(tokenVec);
@@ -4533,8 +4553,7 @@ public class PcalTLAGen
         if (needsParens) {
             addOneTokenToTLA("(");
         }        
-        //For Distributed PlusCal
-        // HC: fix bug FIFO (06/04/21)
+        // For Distributed PlusCal
         if(decl instanceof AST.Channel 
            && ((AST.Channel) decl).dimensions.size() != 0) {
           RewriteVarDeclDimensions(((AST.Channel)decl));
@@ -4872,7 +4891,7 @@ public class PcalTLAGen
 
   // For Distributed PlusCal
 	/**
-	 * Generates the "SubProcSet == ..." output. 
+	 * Generates the "SubProcSet == ..." output.
 	 */
 	public void GenSubProcSet() {
 		StringBuffer ps = new StringBuffer();
@@ -5016,13 +5035,14 @@ public class PcalTLAGen
     return res;
   }
   // end For Distributed PlusCal
-  
-    /**********************************************************/
-    /* Same as AddSubscriptsToExpr but in DistPcal process local variables */
-    /* should be handled a bit differently than the other variables in the */
-    /* procedure: [self][subprocess] --> [self]  */
-    /* to be eventually merged into AddSubscriptsToExpr  */
-    /**********************************************************/
+
+
+    // For Distributed PlusCal
+    /**********************************************************************************************************************
+     * Almost exactly the same as AddSubscriptsToExpr but for the process local variables used in procedures,             *
+     * which should use index [self] instead of [self][subprocess] (as the other procedure variables and parameters)      *
+     * - to be eventually merged into AddSubscriptsToExpr (if we add the context as a parameter)                          * 
+     **********************************************************************************************************************/
     private TLAExpr AddSubscriptsToExprInProcedure(TLAExpr exprn, TLAExpr sub, Changed c) throws PcalTLAGenException
     {
         /*
@@ -5063,8 +5083,7 @@ public class PcalTLAGen
             {
                 TLAToken tok = (TLAToken) tv.elementAt(j);
                 boolean prime = ((tok.type == TLAToken.IDENT) && c.IsChanged(tok.string));
-                boolean subr = (sub != null && (tok.type == TLAToken.ADDED || (mp && (tok.type == TLAToken.IDENT) && (IsProcedureVar(tok.string) 
-                		|| IsProcessSetVar(tok.string)))));
+                boolean subr = (sub != null && (tok.type == TLAToken.ADDED || (mp && (tok.type == TLAToken.IDENT) && (IsProcedureVar(tok.string) || IsProcessSetVar(tok.string)))));
                 if ((subr || prime) && !InVector(tok.string, stringVec))
                 {
                     stringVec.addElement(tok.string);
@@ -5214,5 +5233,7 @@ public class PcalTLAGen
         /*   ------------------ end testing --------------------------*/
         return expr;
     }
+    // end For Distributed PlusCal
+
 
 }

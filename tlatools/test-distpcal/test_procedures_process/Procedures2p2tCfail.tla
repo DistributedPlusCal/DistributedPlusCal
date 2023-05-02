@@ -1,4 +1,4 @@
------------------------- MODULE Procedures2p2tC -------------------------
+------------------------ MODULE Procedures2p2tCfail -------------------------
 EXTENDS TLC, Integers, Sequences
 
 (* PlusCal options (-label -distpcal) *)
@@ -14,19 +14,9 @@ variable c = 0;
 procedure f(x)
 variable lv = 0;
 {
-    Addf:
+    Add:
         lv := lv + x + lp + c;
         c := x + 1;
-        lp := lp + 11;
-        return;
-}
-
-procedure foo(y)
-variable lvf = 0;
-{
-    Addfoo:
-        lvf := lvf + y + lq + c;
-        lq := lq + 22;
         return;
 }
 
@@ -54,8 +44,8 @@ variable lq = 11, resq = 4;
 {
     Beforeq:
 	    lq := lq + 1;
-    Sdrq:
-        call foo(lq);
+    Sdrq: \* the procedure uses a variable local to process(es) pid and thus, can't be called from another process
+        call f(lq);
     Afterq:
 	    resq := lq;
 } 
@@ -64,7 +54,7 @@ variable lq = 11, resq = 4;
 =============================================================================
 {
     "need-error-parse": false,
-    "need-error-check": false,
+    "need-error-check": true,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "defaultInitValue": 0

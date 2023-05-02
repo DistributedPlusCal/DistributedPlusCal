@@ -1,7 +1,7 @@
 ------------------------ MODULE Procedures2p1tC -------------------------
 EXTENDS TLC, Integers, Sequences
 
-(* PlusCal options (-distpcal) *)
+(* PlusCal options (-label -distpcal) *)
 
 \* CONSTANT N           (* Size of arrays *)
 N == 2
