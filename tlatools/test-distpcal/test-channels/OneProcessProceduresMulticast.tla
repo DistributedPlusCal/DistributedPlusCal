@@ -4,7 +4,7 @@ EXTENDS TLC, Integers, Sequences, Bags
 N == 2
 Nodes == 1..N
 
-(* PlusCal options (-label -distpcal -setchannels) *)
+(* PlusCal options (-label -distpcal) *)
 
 (*--algorithm dummy  {
 variables c = 2, r = 22;
@@ -20,10 +20,18 @@ procedure multicastToChannel1(mes)
 procedure multicastToChannel2(from, mes)
 {
 	S2:
-    multicast(ch2,[n = from, m \in Nodes |-> mes]);
+    multicast(ch2,[n = from, m 
+                                \in Nodes |-> 
+                                                mes]);
 	return;
 }
 
+procedure multicastToChannel3(from, to)
+{
+	S3:
+    multicast(ch2,[n = from, m \in to |-> from]);
+	return;
+}
 
 process ( snd = N+1 )
 variable cur = 1, loc = 0;
@@ -32,6 +40,8 @@ variable cur = 1, loc = 0;
     call multicastToChannel1(c);
     Send2:
     call multicastToChannel2(N+1,N+1);
+    Send3:
+    call multicastToChannel3(N+1,Nodes);
     After:
     cur := cur + 1;
 }
@@ -44,6 +54,10 @@ variable cur = 1, loc = 0;
 }
 {
     R2:
+    receive(ch2[N+1,self],cur);
+}
+{
+    R3:
     receive(ch2[N+1,self],cur);
 }
 }
