@@ -172,9 +172,9 @@ public class PcalSymTab {
         public AST.Process ast; // AST of the procedure
         // Added 13 Jan 2011 by LL 
 
-        //For Distributed PlusCal
+        // For Distributed PlusCal
         public Vector<AST.Thread> threads;
-        // end For Distributed PlusCal
+        
       
         public ProcessEntry(AST.Process p) {
             this.name = p.name;
@@ -182,23 +182,22 @@ public class PcalSymTab {
             this.id = p.id;
             this.decls = p.decls;
             this.ast = p;
-            //For Distributed PlusCal
+            // For Distributed PlusCal
             this.threads = p.threads;
             // end For Distributed PlusCal
 
-            //For Distributed PlusCal
+            // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
               // HC: there is always a thread (whose body could be empty)
               if (p.threads.size() == 1 && p.threads.get(0).body.size() == 0) 
                 this.iPC = null;
               else {
-                StringBuffer liPC = new StringBuffer();
-				
+                // we have a vector of intial labels, one for each thread,
+                // separated by commas
+                StringBuffer liPC = new StringBuffer();				
                 for(int i = 0; i < p.threads.size(); i++) {
                   AST.Thread t = p.threads.get(i);
                   AST.LabeledStmt ls = (AST.LabeledStmt) t.body.elementAt(0);
-
-                  //assuming the main block cannot be empty of labels ?
                   if(i != 0) {
                     liPC.append(", " + ls.label);
                   } else {
@@ -217,6 +216,7 @@ public class PcalSymTab {
         }
 
       // For Distributed PlusCal
+      // just for debugging, could be removed
       public String toString(){
         return "Process "+name+" [pc = <"+iPC+">, Threads = "+threads;
       }
@@ -603,7 +603,7 @@ public class PcalSymTab {
         for (int i = 0; i < ast.decls.size(); i++)
             ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
         
-        //For Distributed PlusCal
+        // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           for (int i = 0; i < ast.threads.size(); i++) {
             AST.Thread thread = ast.threads.get(i);

@@ -1327,11 +1327,7 @@ public class TLAExpr
       }
 
 
-    //For Distributed PlusCal
-    /**
-     * 
-     * @return
-     */
+    // For Distributed PlusCal
     public String toPlainString() {
     	String result = "" ;
     	int i = 0;
@@ -1345,7 +1341,6 @@ public class TLAExpr
     			TLAToken tok = (TLAToken) curLine.elementAt(j) ;
 
     			if (tok.type == TLAToken.STRING){
-            // result = result + "\"\\\"\", \"" + tok.string + "\", \"\\\"\"" ;
             result = result + "\"" + tok.string + "\"" ;
     			}
     			else if (tok.string.charAt(0) == '\\'){
@@ -1361,6 +1356,7 @@ public class TLAExpr
     	}
     	return result;
     }
+    // end For Distributed PlusCal
     
 /***************************************************************************
 * Appending Vectors:                                                       *

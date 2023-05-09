@@ -283,10 +283,10 @@ public class PcalFixIDs {
         			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
         		}
           }
-        } else {
+        } else { // end For Distributed PlusCal
           for (int i = 0; i < ast.body.size(); i++)
             FixLabeledStmt((AST.LabeledStmt) ast.body.elementAt(i), ast.name);
-        } // end For Distributed PlusCal
+        }
         PcalSymTab.ProcessEntry p = 
             (PcalSymTab.ProcessEntry)
             st.processes.elementAt(st.FindProcess(ast.name));

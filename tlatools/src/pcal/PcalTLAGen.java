@@ -667,7 +667,7 @@ public class PcalTLAGen
         	// For Distributed PlusCal
         	if(PcalParams.distpcalFlag){
             // HC: - for procedures we should take into account the thread calling it
-            //     - no other case where thread index shoud be used (except pc and stack)
+            //     - no other case where thread index should be used (except pc and stack)
             //       since no variables local to threads
             if( context.equals("procedure")) {
               sb.append("(self, subprocess)");
@@ -5108,11 +5108,6 @@ public class PcalTLAGen
                     newTok.column = 0;
                     exp.addToken(newTok) ;
 
-                    //For Distributed PlusCal 
-                    boolean isProcessSetVar = IsProcessSetVar(tok.string);
-                    // end Distributed PlusCal 
-
-                    
                     // exp.addToken(new TLAToken(tok.string, 0, TLAToken.IDENT));
                     if (prime) {
                         /*****************************************************
@@ -5142,11 +5137,15 @@ public class PcalTLAGen
                         TLAExpr subexp = sub.cloneAndNormalize();
 
                         //For Distributed PlusCal 
+                        // boolean isProcessSetVar = IsProcessSetVar(tok.string);
+                        // end Distributed PlusCal 
+
+                        //For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
-                          if(isProcessSetVar){
+                          if(IsProcessSetVar(tok.string)){
                             subexp = (SubExpr(selfAsExpr())).cloneAndNormalize();
                           }
-                        }                        
+                        } // end Distributed PlusCal 
                         /*
                          * We now add the end of the origin of tok to beginSubst
                          * of the first token of subexp and to endSubst of the

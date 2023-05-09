@@ -1398,7 +1398,6 @@ public class AST
      
      public Vector multicast(Channel channel, String channelName, TLAExpr msg) throws ParseAlgorithmException {
        Vector result = new Vector();
-
        if(! (channelType == CHANNEL_TYPE_UNORDERED
           || channelType == CHANNEL_TYPE_FIFO) ) {
             PcalDebug.ReportBug("Unexpected channel type.");
@@ -1426,13 +1425,13 @@ public class AST
        sass.lhs.var = channel.var;
        sass.lhs.sub = new TLAExpr(new Vector<>());
 
-       Vector dimensions = new Vector(); 
-       Vector dimensionTypes = new Vector();
+       Vector dimensions = new Vector(); // vector of tokens (the names of the vars for each dimension)
+       Vector dimensionTypes = new Vector(); // vector of vectors of tokens
+       Vector dt = new Vector(); // buffer to store each dimensionType (which is a vector of tokens) 
        int buildPhase = 0; // 0 = dimensions, 1 = dimensionTypes, 2 = message (after "|->")
 
        Vector thenExp = new Vector();
        Vector elseExp = new Vector();
-       StringBuffer dt = new StringBuffer(); // store each dimensionType
 
        // extract v1,v2,... and D1,D2,...
        // prepare THEN (the message part)
@@ -1442,8 +1441,8 @@ public class AST
            TLAToken tok = (TLAToken) line.elementAt(j);
            if(buildPhase == 0) {
              if(tok.type == TLAToken.IDENT) {
-               dimensions.add(tok.string);
-               dt = new StringBuffer();
+               dimensions.add(tok);
+               dt = new Vector();
                buildPhase = 1;
              } else if(!tok.string.equals("[")) { // if not the leading "["
                PcalDebug.reportError("Bad format for message in multicast."+tok.string);
@@ -1452,14 +1451,14 @@ public class AST
              if(buildPhase == 1) {
                //get the dimension type
                if(!tok.string.equals(",") && !tok.string.equals("|->")) {
-                 dt.append(" " + tok.string);
+                 dt.add(tok);
                } else {
                  if(tok.string.equals(",")){ // next dimension
-                   dimensionTypes.add(dt.toString());
+                   dimensionTypes.add(dt);
                    buildPhase = 0;
                  } else {
                    if (tok.string.equals("|->")) { // done with dimensions
-                     dimensionTypes.add(dt.toString());
+                     dimensionTypes.add(dt);
                      buildPhase = 2;
                    }
                  }
@@ -1472,7 +1471,7 @@ public class AST
            }
          }
        }
-       
+
        //compare with dimensions within a channel and throw an error if we find a length mismatch
        if(channel.dimensions != null
           && dimensions.size() > 1 // if not using only one variable
@@ -1482,7 +1481,16 @@ public class AST
        
        // build ELSE:  channel[v1,v2,...]
        elseExp.add(PcalTranslate.IdentToken(channelName));
-       elseExp.add(PcalTranslate.IdentToken(dimensions.toString()));
+       elseExp.add(PcalTranslate.BuiltInToken("["));
+       for(int i = 0; i < dimensions.size(); i++) {
+         // use the string instead of the token for the layout
+         // (otherwise the positions of the original token impact the position in the layout)
+         elseExp.add(PcalTranslate.IdentToken(((TLAToken) dimensions.get(i)).string));
+         if(i != dimensions.size() - 1) {
+           elseExp.add(PcalTranslate.BuiltInToken(","));
+         }
+       }
+       elseExp.add(PcalTranslate.BuiltInToken("]"));
 
        TLAExpr expr = new TLAExpr();
        expr.addLine();
@@ -1491,10 +1499,15 @@ public class AST
 
        // build <<v1,v2,...>> \in DOMAIN channelName |-> IF
        if(dimensions.size() == 1) { // if only one dimension no need for sequence
-         expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
+         expr.addToken(PcalTranslate.IdentToken(((TLAToken) dimensions.get(0)).string));
        } else {
          expr.addToken(PcalTranslate.BuiltInToken("<<"));
-         expr.addToken(PcalTranslate.IdentToken(dimensions.toString().substring(1, dimensions.toString().length()-1)));
+         for(int i = 0; i < dimensions.size(); i++) {
+           expr.addToken(PcalTranslate.IdentToken(((TLAToken) dimensions.get(i)).string));
+           if(i != dimensions.size() - 1) {
+             expr.addToken(PcalTranslate.BuiltInToken(","));
+           }
+         }
          expr.addToken(PcalTranslate.BuiltInToken(">>"));
        }
 			
@@ -1503,14 +1516,21 @@ public class AST
        expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
        expr.addToken(PcalTranslate.BuiltInToken(" IF "));
        // build IF body
+       // IF v1 \in D1, v2 \in D2, ...
        for(int i = 0; i < dimensions.size(); i++) {
-         expr.addToken(PcalTranslate.IdentToken(dimensions.get(i).toString()));
-         expr.addToken(PcalTranslate.IdentToken(dimensionTypes.get(i).toString()));
+         expr.addToken(PcalTranslate.IdentToken(((TLAToken) dimensions.get(i)).string));
+         Vector dti = (Vector) dimensionTypes.get(i);
+         for(int j = 0; j < dti.size(); j++) {
+           // HC: the space token is just fo the layout, probably can be done more properly in generation
+           expr.addToken(PcalTranslate.BuiltInToken(" "));
+           expr.addToken(PcalTranslate.IdentToken(((TLAToken) dti.get(j)).string));
+         }
          if(i != dimensions.size() - 1) {
            expr.addToken(PcalTranslate.BuiltInToken(" /\\ "));
          }
        }
        expr.addLine();
+
        // build THEN body 
        // indentation can improved
        expr.addToken(PcalTranslate.BuiltInToken(" THEN "));
@@ -1518,7 +1538,14 @@ public class AST
          expr.addToken(PcalTranslate.BuiltInToken(" Append("));
        }
        expr.addToken(PcalTranslate.IdentToken(channelName));
-       expr.addToken(PcalTranslate.IdentToken(dimensions.toString()));
+       expr.addToken(PcalTranslate.BuiltInToken("["));
+       for(int i = 0; i < dimensions.size(); i++) {
+         expr.addToken(PcalTranslate.IdentToken(((TLAToken) dimensions.get(i)).string));
+         if(i != dimensions.size() - 1) {
+           expr.addToken(PcalTranslate.BuiltInToken(","));
+         }
+       }
+       expr.addToken(PcalTranslate.BuiltInToken("]"));
        if(channelType == CHANNEL_TYPE_UNORDERED) {
          if(PcalParams.setChannels){
            expr.addToken(PcalTranslate.BuiltInToken(" \\cup "));

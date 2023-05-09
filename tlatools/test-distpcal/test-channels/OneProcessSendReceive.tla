@@ -1,9 +1,7 @@
------------------------- MODULE MulticastChannelSimple -------------------------
+------------------------ MODULE OneProcessSendReceive -------------------------
 EXTENDS TLC, Integers, Sequences, Bags
 
-N == 3
-Nodes == 1..N-1
-NNodes == N..5
+Nodes == 1..2
 
 (* PlusCal options (-label -distpcal ) *)
 
@@ -18,10 +16,6 @@ variable cur = 10, loc = 0;
     send(ch,cur);
     send(ch1[1],cur);
     send(ch2[2,2],cur);
-    SendM1:
-    multicast(ch1,[ag \in DOMAIN ch1 |-> ag]);
-    SendM2:
-    multicast(ch2,[n = 1, m \in Nodes |-> n]);
 }
 {
     R1:
@@ -31,7 +25,6 @@ variable cur = 10, loc = 0;
     R1b:
     receive(ch2[2,2],loc);
 }
-
 }
 *)
 ================================================

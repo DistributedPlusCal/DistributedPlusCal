@@ -260,7 +260,7 @@ public class PcalTranslate {
     }
 
     public static AST.Assign MakeAssign(String id, TLAExpr exp,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         Integer threadIndex
                                         ) {
         /*********************************************************************
@@ -317,7 +317,7 @@ public class PcalTranslate {
     }
 
     private static AST.When CheckPC (String label,
-                                     //For Distributed pluscal (add threadIndex)
+                                     // For Distributed pluscal (add threadIndex)
                                      Integer threadIndex
                                      ) {
         /*********************************************************************
@@ -341,14 +341,14 @@ public class PcalTranslate {
     }
 
     private static AST.Assign UpdatePC (String next,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         Integer threadIndex
                                         ) {
         /*********************************************************************
         * Generate pc := next ;                                              *
         *********************************************************************/
         return MakeAssign("pc", MakeExpr(Singleton2(StringToken(next))),
-                          //For Distributed pluscal (add threadIndex)
+                          // For Distributed pluscal (add threadIndex)
                           threadIndex);
     }
 
@@ -360,7 +360,7 @@ public class PcalTranslate {
                                         String nextThen,
                                         Vector unlabElse,
                                         String nextElse,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         Integer threadIndex
                                         ) {
         /*********************************************************************
@@ -370,11 +370,11 @@ public class PcalTranslate {
         AST.If ifForLabelIf = new AST.If();
         ifForLabelIf.test = test;
         ifForLabelIf.Then = unlabThen;
-        //For Distributed pluscal (add threadIndex)
+        // For Distributed pluscal (add threadIndex)
         ifForLabelIf.Then.addElement(UpdatePC(nextThen,
                                               threadIndex));
         ifForLabelIf.Else = unlabElse;
-        //For Distributed pluscal (add threadIndex)
+        // For Distributed pluscal (add threadIndex)
         ifForLabelIf.Else.addElement(UpdatePC(nextElse,
                                               threadIndex));
         return ifForLabelIf;
@@ -438,7 +438,7 @@ public class PcalTranslate {
                 ? "Done"
                 : nextLS.label;
             newast.body.addAll(ExplodeLabeledStmt(thisLS, next,
-                                                  //For Distributed pluscal (add threadIndex)
+                                                  // For Distributed pluscal (add threadIndex)
                                                   NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
@@ -548,7 +548,7 @@ public class PcalTranslate {
               ? "Done"
               : nextLS.label;
             newast.body.addAll(ExplodeLabeledStmt(thisLS, next,
-                                                  //For Distributed pluscal (add threadIndex)
+                                                  // For Distributed pluscal (add threadIndex)
                                                   NO_THREAD));
             i = i + 1;
             thisLS = nextLS;
@@ -560,7 +560,7 @@ public class PcalTranslate {
     }
 
     private static Vector CopyAndExplodeLastStmt(Vector stmts, String next,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         Integer threadIndex
                                         ) throws PcalTranslateException {
         /**************************************************************
@@ -605,7 +605,7 @@ public class PcalTranslate {
             result1 = stmts;
             if (last.getClass().equals(AST.LabelIfObj.getClass())) {
                 Vector pair = ExplodeLabelIf((AST.LabelIf) last, next,
-                                             //For Distributed pluscal (add threadIndex)
+                                             // For Distributed pluscal (add threadIndex)
                                              threadIndex);
                   /*********************************************************
                   * Because a LabelIf has a label in the `then' or `else'  *
@@ -619,7 +619,7 @@ public class PcalTranslate {
             // LabelEither added by LL on 25 Jan 2006
             else if (last.getClass().equals(AST.LabelEitherObj.getClass())) {
                 Vector pair = ExplodeLabelEither((AST.LabelEither) last, next,
-                                                 //For Distributed pluscal (add threadIndex)
+                                                 // For Distributed pluscal (add threadIndex)
                                                  threadIndex);
                   /*********************************************************
                   * Because a LabelEither has a label in some clause,      *
@@ -635,40 +635,40 @@ public class PcalTranslate {
                 result1.removeElementAt(result1.size()-1);
                 // Note: if there's a GotoObj, then omitPC should be false.
                 result1.addElement(UpdatePC(g.to,
-                                            //For Distributed pluscal (add threadIndex)
+                                            // For Distributed pluscal (add threadIndex)
                                             threadIndex));
             }
             else if (last.getClass().equals(AST.CallObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeCall((AST.Call) last, next,
-                                           //For Distributed pluscal (add threadIndex)
+                                           // For Distributed pluscal (add threadIndex)
                                            threadIndex));
             }
             else if (last.getClass().equals(AST.ReturnObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeReturn((AST.Return) last, next,
-                                             //For Distributed pluscal (add threadIndex)
+                                             // For Distributed pluscal (add threadIndex)
                                              threadIndex));
             }
             else if (last.getClass().equals(AST.CallReturnObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeCallReturn((AST.CallReturn) last, next,
-                                                 //For Distributed pluscal (add threadIndex)
+                                                 // For Distributed pluscal (add threadIndex)
                                                  threadIndex));
             }
             else if (last.getClass().equals(AST.CallGotoObj.getClass())) {
                 result1.removeElementAt(result1.size()-1);
                 result1.addAll(ExplodeCallGoto((AST.CallGoto) last, next,
-                                             //For Distributed pluscal (add threadIndex)
+                                             // For Distributed pluscal (add threadIndex)
                                              threadIndex));
             }
             else if (last.getClass().equals(AST.IfObj.getClass())) {
                 AST.If If = (AST.If) last;
                 Vector p1 = CopyAndExplodeLastStmt(If.Then, next,
-                                                   //For Distributed pluscal (add threadIndex)
+                                                   // For Distributed pluscal (add threadIndex)
                                                    threadIndex);
                 Vector p2 = CopyAndExplodeLastStmt(If.Else, next,
-                                                   //For Distributed pluscal (add threadIndex)
+                                                   // For Distributed pluscal (add threadIndex)
                                                    threadIndex);
                 result2.addAll((Vector) p1.elementAt(1));
                 result2.addAll((Vector) p2.elementAt(1));
@@ -681,12 +681,12 @@ public class PcalTranslate {
                   if (! needsGoto){
                     if (thenNeedsGoto) {
                        If.Then.addElement(UpdatePC(next,
-                                                   //For Distributed pluscal (add threadIndex)
+                                                   // For Distributed pluscal (add threadIndex)
                                                    threadIndex));
                       } ;                
                     if (elseNeedsGoto) {
                        If.Else.addElement(UpdatePC(next,
-                                                   //For Distributed pluscal (add threadIndex)
+                                                   // For Distributed pluscal (add threadIndex)
                                                    threadIndex));
                      } ;                
                   }
@@ -700,7 +700,7 @@ public class PcalTranslate {
                 for (int i = 0; i < Either.ors.size(); i++) {
                   Vector thisP = CopyAndExplodeLastStmt( 
                              (Vector) Either.ors.elementAt(i), next,
-                             //For Distributed pluscal (add threadIndex)
+                             // For Distributed pluscal (add threadIndex)
                              threadIndex);
                   
                   Either.ors.setElementAt(thisP.elementAt(0), i) ;
@@ -716,7 +716,7 @@ public class PcalTranslate {
                         ((Vector) 
                            Either.ors.elementAt(i)).addElement(
                                 UpdatePC(next,
-                                         //For Distributed pluscal (add threadIndex)
+                                         // For Distributed pluscal (add threadIndex)
                                          threadIndex));  
                       }
                      }
@@ -726,7 +726,7 @@ public class PcalTranslate {
             else if (last.getClass().equals(AST.WithObj.getClass())) {
                 AST.With with = (AST.With) last;
                 Vector p = CopyAndExplodeLastStmt(with.Do, next,
-                                                  //For Distributed pluscal (add threadIndex)
+                                                  // For Distributed pluscal (add threadIndex)
                                                   threadIndex);
                 with.Do = (Vector) p.elementAt(0);
                 result2.addAll((Vector) p.elementAt(1));
@@ -753,7 +753,7 @@ public class PcalTranslate {
 
     private static Vector 
           CopyAndExplodeLastStmtWithGoto(Vector stmts, String next,
-                                         //For Distributed pluscal (add threadIndex)
+                                         // For Distributed pluscal (add threadIndex)
                                          Integer threadIndex
                                          ) throws PcalTranslateException {
       /*********************************************************************
@@ -766,11 +766,11 @@ public class PcalTranslate {
       * triple returned by CopyAndExplodeLastStmt.                         *
       *********************************************************************/
       Vector res = CopyAndExplodeLastStmt(stmts, next,
-                                          //For Distributed pluscal (add threadIndex)
+                                          // For Distributed pluscal (add threadIndex)
                                           threadIndex) ;
         if (((BoolObj) res.elementAt(2)).val) {
           ((Vector) res.elementAt(0)).addElement(UpdatePC(next,
-                                                          //For Distributed pluscal (add threadIndex)
+                                                          // For Distributed pluscal (add threadIndex)
                                                           threadIndex)); } ;    
       return Pair(res.elementAt(0), res.elementAt(1)) ;
     }
@@ -778,7 +778,7 @@ public class PcalTranslate {
 
     private static Vector ExplodeLabeledStmt (AST.LabeledStmt ast,
                                               String next,
-                                              //For Distributed pluscal (add threadIndex)
+                                              // For Distributed pluscal (add threadIndex)
                                               Integer threadIndex
                                               ) throws PcalTranslateException {
          /******************************************************************
@@ -798,14 +798,14 @@ public class PcalTranslate {
         if (ast.stmts.size() > 0 && 
             ast.stmts.elementAt(0).getClass().equals(AST.WhileObj.getClass())) {
             return ExplodeWhile(ast, next,
-                                //For Distributed pluscal (add threadIndex)
+                                // For Distributed pluscal (add threadIndex)
                                 threadIndex);
         }
         AST.LabeledStmt newast = new AST.LabeledStmt();
         Vector pair = 
                 CopyAndExplodeLastStmtWithGoto((Vector) ast.stmts.clone(), 
                                                next,
-                                               //For Distributed pluscal (add threadIndex)
+                                               // For Distributed pluscal (add threadIndex)
                                                threadIndex);
         Vector result = new Vector();
         newast.setOrigin(ast.getOrigin()) ;
@@ -817,7 +817,7 @@ public class PcalTranslate {
         if (! ParseAlgorithm.omitPC) {
            /* prepend pc check */
            newast.stmts.insertElementAt(CheckPC(newast.label,
-                                                //For Distributed pluscal (add threadIndex)
+                                                // For Distributed pluscal (add threadIndex)
                                                 threadIndex),
                                         0);
            result.addElement(newast);
@@ -829,7 +829,7 @@ public class PcalTranslate {
 
     private static Vector ExplodeLabeledStmtSeq (Vector seq,
                                                  String next,
-                                                 //For Distributed pluscal (add threadIndex)
+                                                 // For Distributed pluscal (add threadIndex)
                                                  Integer threadIndex
                                                  ) throws PcalTranslateException {
      /**********************************************************************
@@ -848,7 +848,7 @@ public class PcalTranslate {
        String nxt = (i < seq.size() - 1) ?
                       ((AST.LabeledStmt) seq.elementAt(i+1)).label : next ;
        result.addAll(ExplodeLabeledStmt(stmt, nxt,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         threadIndex)) ;
       };
      return result ;
@@ -862,7 +862,7 @@ public class PcalTranslate {
      */
     private static Vector ExplodeWhile(AST.LabeledStmt ast,
                                        String next,
-                                       //For Distributed pluscal (add threadIndex)
+                                       // For Distributed pluscal (add threadIndex)
                                        Integer threadIndex
                                        ) throws PcalTranslateException {
         /*******************************************************************
@@ -922,7 +922,7 @@ public class PcalTranslate {
 
         if (! ParseAlgorithm.omitPC) {
            newast.stmts.addElement(CheckPC(ast.label,
-                                           //For Distributed pluscal (add threadIndex)
+                                           // For Distributed pluscal (add threadIndex)
                                            threadIndex));   // pc test
         }
 
@@ -934,7 +934,7 @@ public class PcalTranslate {
         Vector pair1 = 
                 CopyAndExplodeLastStmtWithGoto((Vector) w.unlabDo.clone(),
                                                 unlabDoNext,
-                                                //For Distributed pluscal (add threadIndex)
+                                                // For Distributed pluscal (add threadIndex)
                                                 threadIndex);
         /* explode the rest of the statements */
         Vector rest = (Vector) ast.stmts.clone();
@@ -942,7 +942,7 @@ public class PcalTranslate {
            // the elements of rest are == to the elements of ast.stmts.
         rest.remove(0);
         Vector pair2 = CopyAndExplodeLastStmtWithGoto(rest, next,
-                                                      //For Distributed pluscal (add threadIndex)
+                                                      // For Distributed pluscal (add threadIndex)
                                                       threadIndex);
 
         if (IsTRUE(w.test)) // Optimized translation of while TRUE do
@@ -963,7 +963,7 @@ public class PcalTranslate {
             ? (AST.LabeledStmt) w.labDo.elementAt(i + 1) : null;
             String nextLSL = (nextLS == null) ? ast.label : nextLS.label;
             result.addAll(ExplodeLabeledStmt(firstLS, nextLSL,
-                                             //For Distributed pluscal (add threadIndex)
+                                             // For Distributed pluscal (add threadIndex)
                                              threadIndex));
             firstLS = nextLS;
         }
@@ -980,7 +980,7 @@ public class PcalTranslate {
     }
 
     private static Vector ExplodeLabelIf(AST.LabelIf ast, String next,
-                                         //For Distributed pluscal (add threadIndex)
+                                         // For Distributed pluscal (add threadIndex)
                                          Integer threadIndex
                                          ) throws PcalTranslateException {
         /***************************************************************
@@ -1014,13 +1014,13 @@ public class PcalTranslate {
                  CopyAndExplodeLastStmtWithGoto(ast.unlabThen,
                                                 (firstThen == null)
                                                 ? next : firstThen.label,
-                                                //For Distributed pluscal (add threadIndex)
+                                                // For Distributed pluscal (add threadIndex)
                                                 threadIndex);
         Vector explodedElse = 
                   CopyAndExplodeLastStmtWithGoto(ast.unlabElse,
                                                  (firstElse == null)
                                                  ? next : firstElse.label,
-                                                 //For Distributed pluscal (add threadIndex)
+                                                 // For Distributed pluscal (add threadIndex)
                                                  threadIndex);
         /* Construct if statement */
         newif.test = ast.test;
@@ -1053,7 +1053,7 @@ public class PcalTranslate {
         while (i < ast.labThen.size()) {
             String nextThenLabel = (nextThen == null) ? next : nextThen.label;
             result2.addAll(ExplodeLabeledStmt(firstThen, nextThenLabel,
-                                              //For Distributed pluscal (add threadIndex)
+                                              // For Distributed pluscal (add threadIndex)
                                               threadIndex));
             i = i + 1;
             firstThen = nextThen;
@@ -1067,7 +1067,7 @@ public class PcalTranslate {
         while (i < ast.labElse.size()) {
             String nextElseLabel = (nextElse == null) ? next : nextElse.label;
             result2.addAll(ExplodeLabeledStmt(firstElse, nextElseLabel,
-                                              //For Distributed pluscal (add threadIndex)
+                                              // For Distributed pluscal (add threadIndex)
                                               threadIndex));
             i = i + 1;
             firstElse = nextElse;
@@ -1084,7 +1084,7 @@ public class PcalTranslate {
 
     private static Vector ExplodeLabelEither(AST.LabelEither ast, 
                                              String next,
-                                             //For Distributed pluscal (add threadIndex)
+                                             // For Distributed pluscal (add threadIndex)
                                              Integer threadIndex
                                              ) throws PcalTranslateException {
         /*******************************************************************
@@ -1111,7 +1111,7 @@ public class PcalTranslate {
                clause.unlabOr,
                (clause.labOr.size() > 0) ?
                   ((AST.LabeledStmt) clause.labOr.elementAt(0)).label : next,
-               //For Distributed pluscal (add threadIndex)
+               // For Distributed pluscal (add threadIndex)
                threadIndex
                ) ;
           /**
@@ -1124,7 +1124,7 @@ public class PcalTranslate {
          newEither.ors.addElement((Vector) res.elementAt(0)) ;
          result2.addAll((Vector) res.elementAt(1)) ;
          result2.addAll(ExplodeLabeledStmtSeq(clause.labOr, next,
-                                              //For Distributed pluscal (add threadIndex)
+                                              // For Distributed pluscal (add threadIndex)
                                               threadIndex)) ;
         } ;
         result1.addElement(newEither);
@@ -1144,7 +1144,7 @@ public class PcalTranslate {
      **
     ***********************************************************************/
     private static Vector ExplodeCall(AST.Call ast, String next,
-                                      //For Distributed pluscal (add threadIndex)
+                                      // For Distributed pluscal (add threadIndex)
                                       Integer threadIndex
                                       ) throws PcalTranslateException {
         Vector result = new Vector();
@@ -1337,7 +1337,7 @@ public class PcalTranslate {
         // Note: omitPC must be false if there's a call statement (and hence
         // a procedure being called).
         result.addElement(UpdatePC(pe.iPC,
-                                   //For Distributed pluscal (add threadIndex)
+                                   // For Distributed pluscal (add threadIndex)
                                    threadIndex));
         return result;
     }
@@ -1348,7 +1348,7 @@ public class PcalTranslate {
      **
     ***********************************************************************/
     private static Vector ExplodeReturn(AST.Return ast, String next,
-                                        //For Distributed pluscal (add threadIndex)
+                                        // For Distributed pluscal (add threadIndex)
                                         Integer threadIndex
                                         ) throws PcalTranslateException {
         Vector result = new Vector();
@@ -1496,7 +1496,7 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         expr = new TLAExpr();
         sass.lhs.var = "stack";
-        //For Distributed pluscal        
+        // For Distributed pluscal        
         if(PcalParams.distpcalFlag) {
           if(threadIndex == NO_THREAD) {
             // sass.lhs.sub = MakeExpr(new Vector());
@@ -1539,7 +1539,7 @@ public class PcalTranslate {
      **
     ***********************************************************************/
     private static Vector ExplodeCallReturn(AST.CallReturn ast, String next,
-                                            //For Distributed pluscal (add threadIndex)
+                                            // For Distributed pluscal (add threadIndex)
                                             Integer threadIndex
                                             ) throws PcalTranslateException {
         Vector result = new Vector();
@@ -1746,7 +1746,7 @@ public class PcalTranslate {
          * pc := entry point of ast.to                           *
          *********************************************************/
         result.addElement(UpdatePC(peTo.iPC,
-                                   //For Distributed pluscal (add threadIndex)
+                                   // For Distributed pluscal (add threadIndex)
                                    threadIndex));
         return result;
     }
@@ -1756,7 +1756,7 @@ public class PcalTranslate {
     * goto.                                                                *
     ***********************************************************************/
     private static Vector ExplodeCallGoto(AST.CallGoto ast, String next,
-                                          //For Distributed pluscal (add threadIndex)
+                                          // For Distributed pluscal (add threadIndex)
                                           Integer threadIndex
                                           ) throws PcalTranslateException {
       AST.Call call = new AST.Call();
@@ -1766,12 +1766,12 @@ public class PcalTranslate {
       call.col = ast.col;
       call.setOrigin(ast.getOrigin());
       return ExplodeCall(call, ast.after,
-                         //For Distributed pluscal (add threadIndex)
+                         // For Distributed pluscal (add threadIndex)
                          threadIndex);
     }
 
     
-    //For Distributed pluscal
+    // For Distributed pluscal
     private static AST.Thread ExplodeThread(AST.Thread ast, Integer threadIndex) throws PcalTranslateException {
         /*********************************************************************
         * Generate new AST.Thread with exploded labeled statements.         *
