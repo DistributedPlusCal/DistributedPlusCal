@@ -1229,26 +1229,10 @@ public class AST
        // targetVar
        sass.lhs.var = targetVar.var;
        sass.lhs.sub = targetExp.cloneAndNormalize();
-       // freshVar
+       // freshVar (which represents an element in the domain of the bag, thus of arity > 0)
        TLAExpr expr = new TLAExpr();
        expr.addLine();
-       if(!PcalParams.setChannels){ // bag
-         expr.addToken(PcalTranslate.BuiltInToken(channelName)); 
-         if(callExp.tokens != null) {
-           for(int i = 0; i < callExp.tokens.size(); i++) {
-             Vector tv = (Vector) callExp.tokens.elementAt(i);
-             for (int j = 0; j < tv.size(); j++) {
-               TLAToken tok = (TLAToken) tv.elementAt(j);
-               expr.addToken(tok);
-             }
-           }
-         }
-         expr.addToken(PcalTranslate.BuiltInToken("["));
-       }
        expr.addToken(PcalTranslate.IdentToken(freshVar));
-       if(!PcalParams.setChannels){ // bag
-         expr.addToken(PcalTranslate.BuiltInToken("]"));
-       }
        expr.normalize();
        sass.rhs = expr;
        sass.setOrigin(this.getOrigin());
@@ -1265,8 +1249,9 @@ public class AST
        }else {
          sass.lhs.sub = new TLAExpr(new Vector());
        }
-       // chanName/@  (-) [fv \in {message} |-> 1]
-       // chanName/@ \ { freshVar }
+       // chanName/@  (-) SetToBag({message})
+       // alternative: chanName/@  (-) [fv \in {message} |-> 1]
+       // for set implementation: chanName/@ \ { freshVar }
        expr = new TLAExpr();
        expr.addLine();
        String prevChannel = (channel.dimensions.size() == 0) ? channelName : "@";
