@@ -1120,11 +1120,14 @@ public class AST
          } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken(prevChannel));
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
-           expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "__v" + varIndex++ + "__";
-           expr.addToken(PcalTranslate.BuiltInToken(freshVar));
-           expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
-           expr.addToken(PcalTranslate.BuiltInToken("{"));
+           // expr.addToken(PcalTranslate.BuiltInToken("["));
+           // String freshVar = "__v" + varIndex++ + "__";
+           // expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+           // expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+           // expr.addToken(PcalTranslate.BuiltInToken("{"));
+           expr.addToken(PcalTranslate.IdentToken("SetToBag"));
+           expr.addToken(PcalTranslate.BuiltInToken("("));
+           expr.addToken(PcalTranslate.BuiltInToken("{"));        
          }
        } else if(channelType == CHANNEL_TYPE_FIFO) {
          expr.addToken(PcalTranslate.BuiltInToken(" Append("));
@@ -1144,9 +1147,10 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken("}"));
          } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken("}"));
-           expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-           expr.addToken(PcalTranslate.BuiltInToken("1"));
-           expr.addToken(PcalTranslate.BuiltInToken("]"));
+           // expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+           // expr.addToken(PcalTranslate.BuiltInToken("1"));
+           // expr.addToken(PcalTranslate.BuiltInToken("]"));
+           expr.addToken(PcalTranslate.BuiltInToken(")"));
          }
        } else if(channelType == CHANNEL_TYPE_FIFO) {
          expr.addToken(PcalTranslate.BuiltInToken(")"));
@@ -1275,16 +1279,20 @@ public class AST
          expr.addToken(PcalTranslate.BuiltInToken("}"));
        } else { // bag
          expr.addToken(PcalTranslate.BuiltInToken(" (-) "));
-         expr.addToken(PcalTranslate.BuiltInToken("["));
-         String localFreshVar = "__v" + varIndex++ + "__";
-         expr.addToken(PcalTranslate.BuiltInToken(localFreshVar));
-         expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+         // expr.addToken(PcalTranslate.BuiltInToken("["));
+         // String localFreshVar = "__v" + varIndex++ + "__";
+         // expr.addToken(PcalTranslate.BuiltInToken(localFreshVar));
+         // expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+         expr.addToken(PcalTranslate.IdentToken("SetToBag"));
+         expr.addToken(PcalTranslate.BuiltInToken("("));
+         // message variable
          expr.addToken(PcalTranslate.BuiltInToken("{"));
          expr.addToken(PcalTranslate.IdentToken(freshVar));
          expr.addToken(PcalTranslate.BuiltInToken("}"));
-         expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-         expr.addToken(PcalTranslate.BuiltInToken("1"));
-         expr.addToken(PcalTranslate.BuiltInToken("]"));
+         // expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+         // expr.addToken(PcalTranslate.BuiltInToken("1"));
+         // expr.addToken(PcalTranslate.BuiltInToken("]"));
+         expr.addToken(PcalTranslate.BuiltInToken(")"));
        }
        expr.normalize();
        sass.rhs = expr;
@@ -1552,10 +1560,13 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken("{"));
          } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken(" (+) "));
-           expr.addToken(PcalTranslate.BuiltInToken("["));
-           String freshVar = "__v" + varIndex++ + "__";
-           expr.addToken(PcalTranslate.BuiltInToken(freshVar));
-           expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+           // expr.addToken(PcalTranslate.BuiltInToken("["));
+           // String freshVar = "__v" + varIndex++ + "__";
+           // expr.addToken(PcalTranslate.BuiltInToken(freshVar));
+           // expr.addToken(PcalTranslate.BuiltInToken(" \\in "));
+           // expr.addToken(PcalTranslate.BuiltInToken("{"));
+           expr.addToken(PcalTranslate.IdentToken("SetToBag"));
+           expr.addToken(PcalTranslate.BuiltInToken("("));
            expr.addToken(PcalTranslate.BuiltInToken("{"));
          }
        } else if(channelType == CHANNEL_TYPE_FIFO) {
@@ -1572,9 +1583,10 @@ public class AST
            expr.addToken(PcalTranslate.BuiltInToken("} "));
          } else { // bag
            expr.addToken(PcalTranslate.BuiltInToken("}"));
-           expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-           expr.addToken(PcalTranslate.BuiltInToken("1"));
-           expr.addToken(PcalTranslate.BuiltInToken("]"));
+           // expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
+           // expr.addToken(PcalTranslate.BuiltInToken("1"));
+           // expr.addToken(PcalTranslate.BuiltInToken("]"));
+           expr.addToken(PcalTranslate.BuiltInToken(")"));
          }
        } else if(channelType == CHANNEL_TYPE_FIFO) {
          expr.addToken(PcalTranslate.BuiltInToken(")"));

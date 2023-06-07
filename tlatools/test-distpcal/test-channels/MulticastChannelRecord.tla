@@ -8,7 +8,7 @@ Nodes == 1..N-1
 
 (*--algorithm dummy  {
 variables c = 2;
-fifo ch[Nodes];
+channel ch[Nodes];
 
 process ( sid \in Nodes )
 variable loc = 0;
