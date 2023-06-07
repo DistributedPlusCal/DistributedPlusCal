@@ -1449,7 +1449,7 @@ public class AST
              }
            } else {
              if(buildPhase == 1) {
-               //get the dimension type
+               // get the dimension type
                if(!tok.string.equals(",") && !tok.string.equals("|->")) {
                  dt.add(tok);
                } else {
@@ -1464,7 +1464,7 @@ public class AST
                  }
                }
              } else { // buildPhase == 2, ie the expression we want to multicast
-               if (!tok.string.equals("]")) { // if not the ending "]"
+               if ( (i != msg.tokens.size()-1) || (j != line.size()-1) ) { // if not the ending "]"
                  thenExp.add((TLAToken) line.elementAt(j));
                }
              }

@@ -4908,7 +4908,7 @@ public class ParseAlgorithm
 		} else { // send
 			result = call.generateBodyTemplate((AST.Channel) varDecl);
 		}
-		if (result.size() > 0) 
+    if (result.size() > 0) 
         { AST first = (AST) result.elementAt(0) ;
           first.lbl = call.lbl;
           first.lblLocation = call.lblLocation;
