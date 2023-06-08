@@ -57,16 +57,16 @@ PROCid == 5
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3950b83b" /\ chksum(tla) = "8dc85896")
+\* BEGIN TRANSLATION (chksum(pcal) = "3950b83b" /\ chksum(tla) = "3a0a751e")
 VARIABLES ar, x, found, i, pc, lvpid, lvqid
 
 vars == << ar, x, found, i, pc, lvpid, lvqid >>
 
 ProcSet == (PROCSet1) \cup (PROCSet2) \cup {PROCid}
 
-SubProcSet == [_n1 \in ProcSet |-> IF _n1 \in PROCSet1 THEN 1..2
-                                   ELSE IF _n1 \in PROCSet2 THEN 1..2
-                                   ELSE (** _n1 = PROCid **) 1..2]
+SubProcSet == [_n1 \in ProcSet |->  CASE _n1 \in PROCSet1 -> 1..2
+                                    []   _n1 \in PROCSet2 -> 1..2
+                                    []   _n1 = PROCid -> 1..2 ]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]

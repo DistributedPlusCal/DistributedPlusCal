@@ -4920,38 +4920,27 @@ public class PcalTLAGen
     // when more than one process
 		for (int i = 0; i < st.processes.size(); i++) {
 			PcalSymTab.ProcessEntry node = (PcalSymTab.ProcessEntry) st.processes.elementAt(i);
-      if(i == st.processes.size() - 1) { // if the last process
-        // ps = new StringBuffer(NSpaces(positionOfLastIf - col));
+      if(i == 0) { // if the first process
+        ps.append(" CASE ");
+      } else { // if not the first one
         ps = new StringBuffer(NSpaces(positionOfFirstIf));
-        ps.append(" ELSE ");
-        ps.append("(**");
-      } else if(i > 0) { // if not the first or the last one
-        ps = new StringBuffer(NSpaces(positionOfFirstIf));
-        ps.append(" ELSE ");
+        ps.append("  []   ");
       }
-      if(i != st.processes.size() - 1) { // if the last process
-        if (node.isEq) {
-          ps.append("IF " + ind + " = ");
-        } else {
-          ps.append("IF " + ind + " \\in ");
-        }
+      if (node.isEq) {
+        ps.append(ind + " = ");
       } else {
-        ps.append(" " + ind + " = ");
+        ps.append(ind + " \\in ");
       }
 			// positionOfLastIf = ps.length();
 			ps.append(node.id.toPlainString());
-			if(i == st.processes.size() - 1) {
-				ps.append(" **) "); // if last process, close the comment
-			} else {
-				ps.append(" THEN ");
-			}
+      ps.append(" -> "); // if last process, close the comment
       ps.append("1.." + (node.threads.size()));
-			
+      // closing ]
 			if(i == st.processes.size() - 1) {
-				ps.append("]");
+				ps.append(" ]");
 			}
 			addOneLineOfTLA(ps.toString());
-		}
+    }
 		endCurrentLineOfTLA();
 		addOneLineOfTLA("");
 	}
