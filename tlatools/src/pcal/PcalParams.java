@@ -206,8 +206,7 @@ public final class PcalParams
             line.addElement(new TLAToken("{", 0, 0)) ;
             line.addElement(new TLAToken("}", 0, 0)) ;
           } else {
-            line.addElement(new TLAToken("<<", 0, 0)) ;
-            line.addElement(new TLAToken(">>", 0, 0)) ;
+            line.addElement(new TLAToken("EmptyBag", 0, 0)) ;
           }
         } else if(channelType == AST.CHANNEL_TYPE_FIFO){ 
           line.addElement(new TLAToken("<<", 0, 0)) ;

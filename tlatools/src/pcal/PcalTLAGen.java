@@ -4988,14 +4988,14 @@ public class PcalTLAGen
 		}
 
 		expr.addToken(PcalTranslate.BuiltInToken(" |-> "));
-		
+
+    // HC: normally the same as in PcalParams,DefaultChannelInit
 		if(decl.channelType == AST.CHANNEL_TYPE_UNORDERED) { 
       if(PcalParams.setChannels){
         expr.addToken(PcalTranslate.BuiltInToken("{"));
         expr.addToken(PcalTranslate.BuiltInToken("}"));
       } else {
-        expr.addToken(PcalTranslate.BuiltInToken("<<"));
-        expr.addToken(PcalTranslate.BuiltInToken(">>"));
+        expr.addToken(PcalTranslate.BuiltInToken("EmptyBag"));
       }
 		} else if(decl.channelType == AST.CHANNEL_TYPE_FIFO) {
 			expr.addToken(PcalTranslate.BuiltInToken("<<"));
