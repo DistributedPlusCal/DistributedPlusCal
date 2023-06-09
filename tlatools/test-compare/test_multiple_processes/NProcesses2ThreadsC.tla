@@ -57,7 +57,7 @@ PROCid == 5
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3950b83b" /\ chksum(tla) = "1a608c72")
+\* BEGIN TRANSLATION (chksum(pcal) = "3950b83b" /\ chksum(tla) = "1fe897fe")
 VARIABLES ar, x, found, i, pc, lvpid, lvqid
 
 vars == << ar, x, found, i, pc, lvpid, lvqid >>
@@ -156,7 +156,7 @@ sid2 == Lbl_9 \/ Lbl_10
 sid == sid1 \/ sid2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
 Next == sid
@@ -170,7 +170,7 @@ Spec == /\ Init /\ [][Next]_vars
         /\ WF_vars(sid1)
         /\ WF_vars(sid2)
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
 \* END TRANSLATION 
 =============================================================================

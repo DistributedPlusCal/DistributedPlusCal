@@ -44,7 +44,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "9449d94b" /\ chksum(tla) = "49e864f")
+\* BEGIN TRANSLATION (chksum(pcal) = "9449d94b" /\ chksum(tla) = "f732b7c6")
 CONSTANT defaultInitValue
 VARIABLES x, i, pc, stack, y, lvf, lvqid
 
@@ -59,8 +59,8 @@ Init == (* Global variables *)
         /\ x = 4
         /\ i = 1
         (* Procedure f *)
-        /\ y = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> defaultInitValue]]
-        /\ lvf = [ self \in ProcSet |-> [ subprocess \in SubProcSet[self] |-> 0]]
+        /\ y = [ self \in ProcSet |-> [ thread \in SubProcSet[self] |-> defaultInitValue]]
+        /\ lvf = [ self \in ProcSet |-> [ thread \in SubProcSet[self] |-> 0]]
         (* Process sid *)
         /\ lvqid = 1
         /\ stack = [self \in ProcSet |-> CASE self \in 3..4 -> << <<>> , <<>> >>
@@ -69,37 +69,36 @@ Init == (* Global variables *)
         /\ pc = [self \in ProcSet |-> CASE self \in 3..4 -> <<"Lbl_1","Lbl_2">>
                                         [] self = 5 -> <<"Lbl_3","Lbl_4">>]
 
-FPL1(self, subprocess) == /\ pc[self][subprocess] = "FPL1"
-                          /\ lvf' = [lvf EXCEPT ![self][subprocess] = lvf[self][subprocess] + 11]
-                          /\ pc' = [pc EXCEPT ![self][subprocess] = "FPL2"]
-                          /\ UNCHANGED << x, i, stack, y, lvqid >>
+FPL1(self, thread) == /\ pc[self][thread] = "FPL1"
+                      /\ lvf' = [lvf EXCEPT ![self][thread] = lvf[self][thread] + 11]
+                      /\ pc' = [pc EXCEPT ![self][thread] = "FPL2"]
+                      /\ UNCHANGED << x, i, stack, y, lvqid >>
 
-FPL2(self, subprocess) == /\ pc[self][subprocess] = "FPL2"
-                          /\ lvf' = [lvf EXCEPT ![self][subprocess] = lvf[self][subprocess] + 12]
-                          /\ pc' = [pc EXCEPT ![self][subprocess] = "FML1"]
-                          /\ UNCHANGED << x, i, stack, y, lvqid >>
+FPL2(self, thread) == /\ pc[self][thread] = "FPL2"
+                      /\ lvf' = [lvf EXCEPT ![self][thread] = lvf[self][thread] + 12]
+                      /\ pc' = [pc EXCEPT ![self][thread] = "FML1"]
+                      /\ UNCHANGED << x, i, stack, y, lvqid >>
 
-FML1(self, subprocess) == /\ pc[self][subprocess] = "FML1"
-                          /\ y' = [y EXCEPT ![self][subprocess] = lvf[self][subprocess] + 21]
-                          /\ pc' = [pc EXCEPT ![self][subprocess] = "FML2"]
-                          /\ UNCHANGED << x, i, stack, lvf, lvqid >>
+FML1(self, thread) == /\ pc[self][thread] = "FML1"
+                      /\ y' = [y EXCEPT ![self][thread] = lvf[self][thread] + 21]
+                      /\ pc' = [pc EXCEPT ![self][thread] = "FML2"]
+                      /\ UNCHANGED << x, i, stack, lvf, lvqid >>
 
-FML2(self, subprocess) == /\ pc[self][subprocess] = "FML2"
-                          /\ y' = [y EXCEPT ![self][subprocess] = lvf[self][subprocess] + 22]
-                          /\ pc' = [pc EXCEPT ![self][subprocess] = "Lbl_5"]
-                          /\ UNCHANGED << x, i, stack, lvf, lvqid >>
+FML2(self, thread) == /\ pc[self][thread] = "FML2"
+                      /\ y' = [y EXCEPT ![self][thread] = lvf[self][thread] + 22]
+                      /\ pc' = [pc EXCEPT ![self][thread] = "Lbl_5"]
+                      /\ UNCHANGED << x, i, stack, lvf, lvqid >>
 
-Lbl_5(self, subprocess) == /\ pc[self][subprocess] = "Lbl_5"
-                           /\ pc' = [pc EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).pc]
-                           /\ lvf' = [lvf EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).lvf]
-                           /\ y' = [y EXCEPT ![self][subprocess] = Head(stack[self][subprocess]).y]
-                           /\ stack' = [stack EXCEPT ![self][subprocess] = Tail(stack[self][subprocess])]
-                           /\ UNCHANGED << x, i, lvqid >>
+Lbl_5(self, thread) == /\ pc[self][thread] = "Lbl_5"
+                       /\ pc' = [pc EXCEPT ![self][thread] = Head(stack[self][thread]).pc]
+                       /\ lvf' = [lvf EXCEPT ![self][thread] = Head(stack[self][thread]).lvf]
+                       /\ y' = [y EXCEPT ![self][thread] = Head(stack[self][thread]).y]
+                       /\ stack' = [stack EXCEPT ![self][thread] = Tail(stack[self][thread])]
+                       /\ UNCHANGED << x, i, lvqid >>
 
-f(self, subprocess) == FPL1(self, subprocess) \/ FPL2(self, subprocess)
-                          \/ FML1(self, subprocess)
-                          \/ FML2(self, subprocess)
-                          \/ Lbl_5(self, subprocess)
+f(self, thread) == FPL1(self, thread) \/ FPL2(self, thread)
+                      \/ FML1(self, thread) \/ FML2(self, thread)
+                      \/ Lbl_5(self, thread)
 
 Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ i' = i + 4
@@ -147,11 +146,11 @@ sid2 == Lbl_4
 sid == sid1 \/ sid2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
 Next == sid
-           \/ (\E self \in ProcSet: \E subprocess \in SubProcSet[self] :  f(self, subprocess))
+           \/ (\E self \in ProcSet: \E thread \in SubProcSet[self] :  f(self, thread))
            \/ (\E self \in 3..4: qid(self))
            \/ Terminating
 
@@ -163,7 +162,7 @@ Spec == /\ Init /\ [][Next]_vars
         /\ SF_vars(sid1)
         /\ SF_vars(sid2) /\ SF_vars((pc[5][2] \notin {"FML1", "FML2"}) /\ f(5, 2))
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
 \* END TRANSLATION 
 =============================================================================

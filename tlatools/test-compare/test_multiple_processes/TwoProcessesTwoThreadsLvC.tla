@@ -39,7 +39,7 @@ variables lvpid2 = 10;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8443dc2c" /\ chksum(tla) = "7ef3d085")
+\* BEGIN TRANSLATION (chksum(pcal) = "8443dc2c" /\ chksum(tla) = "2a3b607a")
 VARIABLES ar, x, found, i, pc, lvpid1, lvpid2
 
 vars == << ar, x, found, i, pc, lvpid1, lvpid2 >>
@@ -93,7 +93,7 @@ pid21 == Lbl_3
 pid2 == pid21
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
 Next == pid2
@@ -105,7 +105,7 @@ Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in PROCSet : WF_vars(pid12(self))
         /\ WF_vars(pid21)
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
 \* END TRANSLATION 
 

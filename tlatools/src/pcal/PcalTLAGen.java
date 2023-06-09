@@ -23,6 +23,11 @@ public class PcalTLAGen
     // Constants that control formatting
     public final static boolean boxUnderCASE = true; /* else [] at end of line  */
 
+  
+  // For Distributed PlusCal
+  public final static String THREAD = "thread";
+  // end For Distributed PlusCal
+  
     // The following two variables made non-final on 9 Dec 2009 so they can
     // be set by options.  They are initialized in PcalParams.resetParams().
     public static int wrapColumn ; 
@@ -332,7 +337,7 @@ public class PcalTLAGen
             /* Add this step to the disjunct of steps with (self) */
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
-              nextStepSelf.addElement(ast.name + "(self, subprocess)");
+              nextStepSelf.addElement(ast.name + "(self, "+THREAD+")");
             } else { // end For Distributed PlusCal
               nextStepSelf.addElement(ast.name + "(self)");
             }
@@ -361,7 +366,7 @@ public class PcalTLAGen
         String argument = "";
         if(mp) {
         	if(PcalParams.distpcalFlag) {
-        		argument = "(self, subprocess)";
+        		argument = "(self, "+THREAD+")";
         	} else {
         		argument = "(self)";
         	}
@@ -670,7 +675,7 @@ public class PcalTLAGen
             //     - no other case where thread index should be used (except pc and stack)
             //       since no variables local to threads
             if( context.equals("procedure")) {
-              sb.append("(self, subprocess)");
+              sb.append("(self, "+THREAD+")");
             } else {
               sb.append("(self)");
             }
@@ -2356,7 +2361,7 @@ public class PcalTLAGen
 //                    {
                        // For Distributed PlusCal 
                        if(PcalParams.distpcalFlag){
-                         is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
+                         is.append("[ self \\in ProcSet |-> [ "+THREAD+" \\in SubProcSet[self] |-> ");
                        } else { // end For Distributed PlusCal
                         is.append("[ self \\in ProcSet |-> ");
                        }
@@ -2436,7 +2441,7 @@ public class PcalTLAGen
 //                    {
                         // For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
-                            is.append("[ self \\in ProcSet |-> [ subprocess \\in SubProcSet[self] |-> ");
+                            is.append("[ self \\in ProcSet |-> [ "+THREAD+" \\in SubProcSet[self] |-> ");
                         } else { // end For Distributed PlusCal
                           is.append("[ self \\in ProcSet |-> ");
                         }
@@ -3025,7 +3030,7 @@ public class PcalTLAGen
             
         	    // For Distributed PlusCal
               if(PcalParams.distpcalFlag) {
-                sb.append("/\\ \\A self \\in ProcSet : \\A sub \\in SubProcSet[self]: pc[self][sub] = \"Done\"");
+                sb.append("/\\ \\A self \\in ProcSet : \\A "+THREAD+" \\in SubProcSet[self]: pc[self]["+THREAD+"] = \"Done\"");
               } else { // end For Distributed PlusCal
                 sb.append("/\\ \\A self \\in ProcSet: pc[self] = \"Done\"");
               }
@@ -3064,7 +3069,7 @@ public class PcalTLAGen
         String nextSSstart = "(\\E self \\in ProcSet: ";
         // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
-            nextSSstart = "(\\E self \\in ProcSet: \\E subprocess \\in SubProcSet[self] :  ";
+            nextSSstart = "(\\E self \\in ProcSet: \\E "+THREAD+" \\in SubProcSet[self] :  ";
         } // end For Distributed PlusCal
         sb = new StringBuffer();
         max = wrapColumn - ("Next == \\/ (\\E self \\in ProcSet: \\/ ".length());
@@ -3083,7 +3088,7 @@ public class PcalTLAGen
                 sb.append(p.name);
                 // For Distributed PlusCal
                 if(PcalParams.distpcalFlag) {
-                    sb.append("(self, subprocess)");
+                    sb.append("(self, "+THREAD+")");
                 } else { // end For Distributed PlusCal
                   sb.append("(self)");
                 }
@@ -3727,7 +3732,7 @@ public class PcalTLAGen
         if (mp) {
         	// For Distributed PlusCal
         	if(PcalParams.distpcalFlag) {
-        		sb.append("\\A self \\in ProcSet: \\A sub \\in SubProcSet[self] : pc[self][sub]");
+        		sb.append("\\A self \\in ProcSet: \\A "+THREAD+" \\in SubProcSet[self] : pc[self]["+THREAD+"]");
         	} else { // end For Distributed PlusCal
             sb.append("\\A self \\in ProcSet: pc[self]");
           }
@@ -4041,7 +4046,7 @@ public class PcalTLAGen
     private static TLAExpr  procedureSelfAsExpr() {
     	//we can't add a sub-expression here since we are not handling a lhs of an assignment object
         Vector tokenVec = new Vector();
-        TLAToken selfToken = new TLAToken("self][subprocess", 0, TLAToken.BUILTIN, true);
+        TLAToken selfToken = new TLAToken("self]["+THREAD, 0, TLAToken.BUILTIN, true);
         tokenVec.addElement(selfToken);
         Vector tokens = new Vector();
         tokens.addElement(tokenVec);

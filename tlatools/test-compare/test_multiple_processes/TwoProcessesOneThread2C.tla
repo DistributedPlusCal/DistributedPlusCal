@@ -32,7 +32,7 @@ process ( pid2 = 1 )
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "80f2f6f1" /\ chksum(tla) = "1980c52b")
+\* BEGIN TRANSLATION (chksum(pcal) = "80f2f6f1" /\ chksum(tla) = "4bbab297")
 VARIABLES ar, x, found, i, pc
 
 vars == << ar, x, found, i, pc >>
@@ -79,7 +79,7 @@ pid21 == Three \/ Four
 pid2 == pid21
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
 Next == pid2
@@ -90,7 +90,7 @@ Spec == /\ Init /\ [][Next]_vars
         /\ \A self \in 2..3 : WF_vars(pid11(self))
         /\ WF_vars(pid21)
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
 \* END TRANSLATION 
 
