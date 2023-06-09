@@ -4897,11 +4897,12 @@ public class PcalTLAGen
 		StringBuffer ps = new StringBuffer();
 		if (st.processes == null || st.processes.size() == 0)
 			return;
-    String ind = "_n" + varIndex++;
-    // generate a new (fresh) variable if this one already exists
-    while( InVector(ind,vars) ){
-      ind = "_n" + varIndex++;
-    }
+    // String ind = "_n" + varIndex++;
+    // // generate a new (fresh) variable if this one already exists
+    // while( InVector(ind,vars) ){
+      // ind = "_n" + varIndex++;
+    // }
+    String ind = "self";
 		ps.append("SubProcSet == ["+ind+" \\in ProcSet |-> ");
 		int col = "SubProcSet == ".length();
 		// int positionOfLastIf = 0;

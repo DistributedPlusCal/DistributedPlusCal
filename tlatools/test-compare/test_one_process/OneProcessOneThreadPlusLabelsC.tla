@@ -21,14 +21,14 @@ variables c = 3;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "3d26ec56" /\ chksum(tla) = "5d990621")
+\* BEGIN TRANSLATION (chksum(pcal) = "2a8ce77d" /\ chksum(tla) = "8ac7fc0c")
 VARIABLES found, i, pc, c
 
 vars == << found, i, pc, c >>
 
 ProcSet == (PROCSet)
 
-SubProcSet == [_n1 \in ProcSet |-> 1..1]
+SubProcSet == [self \in ProcSet |-> 1..1]
 
 Init == (* Global variables *)
         /\ found = FALSE

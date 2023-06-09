@@ -47,7 +47,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8ec79859" /\ chksum(tla) = "adfd8feb")
+\* BEGIN TRANSLATION (chksum(pcal) = "8ec79859" /\ chksum(tla) = "34508d14")
 CONSTANT defaultInitValue
 VARIABLES x, i, pc, stack, y, lvf, z, lvg
 
@@ -55,7 +55,7 @@ vars == << x, i, pc, stack, y, lvf, z, lvg >>
 
 ProcSet == (3..4)
 
-SubProcSet == [_n1 \in ProcSet |-> 1..2]
+SubProcSet == [self \in ProcSet |-> 1..2]
 
 Init == (* Global variables *)
         /\ x = 4

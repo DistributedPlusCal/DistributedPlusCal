@@ -28,16 +28,16 @@ EXTENDS Naturals, TLC
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8bbc3f51" /\ chksum(tla) = "6d4bc3c2")
+\* BEGIN TRANSLATION (chksum(pcal) = "8bbc3f51" /\ chksum(tla) = "13914dc8")
 VARIABLE i
 
 vars == << i >>
 
 ProcSet == (1..2) \cup (3..4) \cup {5}
 
-SubProcSet == [_n1 \in ProcSet |->  CASE _n1 \in 1..2 -> 1..1
-                                    []   _n1 \in 3..4 -> 1..1
-                                    []   _n1 = 5 -> 1..1 ]
+SubProcSet == [self \in ProcSet |->  CASE self \in 1..2 -> 1..1
+                                     []   self \in 3..4 -> 1..1
+                                     []   self = 5 -> 1..1 ]
 
 Init == (* Global variables *)
         /\ i = 1

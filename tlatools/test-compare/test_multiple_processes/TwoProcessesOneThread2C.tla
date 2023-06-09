@@ -32,15 +32,15 @@ process ( pid2 = 1 )
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "80f2f6f1" /\ chksum(tla) = "efa761f5")
+\* BEGIN TRANSLATION (chksum(pcal) = "80f2f6f1" /\ chksum(tla) = "1980c52b")
 VARIABLES ar, x, found, i, pc
 
 vars == << ar, x, found, i, pc >>
 
 ProcSet == (2..3) \cup {1}
 
-SubProcSet == [_n1 \in ProcSet |->  CASE _n1 \in 2..3 -> 1..1
-                                    []   _n1 = 1 -> 1..1 ]
+SubProcSet == [self \in ProcSet |->  CASE self \in 2..3 -> 1..1
+                                     []   self = 1 -> 1..1 ]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]

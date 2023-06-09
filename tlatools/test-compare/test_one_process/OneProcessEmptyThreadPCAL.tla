@@ -9,18 +9,18 @@ variables
 
 process pid = 1
 begin
-end process
+end thread
 
 end algorithm;
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "b9dc3160" /\ chksum(tla) = "3cde1cee")
+\* BEGIN TRANSLATION (chksum(pcal) = "e9eca2aa" /\ chksum(tla) = "7f7ea800")
 VARIABLE i
 
 vars == << i >>
 
 ProcSet == {1}
 
-SubProcSet == [_n1 \in ProcSet |-> 1..1]
+SubProcSet == [self \in ProcSet |-> 1..1]
 
 Init == (* Global variables *)
         /\ i = 1

@@ -39,15 +39,15 @@ variables lvpid2 = 10;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8443dc2c" /\ chksum(tla) = "598dd3b8")
+\* BEGIN TRANSLATION (chksum(pcal) = "8443dc2c" /\ chksum(tla) = "7ef3d085")
 VARIABLES ar, x, found, i, pc, lvpid1, lvpid2
 
 vars == << ar, x, found, i, pc, lvpid1, lvpid2 >>
 
 ProcSet == (PROCSet) \cup {1}
 
-SubProcSet == [_n1 \in ProcSet |->  CASE _n1 \in PROCSet -> 1..2
-                                    []   _n1 = 1 -> 1..1 ]
+SubProcSet == [self \in ProcSet |->  CASE self \in PROCSet -> 1..2
+                                     []   self = 1 -> 1..1 ]
 
 Init == (* Global variables *)
         /\ ar \in [ 1..N -> 0..MAXINT ]

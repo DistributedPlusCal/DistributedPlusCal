@@ -44,7 +44,7 @@ PROCSet == 1..2
 }
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "9449d94b" /\ chksum(tla) = "e03116c9")
+\* BEGIN TRANSLATION (chksum(pcal) = "9449d94b" /\ chksum(tla) = "49e864f")
 CONSTANT defaultInitValue
 VARIABLES x, i, pc, stack, y, lvf, lvqid
 
@@ -52,8 +52,8 @@ vars == << x, i, pc, stack, y, lvf, lvqid >>
 
 ProcSet == (3..4) \cup {5}
 
-SubProcSet == [_n1 \in ProcSet |->  CASE _n1 \in 3..4 -> 1..2
-                                    []   _n1 = 5 -> 1..2 ]
+SubProcSet == [self \in ProcSet |->  CASE self \in 3..4 -> 1..2
+                                     []   self = 5 -> 1..2 ]
 
 Init == (* Global variables *)
         /\ x = 4
