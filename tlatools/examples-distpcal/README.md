@@ -40,8 +40,9 @@ java -cp ../dist/tla2tools.jar pcal.trans ThreadsC.tla
 
 ## Mutual exclusion algorithm
 - [ ]
-  [Paxos.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/Paxos.tla):
+  [LamportMutex.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/LamportMutex.tla):
+	Lamport's distributed mutual-exclusion algorithm. To model-check use [MCLamportMutex.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/MCLamportMutex.tla)
 
 ## Paxos consensus algorithm
 - [ ]
-  [LamportMutex.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/LamportMutex.tla):
+  [Paxos.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/Paxos.tla): The Paxos consensus algorithm.
