@@ -3,7 +3,7 @@
 To compile the example to TLA+ execute
 
 ```
-java -cp ../dist/tla2tools.jar pcal.trans ThreadsC.tla
+java -cp ../dist/tla2tools.jar pcal.trans [-label] <path to algo>/<algo>
 ```
 
 ## Simple examples with threads
@@ -11,6 +11,11 @@ java -cp ../dist/tla2tools.jar pcal.trans ThreadsC.tla
 - [ ]
   [ThreadsC.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/ThreadsC.tla):
   simple example with single- and multi-threaded processes 
+
+To compile the example to TLA+ execute
+```
+java -cp ../dist/tla2tools.jar pcal.trans ThreadsC.tla
+```
 
 - [ ]
   [ThreadsP.tla](https://github.com/DistributedPlusCal/DistributedPlusCal/blob/master/tlatools/examples-distpcal/ThreadsP.tla):
