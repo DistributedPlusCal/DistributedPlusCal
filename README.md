@@ -8,6 +8,8 @@ git clone git@github.com:DistributedPlusCal/DistributedPlusCal.git
 
 ## Build the distrib
 
+(you can skip to next step if you don't want the latest version)
+
 ```
 cd DistributedPlusCal/tlatools
 mkdir test-class
