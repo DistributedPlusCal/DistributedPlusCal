@@ -12,9 +12,8 @@ git clone git@github.com:DistributedPlusCal/DistributedPlusCal.git
 
 ```
 cd DistributedPlusCal/tlatools
-mkdir test-class
-ant -f customBuild.xml clean
 ant -f customBuild.xml compile
+ant -f customBuild.xml compile-test
 ant -f customBuild.xml dist
 ```
 
