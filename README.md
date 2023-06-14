@@ -1,17 +1,29 @@
 # Distributed PlusCal
 
-- initialize git repository from this repository's URL (check import projects when done checkbox)
-- import maven project from repository (no need if the previous checkbox was checked)
-- make sure the installed jre is 11, window -> preferences -> installed jres -> add (and give the url for the installed and set up jdk 11)
-- clean and build project
-- ant -f customBuild.xml compile
-- ant -f customBuild.xml dist
+## Get the distrib
 
+```
+git clone git@github.com:DistributedPlusCal/DistributedPlusCal.git
+```
 
--Translate from Distributed Pcal
-  - navigate to trans.java inside pcal package
-  - configure run command ex : "-distpcal /../../test.tla"
+## Build the distrib
 
--Run translator
-- java -cp dist/tla2tools.jar pcal.trans -label <path to spec>/<spec>
-- example: java -cp dist/tla2tools.jar pcal.trans -label examples/2PhaseCommit.tla
+```
+cd DistributedPlusCal/tlatools
+mkdir test-class
+ant -f customBuild.xml clean
+ant -f customBuild.xml compile
+ant -f customBuild.xml dist
+```
+
+## Run it on examples
+
+```
+java -cp <path to TLA distrib>/tlatools/dist/tla2tools.jar pcal.trans [-label] <path to algo>/<algo>
+```
+
+For example, if current directory is `DistributedPlusCal/tlatools`,
+
+```
+java -cp dist/tla2tools.jar pcal.trans examples-distpcal/ThreadsC.tla
+```
