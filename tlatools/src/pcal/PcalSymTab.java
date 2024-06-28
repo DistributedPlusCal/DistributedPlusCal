@@ -607,7 +607,7 @@ public class PcalSymTab {
         if(PcalParams.distpcalFlag) {
           for (int i = 0; i < ast.threads.size(); i++) {
             AST.Thread thread = ast.threads.get(i);
-            for(int j = 0; j > thread.body.size(); j++) {
+            for(int j = 0; j < thread.body.size(); j++) {
               ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
             }
           }
