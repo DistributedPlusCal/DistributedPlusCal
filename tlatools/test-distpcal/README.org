@@ -25,7 +25,8 @@
 - generates two labels
 *** OneProcessOneThreadLVandLabelsC.tla (C & P)
 - as OneProcessOneThread but with explicit labels and process id in set
-
+*** OneProcessOneThreadGotoC.tla (C)
+- one process with one thread containing a goto
 
 
 *** OneProcessMultiThread (C & P)
