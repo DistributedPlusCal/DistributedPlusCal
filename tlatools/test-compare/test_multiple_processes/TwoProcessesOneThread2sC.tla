@@ -70,9 +70,9 @@ Two(self) == /\ pc[self][1]  = "Two"
              /\ pc' = [pc EXCEPT ![self][1] = "Done"]
              /\ UNCHANGED << ar, x, found >>
 
-pid11(self) == One(self) \/ Two(self)
+pid1_thread_1(self) == One(self) \/ Two(self)
 
-pid1(self) == pid11(self)
+pid1(self) == pid1_thread_1(self)
 
 Three == /\ pc["P3"][1]  = "Three"
          /\ x' = ar[1]
@@ -84,9 +84,9 @@ Four == /\ pc["P3"][1]  = "Four"
         /\ pc' = [pc EXCEPT !["P3"][1] = "Done"]
         /\ UNCHANGED << x, found, i >>
 
-pid21 == Three \/ Four
+pid2_thread_1 == Three \/ Four
 
-pid2 == pid21
+pid2 == pid2_thread_1
 
 Five == /\ pc["P4"][1]  = "Five"
         /\ x' = ar[1]
@@ -98,9 +98,9 @@ Six == /\ pc["P4"][1]  = "Six"
        /\ pc' = [pc EXCEPT !["P4"][1] = "Done"]
        /\ UNCHANGED << x, found, i >>
 
-pid31 == Five \/ Six
+pid3_thread_1 == Five \/ Six
 
-pid3 == pid31
+pid3 == pid3_thread_1
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -111,9 +111,9 @@ Next == pid2 \/ pid3
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in {"P1", "P2"} : WF_vars(pid11(self))
-        /\ WF_vars(pid21)
-        /\ WF_vars(pid31)
+        /\ \A self \in {"P1", "P2"} : WF_vars(pid1_thread_1(self))
+        /\ WF_vars(pid2_thread_1)
+        /\ WF_vars(pid3_thread_1)
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 

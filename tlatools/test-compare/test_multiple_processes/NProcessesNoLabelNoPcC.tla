@@ -42,17 +42,17 @@ SubProcSet == [self \in ProcSet |->  CASE self \in 1..2 -> 1..1
 Init == (* Global variables *)
         /\ i = 1
 
-pid1(self) == i' = i + 1
+pid_thread_1(self) == i' = i + 1
 
-pid(self) == pid1(self)
+pid(self) == pid_thread_1(self)
 
-qid1(self) == i' = i + 3
+qid_thread_1(self) == i' = i + 3
 
-qid(self) == qid1(self)
+qid(self) == qid_thread_1(self)
 
-sid1 == i' = i + 5
+sid_thread_1 == i' = i + 5
 
-sid == sid1
+sid == sid_thread_1
 
 Next == sid
            \/ (\E self \in 1..2: pid(self))

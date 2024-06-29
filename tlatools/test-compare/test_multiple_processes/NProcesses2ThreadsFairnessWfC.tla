@@ -72,23 +72,23 @@ QPL(self) == /\ pc[self][1]  = "QPL"
              /\ pc' = [pc EXCEPT ![self][1] = "Done"]
              /\ UNCHANGED << x, lvqid >>
 
-qid1(self) == QPL1(self) \/ QPL2(self) \/ QPL(self)
+qid_thread_1(self) == QPL1(self) \/ QPL2(self) \/ QPL(self)
 
 QML(self) == /\ pc[self][2]  = "QML"
              /\ x' = 1
              /\ pc' = [pc EXCEPT ![self][2] = "Done"]
              /\ UNCHANGED << i, lvqid >>
 
-qid2(self) == QML(self)
+qid_thread_2(self) == QML(self)
 
-qid(self) == qid1(self) \/ qid2(self)
+qid(self) == qid_thread_1(self) \/ qid_thread_2(self)
 
 SPL == /\ pc[5][1]  = "SPL"
        /\ x' = lvqid
        /\ pc' = [pc EXCEPT ![5][1] = "Done"]
        /\ UNCHANGED << i, lvqid >>
 
-sid1 == SPL
+sid_thread_1 == SPL
 
 SML1 == /\ pc[5][2]  = "SML1"
         /\ i' = i + 61
@@ -100,9 +100,9 @@ SML2 == /\ pc[5][2]  = "SML2"
         /\ pc' = [pc EXCEPT ![5][2] = "Done"]
         /\ UNCHANGED << x, lvqid >>
 
-sid2 == SML1 \/ SML2
+sid_thread_2 == SML1 \/ SML2
 
-sid == sid1 \/ sid2
+sid == sid_thread_1 \/ sid_thread_2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -113,11 +113,11 @@ Next == sid
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 3..4 : /\ WF_vars((pc[self][1] # "QPL") /\ qid1(self))
+        /\ \A self \in 3..4 : /\ WF_vars((pc[self][1] # "QPL") /\ qid_thread_1(self))
                               /\ SF_vars(QPL1(self)) /\ SF_vars(QPL2(self))
-        /\ \A self \in 3..4 : WF_vars(qid2(self)) /\ SF_vars(QML(self))
-        /\ WF_vars(sid1) /\ SF_vars(SPL)
-        /\ WF_vars((pc[5][2] \notin {"SML1", "SML2"}) /\ sid2)
+        /\ \A self \in 3..4 : WF_vars(qid_thread_2(self)) /\ SF_vars(QML(self))
+        /\ WF_vars(sid_thread_1) /\ SF_vars(SPL)
+        /\ WF_vars((pc[5][2] \notin {"SML1", "SML2"}) /\ sid_thread_2)
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 

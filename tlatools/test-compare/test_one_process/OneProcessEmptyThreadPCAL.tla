@@ -25,12 +25,12 @@ SubProcSet == [self \in ProcSet |-> 1..1]
 Init == (* Global variables *)
         /\ i = 1
 
-pid == pid1
+pid == pid_thread_1
 
 Next == pid
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ WF_vars(pid1)
+        /\ WF_vars(pid_thread_1)
 
 \* END TRANSLATION 
 

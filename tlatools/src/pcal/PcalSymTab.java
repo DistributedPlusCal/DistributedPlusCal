@@ -600,6 +600,11 @@ public class PcalSymTab {
             errorReport = errorReport + "\nProcess " + ast.name +
             		" redefined at line " + ast.line + ", column " + ast.col;
         b = InsertSym(PROCESS, ast.name, context, "process", ast.line, ast.col);
+        // For Distributed PlusCal
+        if(PcalParams.distpcalFlag) {
+            for (int j = 0; j < ast.threads.size(); j++) 
+                b = InsertSym(PROCESS, ((AST.Thread) ast.threads.elementAt(j)).name, context, "process", ast.line, ast.col);
+        }// end For Distributed PlusCal
         for (int i = 0; i < ast.decls.size(); i++)
             ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
         

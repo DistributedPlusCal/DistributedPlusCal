@@ -133,7 +133,7 @@ Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ pc' = [pc EXCEPT ![self][1] = "FPL1"]
                /\ UNCHANGED << x, z, lvg >>
 
-qid1(self) == Lbl_1(self)
+qid_thread_1(self) == Lbl_1(self)
 
 Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ /\ stack' = [stack EXCEPT ![self][2] = << [ procedure |->  "g",
@@ -157,9 +157,9 @@ Lbl_3(self) == /\ pc[self][2]  = "Lbl_3"
                /\ pc' = [pc EXCEPT ![self][2] = "FPL1"]
                /\ UNCHANGED << x, i, z, lvg >>
 
-qid2(self) == Lbl_2(self) \/ Lbl_3(self)
+qid_thread_2(self) == Lbl_2(self) \/ Lbl_3(self)
 
-qid(self) == qid1(self) \/ qid2(self)
+qid(self) == qid_thread_1(self) \/ qid_thread_2(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -170,10 +170,10 @@ Next == (\E self \in ProcSet: \E thread \in SubProcSet[self] :  f(self, thread) 
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 3..4 : /\ WF_vars(qid1(self))
+        /\ \A self \in 3..4 : /\ WF_vars(qid_thread_1(self))
                               /\ WF_vars((pc[self][1] \notin {"FML1", "FML2"}) /\ f(self, 1))
                               /\ SF_vars(FPL1(self, 1)) /\ SF_vars(FPL2(self, 1))
-        /\ \A self \in 3..4 : /\ WF_vars(qid2(self))
+        /\ \A self \in 3..4 : /\ WF_vars(qid_thread_2(self))
                               /\ WF_vars((pc[self][2] # "GML") /\ g(self, 2))
                               /\ SF_vars(GPL(self, 2))                              /\ WF_vars((pc[self][2] \notin {"FML1", "FML2"}) /\ f(self, 2))
                               /\ SF_vars(FPL1(self, 2)) /\ SF_vars(FPL2(self, 2))

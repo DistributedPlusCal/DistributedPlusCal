@@ -105,7 +105,7 @@ Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                /\ UNCHANGED << x, stack, y, lvf, lvqid >>
 
-qid1(self) == Lbl_1(self)
+qid_thread_1(self) == Lbl_1(self)
 
 Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ /\ stack' = [stack EXCEPT ![self][2] = << [ procedure |->  "f",
@@ -118,16 +118,16 @@ Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ pc' = [pc EXCEPT ![self][2] = "FPL1"]
                /\ UNCHANGED << x, i, lvqid >>
 
-qid2(self) == Lbl_2(self)
+qid_thread_2(self) == Lbl_2(self)
 
-qid(self) == qid1(self) \/ qid2(self)
+qid(self) == qid_thread_1(self) \/ qid_thread_2(self)
 
 Lbl_3 == /\ pc[5][1]  = "Lbl_3"
          /\ x' = lvqid
          /\ pc' = [pc EXCEPT ![5][1] = "Done"]
          /\ UNCHANGED << i, stack, y, lvf, lvqid >>
 
-sid1 == Lbl_3
+sid_thread_1 == Lbl_3
 
 Lbl_4 == /\ pc[5][2]  = "Lbl_4"
          /\ i' = i + 6
@@ -141,9 +141,9 @@ Lbl_4 == /\ pc[5][2]  = "Lbl_4"
          /\ pc' = [pc EXCEPT ![5][2] = "FPL1"]
          /\ UNCHANGED << x, lvqid >>
 
-sid2 == Lbl_4
+sid_thread_2 == Lbl_4
 
-sid == sid1 \/ sid2
+sid == sid_thread_1 \/ sid_thread_2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -155,12 +155,13 @@ Next == sid
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 3..4 : WF_vars(qid1(self))
-        /\ \A self \in 3..4 : /\ WF_vars(qid2(self))
+        /\ \A self \in 3..4 : WF_vars(qid_thread_1(self))
+        /\ \A self \in 3..4 : /\ WF_vars(qid_thread_2(self))
                               /\ WF_vars((pc[self][2] \notin {"FML1", "FML2"}) /\ f(self, 2))
                               /\ SF_vars(FPL1(self, 2)) /\ SF_vars(FPL2(self, 2))
-        /\ SF_vars(sid1)
-        /\ SF_vars(sid2) /\ SF_vars((pc[5][2] \notin {"FML1", "FML2"}) /\ f(5, 2))
+        /\ SF_vars(sid_thread_1)
+        /\ /\ SF_vars(sid_thread_2)
+           /\ SF_vars((pc[5][2] \notin {"FML1", "FML2"}) /\ f(5, 2))
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 

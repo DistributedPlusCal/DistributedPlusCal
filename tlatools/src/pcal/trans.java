@@ -925,8 +925,8 @@ class trans {
         PcalDebug.reportInfo("Parsing completed.");
         
 // tla-pcal debugging
-//System.out.println("Translation Output:");
-//System.out.println(ast.toString());
+// System.out.println("Translation Output:");
+// System.out.println(ast.toString());
         /*********************************************************************
         * For -writeAST option, just write the file AST.tla and halt.        *
         *********************************************************************/

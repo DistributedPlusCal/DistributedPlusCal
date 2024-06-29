@@ -54,43 +54,43 @@ Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ i' = i + 1
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-pid1(self) == Lbl_1(self)
+pid_thread_1(self) == Lbl_1(self)
 
 Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ i' = i + 2
                /\ pc' = [pc EXCEPT ![self][2] = "Lbl_2"]
 
-pid2(self) == Lbl_2(self)
+pid_thread_2(self) == Lbl_2(self)
 
-pid(self) == pid1(self) \/ pid2(self)
+pid(self) == pid_thread_1(self) \/ pid_thread_2(self)
 
 Lbl_3(self) == /\ pc[self][1]  = "Lbl_3"
                /\ i' = i + 3
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
 
-qid1(self) == Lbl_3(self)
+qid_thread_1(self) == Lbl_3(self)
 
 Lbl_4(self) == /\ pc[self][2]  = "Lbl_4"
                /\ i' = i + 4
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
 
-qid2(self) == Lbl_4(self)
+qid_thread_2(self) == Lbl_4(self)
 
-qid(self) == qid1(self) \/ qid2(self)
+qid(self) == qid_thread_1(self) \/ qid_thread_2(self)
 
 Lbl_5 == /\ pc[5][1]  = "Lbl_5"
          /\ i' = i + 5
          /\ pc' = [pc EXCEPT ![5][1] = "Done"]
 
-sid1 == Lbl_5
+sid_thread_1 == Lbl_5
 
 Lbl_6 == /\ pc[5][2]  = "Lbl_6"
          /\ i' = i + 6
          /\ pc' = [pc EXCEPT ![5][2] = "Done"]
 
-sid2 == Lbl_6
+sid_thread_2 == Lbl_6
 
-sid == sid1 \/ sid2
+sid == sid_thread_1 \/ sid_thread_2
 
 Next == sid
            \/ (\E self \in 1..2: pid(self))

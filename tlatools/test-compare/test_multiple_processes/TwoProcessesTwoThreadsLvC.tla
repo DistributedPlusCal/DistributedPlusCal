@@ -68,7 +68,7 @@ Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                /\ UNCHANGED << ar, x, lvpid2 >>
 
-pid11(self) == Lbl_1(self)
+pid1_thread_1(self) == Lbl_1(self)
 
 Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ found' = TRUE
@@ -77,9 +77,9 @@ Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
                /\ UNCHANGED << ar, x, lvpid2 >>
 
-pid12(self) == Lbl_2(self)
+pid1_thread_2(self) == Lbl_2(self)
 
-pid1(self) == pid11(self) \/ pid12(self)
+pid1(self) == pid1_thread_1(self) \/ pid1_thread_2(self)
 
 Lbl_3 == /\ pc[1][1]  = "Lbl_3"
          /\ x' = ar[1]
@@ -88,9 +88,9 @@ Lbl_3 == /\ pc[1][1]  = "Lbl_3"
          /\ pc' = [pc EXCEPT ![1][1] = "Done"]
          /\ UNCHANGED << found, i, lvpid1 >>
 
-pid21 == Lbl_3
+pid2_thread_1 == Lbl_3
 
-pid2 == pid21
+pid2 == pid2_thread_1
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -101,9 +101,9 @@ Next == pid2
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in PROCSet : WF_vars(pid11(self))
-        /\ \A self \in PROCSet : WF_vars(pid12(self))
-        /\ WF_vars(pid21)
+        /\ \A self \in PROCSet : WF_vars(pid1_thread_1(self))
+        /\ \A self \in PROCSet : WF_vars(pid1_thread_2(self))
+        /\ WF_vars(pid2_thread_1)
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 

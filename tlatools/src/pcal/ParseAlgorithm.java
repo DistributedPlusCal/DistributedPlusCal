@@ -117,6 +117,10 @@ import tla2tex.Debug;
 
 public class ParseAlgorithm
 { 
+    // For Distributed PlusCal	
+    private static final String THREAD_PADDING = "_thread_";    
+    // end For Distributed PlusCal	
+    
     private static PcalCharReader charReader;
      /**********************************************************************
      * The charReader argument to the Parse method is put here so other    *
@@ -841,7 +845,7 @@ public class ParseAlgorithm
              AST.Thread thread = new AST.Thread();
              thread.index = i++;
              // the name is used when labels are not used (pc omitted)
-             thread.name = result.name + String.valueOf(thread.index + 1);
+             thread.name = result.name + THREAD_PADDING + String.valueOf(thread.index + 1);
              thread.id = result.id;
 				
              //read the sub-process delimiter

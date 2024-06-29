@@ -27,6 +27,8 @@
 - as OneProcessOneThread but with explicit labels and process id in set
 *** OneProcessOneThreadGotoC.tla (C)
 - one process with one thread containing a goto
+*** OneProcessOneThreadLabelC.tla (C)
+- one process whose name is a prefix of one of the labels in the only thread (eg, process a and label a1)
 
 
 *** OneProcessMultiThread (C & P)

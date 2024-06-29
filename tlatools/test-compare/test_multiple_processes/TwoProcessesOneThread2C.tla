@@ -60,9 +60,9 @@ Two(self) == /\ pc[self][1]  = "Two"
              /\ pc' = [pc EXCEPT ![self][1] = "Done"]
              /\ UNCHANGED << ar, x, found >>
 
-pid11(self) == One(self) \/ Two(self)
+pid1_thread_1(self) == One(self) \/ Two(self)
 
-pid1(self) == pid11(self)
+pid1(self) == pid1_thread_1(self)
 
 Three == /\ pc[1][1]  = "Three"
          /\ x' = ar[1]
@@ -74,9 +74,9 @@ Four == /\ pc[1][1]  = "Four"
         /\ pc' = [pc EXCEPT ![1][1] = "Done"]
         /\ UNCHANGED << x, found, i >>
 
-pid21 == Three \/ Four
+pid2_thread_1 == Three \/ Four
 
-pid2 == pid21
+pid2 == pid2_thread_1
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -87,8 +87,8 @@ Next == pid2
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 2..3 : WF_vars(pid11(self))
-        /\ WF_vars(pid21)
+        /\ \A self \in 2..3 : WF_vars(pid1_thread_1(self))
+        /\ WF_vars(pid2_thread_1)
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 

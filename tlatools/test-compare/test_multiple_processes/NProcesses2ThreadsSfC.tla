@@ -75,16 +75,16 @@ Lbl_1(self) == /\ pc[self][1]  = "Lbl_1"
                /\ pc' = [pc EXCEPT ![self][1] = "Done"]
                /\ UNCHANGED << ar, x, found, lvpid, lvqid >>
 
-pid1(self) == Lbl_1(self)
+pid_thread_1(self) == Lbl_1(self)
 
 Lbl_2(self) == /\ pc[self][2]  = "Lbl_2"
                /\ lvpid' = [lvpid EXCEPT ![self] = ar[1]]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
                /\ UNCHANGED << ar, x, found, i, lvqid >>
 
-pid2(self) == Lbl_2(self)
+pid_thread_2(self) == Lbl_2(self)
 
-pid(self) == pid1(self) \/ pid2(self)
+pid(self) == pid_thread_1(self) \/ pid_thread_2(self)
 
 PT(self) == /\ pc[self][1]  = "PT"
             /\ i' = i + 3
@@ -96,32 +96,32 @@ PF(self) == /\ pc[self][1]  = "PF"
             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
             /\ UNCHANGED << ar, x, found, lvpid, lvqid >>
 
-qid1(self) == PT(self) \/ PF(self)
+qid_thread_1(self) == PT(self) \/ PF(self)
 
 Lbl_3(self) == /\ pc[self][2]  = "Lbl_3"
                /\ ar' = [ar EXCEPT ![2] = 1]
                /\ pc' = [pc EXCEPT ![self][2] = "Done"]
                /\ UNCHANGED << x, found, i, lvpid, lvqid >>
 
-qid2(self) == Lbl_3(self)
+qid_thread_2(self) == Lbl_3(self)
 
-qid(self) == qid1(self) \/ qid2(self)
+qid(self) == qid_thread_1(self) \/ qid_thread_2(self)
 
 Lbl_4 == /\ pc[5][1]  = "Lbl_4"
          /\ ar' = [ar EXCEPT ![2] = lvqid]
          /\ pc' = [pc EXCEPT ![5][1] = "Done"]
          /\ UNCHANGED << x, found, i, lvpid, lvqid >>
 
-sid1 == Lbl_4
+sid_thread_1 == Lbl_4
 
 Lbl_5 == /\ pc[5][2]  = "Lbl_5"
          /\ i' = i + 6
          /\ pc' = [pc EXCEPT ![5][2] = "Done"]
          /\ UNCHANGED << ar, x, found, lvpid, lvqid >>
 
-sid2 == Lbl_5
+sid_thread_2 == Lbl_5
 
-sid == sid1 \/ sid2
+sid == sid_thread_1 \/ sid_thread_2
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
@@ -133,10 +133,10 @@ Next == sid
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in 1..2 : SF_vars(pid1(self))
-        /\ \A self \in 1..2 : SF_vars(pid2(self))
-        /\ WF_vars(sid1)
-        /\ WF_vars(sid2)
+        /\ \A self \in 1..2 : SF_vars(pid_thread_1(self))
+        /\ \A self \in 1..2 : SF_vars(pid_thread_2(self))
+        /\ WF_vars(sid_thread_1)
+        /\ WF_vars(sid_thread_2)
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
