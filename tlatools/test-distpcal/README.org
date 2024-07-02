@@ -49,9 +49,13 @@
 - should produce the same code with distpcal flag or not - OK
 - doesn't parse in Toolbox
 
-
 *** OneProcessMultiThreadMacroC.tla
 - OneProcessMultiThread with a macro
+
+*** OneProcessTwoThreadsLabelsIncorrectC
+- one process two threads
+- incorrect goto label from another thread 
+- should produce parse error
 
 
 ** Test Several Processes
@@ -85,9 +89,17 @@
 *** TwoProcessesOneThread2sC
 - as TwoProcessesOneThread2C but use string identifiers for processes
 
+*** TwoProcessesOneThread2Cvars
+- two processes (1 and n instances) and one thread
+- local variables with same name in both processes, one is normally renamed
+
 *** TwoProcessesTwoThreadsLvC
 - two processes (1 and n instances) each with 2 threads
 - each process has local variables
+
+*** TwoProcessesTwoThreadsLabelsC
+- two processes (1 and n instances) each with 2 threads
+- each process has labels
 
 *** NProcesses2ThreadsFairnessWfC
 - 2 processes (1 with IN, 1 with =), each with 2 threads
