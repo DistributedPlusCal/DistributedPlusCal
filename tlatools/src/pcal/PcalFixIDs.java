@@ -280,10 +280,11 @@ public class PcalFixIDs {
         if ( PcalParams.distpcalFlag ) {
           for (AST.Thread thread : ast.threads) {
         		for (int i = 0; i < thread.body.size(); i++) {
-                    // fix the labels wrt the thread (context),
-                    FixLabeledStmtLabels((AST.LabeledStmt) thread.body.elementAt(i), thread.name);
-                    // fix the variables wrt the process (context) since declared at this level
-                    FixLabeledStmtVariables((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+                    FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+                    // // fix the labels wrt the thread (context),
+                    // FixLabeledStmtLabels((AST.LabeledStmt) thread.body.elementAt(i), thread.name);
+                    // // fix the variables wrt the process (context) since declared at this level
+                    // FixLabeledStmtVariables((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
         		}
           }
         } else { // end For Distributed PlusCal
