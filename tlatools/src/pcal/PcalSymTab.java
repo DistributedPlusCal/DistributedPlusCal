@@ -613,7 +613,7 @@ public class PcalSymTab {
           for (int i = 0; i < ast.threads.size(); i++) {
             AST.Thread thread = ast.threads.get(i);
             for(int j = 0; j < thread.body.size(); j++) {
-              ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
+                ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), thread.name, "process");
             }
           }
         } else { // end For Distributed PlusCal

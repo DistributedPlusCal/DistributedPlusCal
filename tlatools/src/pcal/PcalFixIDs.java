@@ -280,7 +280,10 @@ public class PcalFixIDs {
         if ( PcalParams.distpcalFlag ) {
           for (AST.Thread thread : ast.threads) {
         		for (int i = 0; i < thread.body.size(); i++) {
-        			FixLabeledStmt((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
+                    // fix the labels wrt the thread (context),
+                    FixLabeledStmtLabels((AST.LabeledStmt) thread.body.elementAt(i), thread.name);
+                    // fix the variables wrt the process (context) since declared at this level
+                    FixLabeledStmtVariables((AST.LabeledStmt) thread.body.elementAt(i), ast.name);
         		}
           }
         } else { // end For Distributed PlusCal
@@ -320,6 +323,16 @@ public class PcalFixIDs {
         for (int i = 0; i < ast.stmts.size(); i++)
             FixSym((AST) ast.stmts.elementAt(i), context);
     }
+
+    // For Distributed Pluscal.
+    private static void FixLabeledStmtLabels(AST.LabeledStmt ast, String context) throws PcalFixIDException {
+        ast.label = st.UseThis(PcalSymTab.LABEL, ast.label, context);
+    }
+    private static void FixLabeledStmtVariables(AST.LabeledStmt ast, String context) throws PcalFixIDException {
+        for (int i = 0; i < ast.stmts.size(); i++)
+            FixSym((AST) ast.stmts.elementAt(i), context);
+    }
+    // end For Distributed PlusCal
 
     private static void FixWhile(AST.While ast, String context) throws PcalFixIDException {
         for (int i = 0; i < ast.unlabDo.size(); i++)
