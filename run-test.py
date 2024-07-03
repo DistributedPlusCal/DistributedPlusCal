@@ -46,7 +46,7 @@ TIMEOUT_TIME = 60
 # 2 = print summary of each test
 # 3 = print all
 # 4 = print all + more output
-verbose_level = 1
+verbose_level = 3
 
 # generated file prefix
 GEN_FILE_PREFIX = "Mtest"

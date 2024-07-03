@@ -101,6 +101,11 @@
 - two processes (1 and n instances) each with 2 threads
 - each process has labels
 
+*** TwoProcessesTwoThreadsLabelsSimpleC
+- two processes (1 and n instances) each with 2 threads
+- each process has labels
+- needs disambiguation for labels and variables
+
 *** NProcesses2ThreadsFairnessWfC
 - 2 processes (1 with IN, 1 with =), each with 2 threads
 - processes are WF

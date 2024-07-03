@@ -310,8 +310,16 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
-            if (se.id.equals(id) && se.context.equals(context)
-                && se.type == type) return i;
+            // For Distributed PlusCal
+            if(PcalParams.distpcalFlag) {
+                // if the symbol context corresponds exactly to the searched one or if
+                // the searched context is a thread present into the symbol context
+                if (se.id.equals(id) && (se.context.equals(context) || se.context.contains("#"+context+"#" ))
+                    && se.type == type) return i;
+            } else { // end For Distributed PlusCal
+              if (se.id.equals(id) && se.context.equals(context)
+                  && se.type == type) return i;
+            }
             i = i + 1;
         }
         return i;
@@ -325,8 +333,16 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
-            if (se.id.equals(id) && se.context.equals(context))
-                return i;
+            // For Distributed PlusCal
+            if(PcalParams.distpcalFlag) {
+                // if the symbol context corresponds exactly to the searched one or if
+                // the searched context is a thread present into the symbol context
+                if (se.id.equals(id) && (se.context.equals(context) || se.context.contains("#"+context+"#" )))
+                    return i;
+            } else { // end For Distributed PlusCal
+                if (se.id.equals(id) && se.context.equals(context))
+                    return i;
+            }
             i = i + 1;
         }
         return i;
@@ -403,9 +419,18 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
-            if (se.id.equals(id) && se.context.equals(context)
-                && (se.type == GLOBAL || se.type == PROCESSVAR 
-                    || se.type == PROCEDUREVAR || se.type == PARAMETER)) break;
+            // For Distributed PlusCal
+            if(PcalParams.distpcalFlag) {
+                // if the symbol context corresponds exactly to the searched one or if
+                // the searched context is a thread present into the symbol context
+                if (se.id.equals(id) && (se.context.equals(context) || se.context.contains("#"+context+"#" ))
+                    && (se.type == GLOBAL || se.type == PROCESSVAR
+                        || se.type == PROCEDUREVAR || se.type == PARAMETER)) break;
+            } else { // end For Distributed PlusCal
+                if (se.id.equals(id) && se.context.equals(context)
+                    && (se.type == GLOBAL || se.type == PROCESSVAR
+                        || se.type == PROCEDUREVAR || se.type == PARAMETER)) break;
+            }
             i = i + 1;
         }
         if (i == symtab.size()) return id;
@@ -601,20 +626,25 @@ public class PcalSymTab {
             		" redefined at line " + ast.line + ", column " + ast.col;
         b = InsertSym(PROCESS, ast.name, context, "process", ast.line, ast.col);
         // For Distributed PlusCal
+        String threadContext = ast.name;
         if(PcalParams.distpcalFlag) {
-            for (int j = 0; j < ast.threads.size(); j++) 
+            for (int j = 0; j < ast.threads.size(); j++) {
                 b = InsertSym(PROCESS, ((AST.Thread) ast.threads.elementAt(j)).name, context, "process", ast.line, ast.col);
-        }// end For Distributed PlusCal
-        for (int i = 0; i < ast.decls.size(); i++)
-            ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
-        
+                threadContext += "#"+((AST.Thread) ast.threads.elementAt(j)).name+"#";
+            }
+            for (int i = 0; i < ast.decls.size(); i++)
+                ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), threadContext);
+        } else {// end For Distributed PlusCal
+            for (int i = 0; i < ast.decls.size(); i++)
+                ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
+        }
+
         // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           for (int i = 0; i < ast.threads.size(); i++) {
             AST.Thread thread = ast.threads.get(i);
             for(int j = 0; j < thread.body.size(); j++) {
-                ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), ast.name, "process");
-                // ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), thread.name, "process");
+                ExtractLabeledStmt((AST.LabeledStmt) thread.body.elementAt(j), thread.name, "process");
             }
           }
         } else { // end For Distributed PlusCal
