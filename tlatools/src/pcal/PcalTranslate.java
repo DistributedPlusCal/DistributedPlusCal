@@ -43,13 +43,13 @@ public class PcalTranslate {
      */
     private static String currentProcedure;  
 
-
     // For Distributed pluscal
     /**
      * Indicates that there is no thread in the algorithm
      */
     public final static Integer NO_THREAD = null;
     // end For Distributed PlusCal
+
 
     /*************************************************************************
      * Routines for constructing snippets of +cal code                       *
@@ -270,6 +270,7 @@ public class PcalTranslate {
          *********************************************************************/
         AST.SingleAssign sAss = new AST.SingleAssign() ;
         sAss.lhs.var = id ;
+
         // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
           // HC: should add threadIndex only if id == "pc" 
@@ -355,6 +356,7 @@ public class PcalTranslate {
     /**
      * @deprecated method not used
      */
+
     private static AST.If IfForLabelIf (TLAExpr test,
                                         Vector unlabThen,
                                         String nextThen,
@@ -508,8 +510,6 @@ public class PcalTranslate {
                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
         }
         currentProcedure = null;  // Added by LL on 7 June 2010
-
-        
         return newast;
     }
         
@@ -534,19 +534,19 @@ public class PcalTranslate {
             newast.threads.add(thread);
           }
         } else { // end Distributed PlusCal
-          newast.body = new Vector();
-          AST.LabeledStmt thisLS = (ast.body.size() > 0)
+        newast.body = new Vector();
+        AST.LabeledStmt thisLS = (ast.body.size() > 0)
             ? (AST.LabeledStmt) ast.body.elementAt(0) : null;
-          AST.LabeledStmt nextLS = (ast.body.size() > 1)
+        AST.LabeledStmt nextLS = (ast.body.size() > 1)
             ? (AST.LabeledStmt) ast.body.elementAt(1) : null;
-          while (i < ast.body.size()) {
+        while (i < ast.body.size()) {
             String next = (nextLS == null)
 // Replacement of following line by LL on 3 Feb 2006, since
 // label "Done" never has to be renamed, since "Done" is not
 // a legal user label.
 //                ? st.UseThis(PcalSymTab.LABEL, "Done", "")
-              ? "Done"
-              : nextLS.label;
+                ? "Done"
+                : nextLS.label;
             newast.body.addAll(ExplodeLabeledStmt(thisLS, next,
                                                   // For Distributed pluscal (add threadIndex)
                                                   NO_THREAD));
@@ -554,7 +554,7 @@ public class PcalTranslate {
             thisLS = nextLS;
             nextLS = (ast.body.size() > i + 1)
                 ? (AST.LabeledStmt) ast.body.elementAt(i + 1) : null;
-          }
+        }
         }
         return newast;
     }
@@ -717,7 +717,7 @@ public class PcalTranslate {
                            Either.ors.elementAt(i)).addElement(
                                 UpdatePC(next,
                                          // For Distributed pluscal (add threadIndex)
-                                         threadIndex));  
+                                         threadIndex));
                       }
                      }
                   }
@@ -819,7 +819,7 @@ public class PcalTranslate {
            newast.stmts.insertElementAt(CheckPC(newast.label,
                                                 // For Distributed pluscal (add threadIndex)
                                                 threadIndex),
-                                        0);
+                                                0);
            result.addElement(newast);
         }
         /* add recursively generated labeled statements */
@@ -1175,6 +1175,7 @@ public class PcalTranslate {
         sass.line = ast.line ;
         sass.col  = ast.col ;
         sass.lhs.var = "stack";
+
         // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
           if(threadIndex == NO_THREAD) {
@@ -1268,6 +1269,7 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
+
             // For Distributed pluscal
             if(PcalParams.distpcalFlag) {
               if(threadIndex == NO_THREAD) {
@@ -1307,6 +1309,7 @@ public class PcalTranslate {
             sass.col  = ast.col ;
             sass.setOrigin(decl.getOrigin()) ;
             sass.lhs.var = decl.var;
+
             // For Distributed pluscal
             //   local procedure variables are also referenced using
             //   thread index when the procedure is called
@@ -1397,6 +1400,7 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         TLAExpr expr = new TLAExpr();
         sass.lhs.var = "pc";
+
         // For Distributed pluscal
         if(PcalParams.distpcalFlag) {
           if(threadIndex == NO_THREAD) {
@@ -1496,6 +1500,7 @@ public class PcalTranslate {
         sass.col  = ast.col ;
         expr = new TLAExpr();
         sass.lhs.var = "stack";
+
         // For Distributed pluscal        
         if(PcalParams.distpcalFlag) {
           if(threadIndex == NO_THREAD) {
@@ -1617,6 +1622,7 @@ public class PcalTranslate {
             sass.line = ast.line ;
             sass.col  = ast.col ;
             sass.lhs.var = "stack";
+
             // For Distributed pluscal
             if(PcalParams.distpcalFlag) {
               if(threadIndex == NO_THREAD) {
@@ -1769,7 +1775,6 @@ public class PcalTranslate {
                          // For Distributed pluscal (add threadIndex)
                          threadIndex);
     }
-
     
     // For Distributed pluscal
     private static AST.Thread ExplodeThread(AST.Thread ast, Integer threadIndex) throws PcalTranslateException {
@@ -1802,5 +1807,4 @@ public class PcalTranslate {
         }
         return newast;
     }
-
 }

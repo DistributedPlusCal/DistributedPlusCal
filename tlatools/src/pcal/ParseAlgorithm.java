@@ -115,6 +115,8 @@ import pcal.exception.TokenizerException;
 import pcal.exception.UnrecoverableException;
 import tla2tex.Debug;
 
+
+
 public class ParseAlgorithm
 { 
     // For Distributed PlusCal	
@@ -149,7 +151,7 @@ public class ParseAlgorithm
     * proceduresCalled is the vector of distinct names of 
     * procedures called within the current process or procedure.
     */
-
+   
    // For Distributed PlusCal
    /** 
     * indicates the fairness of the current thread
@@ -244,7 +246,7 @@ public class ParseAlgorithm
     **********************************************************************/
    public static boolean pSyntax;
    public static boolean cSyntax;
-  
+
    /**********************************************************************
     * This performs the initialization needed by the various Get...       *
     * methods, including setting charReader.  It is called only by        *
@@ -409,12 +411,12 @@ public class ParseAlgorithm
                     } else if (PcalParams.FairnessOption.equals("sf")) {
                     	fairness = AST.SF_PROC;
                     }
-                };
+                };     
              // For Distributed PlusCal
              // propagate the fairness of the process to the threads
              fairnessThread = fairness;
              // end For Distributed PlusCal
-             AST.Process proc =  GetProcess() ;
+        	   AST.Process proc =  GetProcess() ;
         	   proc.fairness = fairness ;
         	   multiproc.procs.addElement(proc) ; 
              } ;
@@ -887,20 +889,19 @@ public class ParseAlgorithm
          }
          result.threads = threads;
        } else { // end For Distributed PlusCal
-         if (   PeekAtAlgToken(1).equals("begin")
-                || PeekAtAlgToken(1).equals("{"))
-           { result.decls = new Vector(1) ; }
-         else
-           { result.decls = GetVarDecls() ; } ;
-         GobbleBeginOrLeftBrace() ;
-         result.body = GetStmtSeq() ;
-         GobbleEndOrRightBrace("process") ;
+       if (   PeekAtAlgToken(1).equals("begin")
+           || PeekAtAlgToken(1).equals("{"))
+         { result.decls = new Vector(1) ; }
+       else
+         { result.decls = GetVarDecls() ; } ;
+       GobbleBeginOrLeftBrace() ;
+       result.body = GetStmtSeq() ;
+       GobbleEndOrRightBrace("process") ;
        }
        PCalLocation endLoc = GetLastLocationEnd() ;
        if (PeekAtAlgToken(1).equals(";"))
          { String tok = GetAlgToken() ; } ;
 //       CheckLabeledStmtSeq(result.body) ;
-
        // For Distributed PlusCal
        // use the concatenation of plusLabels of each thread
        if (PcalParams.distpcalFlag) {
@@ -908,9 +909,9 @@ public class ParseAlgorithm
          result.minusLabels = minusLabelsProcess;
          result.proceduresCalled = proceduresCalledProcess;
        } else { // end For Distributed PlusCal
-         result.plusLabels = plusLabels;
-         result.minusLabels = minusLabels;
-         result.proceduresCalled = proceduresCalled;
+       result.plusLabels = plusLabels;
+       result.minusLabels = minusLabels;
+       result.proceduresCalled = proceduresCalled;
        }
        result.setOrigin(new Region(beginLoc, endLoc)) ;
        return result ;
@@ -988,7 +989,7 @@ public class ParseAlgorithm
                  || PeekAtAlgToken(1).equals("process")  
                  || PeekAtAlgToken(1).equals("fair")  
                  || PeekAtAlgToken(1).equals("define")  
-                 || PeekAtAlgToken(1).equals("macro")  
+                 || PeekAtAlgToken(1).equals("macro")   
                  // For Distributed PlusCal
                  || PeekAtAlgToken(1).equals("channel") 
                  || PeekAtAlgToken(1).equals("channels") 
@@ -1009,6 +1010,7 @@ public class ParseAlgorithm
        pv.line = lastTokLine ;
        if (   PeekAtAlgToken(1).equals("=")
            || PeekAtAlgToken(1).equals("\\in"))
+
          { pv.isEq = GobbleEqualOrIf() ;
            pv.val = GetExpr() ; 
            endLoc = pv.val.getOrigin().getEnd() ;
@@ -1260,6 +1262,7 @@ public class ParseAlgorithm
        if (nextTok.equals("goto"))   { return GetGoto() ; }   ;
        if (nextTok.equals("while"))  { return GetWhile() ; } ;
        if (PeekPastAlgToken(1).charAt(0)=='(')
+
          {
            // For Distributed pluscal
            if(nextTok.equals("send") || nextTok.equals("multicast")) {
@@ -3257,6 +3260,7 @@ public class ParseAlgorithm
                     int j = 0 ;
                     while (j < line.size())
                       { newline.add(((TLAToken) line.elementAt(j)).Clone()) ;
+
                         j = j + 1 ;
                       } ;
                     newExpr.tokens.add(newline) ;
@@ -3308,6 +3312,7 @@ public class ParseAlgorithm
                     int j = 0 ;
                     while (j < line.size())
                       { newline.add(((TLAToken) line.elementAt(j)).Clone()) ;
+
                         j = j + 1 ;
                       } ;
                     newExpr.tokens.add(newline) ;
@@ -3341,6 +3346,7 @@ public class ParseAlgorithm
                     int j = 0 ;
                     while (j < line.size())
                       { newline.add(((TLAToken) line.elementAt(j)).Clone()) ;
+                        
                         j = j + 1 ;
                       } ;
                     newExpr.tokens.add(newline) ;

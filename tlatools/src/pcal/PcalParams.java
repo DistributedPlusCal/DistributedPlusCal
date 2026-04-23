@@ -158,7 +158,7 @@ public final class PcalParams
      * The following parameter is set true if --fair algorithm is used.   *
      *********************************************************************/
     public static boolean FairAlgorithm = false ; 
-
+    
     // For Distributed PlusCal	
     /*********************************************************************
     * True iff the -distpcal option is chosen.                              *
@@ -371,7 +371,6 @@ public final class PcalParams
       inputVersionNumber = vnum;
       return true ;
   }
+}
 
-} 
 /* last modified on Thu 23 Aug 2007 at 10:40:25 PST by lamport */
-

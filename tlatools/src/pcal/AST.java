@@ -436,11 +436,13 @@ public class AST
                  Indent(" decls  |-> ") + 
                     VectorToSeqString(decls) + "," + 
                  EndIndent() + NewLine() +
-               // For Distributed PlusCal
-              ((body != null) ?
-               Indent(" body   |-> ") + VectorToSeqString(body) + "]" :
-               Indent(" threads   |-> ") + VectorToSeqString(threads) + "]" ) +
-               // end For Distributed PlusCal
+                 // For Distributed PlusCal
+
+
+               ((body != null) ?
+                 Indent(" body   |-> ") + VectorToSeqString(body) + "]" :
+                 Indent(" threads   |-> ") + VectorToSeqString(threads) + "]" ) +
+                 // end For Distributed PlusCal
                  EndIndent() + 
               EndIndent() ;
             } 
@@ -460,6 +462,8 @@ public class AST
                Indent(" decls  |-> ") + 
                   VectorToSeqString(decls) + "," + 
                EndIndent() + NewLine() +
+
+               
                // For Distributed PlusCal
               ((body != null) ?
                Indent(" body   |-> ") + VectorToSeqString(body) + "]" :
@@ -1073,7 +1077,7 @@ public class AST
          } ;
        return result + " >>" + EndIndent();
      }
-      
+
    // For Distributed PlusCal
    public static class Channel extends VarDecl{
      public Vector dimensions;

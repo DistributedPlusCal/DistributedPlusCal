@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
 
+
 import pcal.ValidationCallBack.Generate;
 import pcal.exception.FileToStringVectorException;
 import pcal.exception.ParseAlgorithmException;
@@ -295,6 +296,8 @@ class trans {
     private static final String TLA_TRANSLATION_COMMENT_LINE_PREFIX
     		= "\\* " + PcalParams.EndXlation1 + " " + PcalParams.EndXlation2;
     
+
+            
     
     /**
      * Main function called from the command line
@@ -925,8 +928,8 @@ class trans {
         PcalDebug.reportInfo("Parsing completed.");
         
 // tla-pcal debugging
-// System.out.println("Translation Output:");
-// System.out.println(ast.toString());
+//System.out.println("Translation Output:");
+//System.out.println(ast.toString());
         /*********************************************************************
         * For -writeAST option, just write the file AST.tla and halt.        *
         *********************************************************************/
@@ -1295,7 +1298,6 @@ class trans {
     * each element of inputVec written on a new line.                      *
     ***********************************************************************/
     {
-    	// TODO use Apache Commons for this
         try (final BufferedWriter fileW = new BufferedWriter(new FileWriter(fileName))) {
             // I have no idea what Java does if you try to write a new version
             // of a read-only file. On Windows, it's happy to write it. Who
@@ -1674,14 +1676,18 @@ class trans {
                     return CommandLineError("Label root must follow `-labelRoot' option");
                 }
                 PcalParams.LabelRoot = args[nextArg];
+
+
+
+
             } else if (option.equals("-distpcal") || (inFile && option.equals("distpcal"))){
-              // For Distributed PlusCal
+                // For Distributed PlusCal
             	PcalParams.distpcalFlag = true;
-              PcalDebug.reportInfo("Distributed pluscal option enabled");
+                PcalDebug.reportInfo("Distributed pluscal option enabled");
             } else if (option.equals("-setchannels") || (inFile && option.equals("setchannels"))){
-              // For Distributed PlusCal
+                // For Distributed PlusCal
             	PcalParams.setChannels = true;
-              PcalDebug.reportInfo("Channels implemented with sets.");
+                PcalDebug.reportInfo("Channels implemented with sets.");
             }
             // else if (option.equals("-readOnly") || (pcal && option.equals("readOnly"))) {
             // PcalParams.readOnly = true;

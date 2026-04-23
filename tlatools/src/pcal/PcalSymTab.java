@@ -175,7 +175,6 @@ public class PcalSymTab {
         // For Distributed PlusCal
         public Vector<AST.Thread> threads;
         
-      
         public ProcessEntry(AST.Process p) {
             this.name = p.name;
             this.isEq = p.isEq;
@@ -185,6 +184,11 @@ public class PcalSymTab {
             // For Distributed PlusCal
             this.threads = p.threads;
             // end For Distributed PlusCal
+
+
+
+
+
 
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
@@ -310,6 +314,8 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
+
+
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
                 // if the symbol context corresponds exactly to the searched one or if
@@ -333,6 +339,8 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
+
+
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
                 // if the symbol context corresponds exactly to the searched one or if
@@ -419,6 +427,9 @@ public class PcalSymTab {
         int i = 0;
         while (i < symtab.size()) {
             SymTabEntry se = (SymTabEntry) symtab.elementAt(i);
+
+
+
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
                 // if the symbol context corresponds exactly to the searched one or if
@@ -625,6 +636,8 @@ public class PcalSymTab {
             errorReport = errorReport + "\nProcess " + ast.name +
             		" redefined at line " + ast.line + ", column " + ast.col;
         b = InsertSym(PROCESS, ast.name, context, "process", ast.line, ast.col);
+
+
         // For Distributed PlusCal
         String threadContext = ast.name;
         if(PcalParams.distpcalFlag) {
@@ -639,6 +652,9 @@ public class PcalSymTab {
                 ExtractVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
         }
 
+
+
+        
         // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           for (int i = 0; i < ast.threads.size(); i++) {

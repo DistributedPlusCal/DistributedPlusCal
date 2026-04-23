@@ -23,11 +23,10 @@ public class PcalTLAGen
     // Constants that control formatting
     public final static boolean boxUnderCASE = true; /* else [] at end of line  */
 
-  
-  // For Distributed PlusCal
-  public final static String THREAD = "thread";
-  // end For Distributed PlusCal
-  
+    // For Distributed PlusCal
+    public final static String THREAD = "thread";
+    // end For Distributed PlusCal
+
     // The following two variables made non-final on 9 Dec 2009 so they can
     // be set by options.  They are initialized in PcalParams.resetParams().
     public static int wrapColumn ; 
@@ -47,7 +46,7 @@ public class PcalTLAGen
     //   could make it public if we want to set it as a parameter
     private static int varIndex = 1;
 
-  /** The tlacode field accumulates the translation as it is constructed.  It 
+    /** The tlacode field accumulates the translation as it is constructed.  It 
      * should be a vector of separate lines.  Keiths original implementation put
      * multiple lines in a single element of tlacode in:
      *   
@@ -326,6 +325,7 @@ public class PcalTLAGen
          * use by GenLabeledStmt.
          */
         if (mp) {
+      
 
             // For Distributed PlusCal 
             if(PcalParams.distpcalFlag) {
@@ -334,7 +334,8 @@ public class PcalTLAGen
               self = selfAsExpr(); // subscript for variables is "self"
             }
             selfIsSelf = true;
-            /* Add this step to the disjunct of steps with (self) */
+           /* Add this step to the disjunct of steps with (self) */
+
             // For Distributed PlusCal
             if(PcalParams.distpcalFlag) {
               nextStepSelf.addElement(ast.name + "(self, "+THREAD+")");
@@ -360,9 +361,9 @@ public class PcalTLAGen
          * definition, and Left/RightParens around each disjunction for
          * the labeled statement.
          */
-        addLeftParen(ast.getOrigin());        	
+        addLeftParen(ast.getOrigin());
+
         // For Distributed PlusCal
-        // originally: String argument = (mp) ? "(self)" : "";
         String argument = "";
         if(mp) {
         	if(PcalParams.distpcalFlag) {
@@ -479,6 +480,10 @@ public class PcalTLAGen
         } else
             nextStep.addElement(ast.name);
         
+
+
+
+
         // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
           // HC: the statements for each thread
@@ -530,7 +535,7 @@ public class PcalTLAGen
          * because we have already defined the process name to equal the 
          * only label action.
          */
-     
+
       // For Distributed PlusCal
       if(PcalParams.distpcalFlag) {
         // HC: generate the disjunct of threads
@@ -553,13 +558,13 @@ public class PcalTLAGen
         addOneLineOfTLA("");          
       } else { // end For Distributed PlusCal
         
-      if (! ParseAlgorithm.omitPC) { 
+      if (! ParseAlgorithm.omitPC) {
         addLeftParen(ast.getOrigin());
         String argument = (isSet) ? "(self)" : "";
         StringBuffer buf = new StringBuffer(ast.name + argument + " == ");
         addOneTokenToTLA(buf.toString());
-        String indentSpaces = NSpaces(buf.length() + 2);
-          for (int i = 0; i < ast.body.size(); i++) {
+        String indentSpaces = NSpaces(buf.length() + 2);        
+        for (int i = 0; i < ast.body.size(); i++) {
             AST.LabeledStmt stmt = (AST.LabeledStmt) ast.body.elementAt(i);
             String disjunct = stmt.label + argument;
             if (   i != 0 
@@ -573,7 +578,7 @@ public class PcalTLAGen
             addLeftParen(stmt.getOrigin());
             addOneTokenToTLA(disjunct);
             addRightParen(stmt.getOrigin());
-          }
+        }
         addRightParen(ast.getOrigin());
         addOneLineOfTLA("");
       }
@@ -669,7 +674,8 @@ public class PcalTLAGen
         /* c is used to determine which vars are in UNCHANGED. */
         Changed c = new Changed(vars);
         if (mp && (context.equals("procedure") || selfIsSelf)) { // self.equals("self")))
-        	// For Distributed PlusCal
+
+            // For Distributed PlusCal
         	if(PcalParams.distpcalFlag){
             // HC: - for procedures we should take into account the thread calling it
             //     - no other case where thread index should be used (except pc and stack)
@@ -681,7 +687,7 @@ public class PcalTLAGen
             }
         	} else { // end For Distributed PlusCal
             sb.append("(self)");
-          }
+            }
         }   
         sb.append(" == ");
         int col = sb.length();
@@ -1118,6 +1124,7 @@ public class PcalTLAGen
                     sb.append("![");
                     addOneTokenToTLA(sb.toString());
                     addLeftParen(self.getOrigin());
+
                     // For Distributed PlusCal
                     if(PcalParams.distpcalFlag){
                       if(context.equals("procedure") && IsProcessSetVar(sass.lhs.var)){
@@ -1974,18 +1981,37 @@ public class PcalTLAGen
         Vector lVarsSource = new Vector();
         Vector gVarsSource = new Vector();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         /*******************************************************************
         * Set gVars to the global variables, including pc and `stack' if   *
         * there are procedures, and add these variables to vars.           *
         *******************************************************************/
-        if (globals != null)
-            for (int i = 0; i < globals.size(); i++)
-            {
+        if (globals != null) {
+            for (int i = 0; i < globals.size(); i++) {
                 AST.VarDecl decl = (AST.VarDecl) globals.elementAt(i);
                 gVars.addElement(decl.var);
                 gVarsSource.addElement(decl);
                 vars.addElement(decl.var);
             }
+        }
+
         if (! ParseAlgorithm.omitPC) {
           gVars.addElement("pc");
           /**
@@ -1996,6 +2022,7 @@ public class PcalTLAGen
           gVarsSource.addElement(pcVarDecl);
           vars.addElement("pc");
         }
+        
         if (procs != null && procs.size() > 0)
         {
             gVars.addElement("stack");
@@ -2359,6 +2386,7 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
+
                        // For Distributed PlusCal 
                        if(PcalParams.distpcalFlag){
                          is.append("[ self \\in ProcSet |-> [ "+THREAD+" \\in SubProcSet[self] |-> ");
@@ -2439,6 +2467,7 @@ public class PcalTLAGen
 //                    ;
 //                    if (mp)
 //                    {
+
                         // For Distributed PlusCal 
                         if(PcalParams.distpcalFlag){
                             is.append("[ self \\in ProcSet |-> [ "+THREAD+" \\in SubProcSet[self] |-> ");
@@ -2771,6 +2800,7 @@ public class PcalTLAGen
         if (procs != null && procs.size() > 0)
         {
             if (mp)
+
             {
               // For Distributed PlusCal
               // HC: adjust the else case accordingly (if needed) 
@@ -2922,32 +2952,33 @@ public class PcalTLAGen
                               is.append(">>");
                           }
                         } else { // end For Distributed PlusCal
-                          // is.append(" -> \"");
-                          is = new StringBuffer(" -> \"");
-                          is.append(pe.iPC);
-                          if (p == st.processes.size() - 1)
+                        // is.append(" -> \"");
+                        is = new StringBuffer(" -> \"");
+                        is.append(pe.iPC);
+                        if (p == st.processes.size() - 1)
                             is.append("\"]");
-                          else if (!boxUnderCASE)
+                        else if (!boxUnderCASE)
                             is.append("\" []");
-                          else
+                        else
                             is.append("\"");
                         }
                     } // end if (useCase)
                     else {
-                      // For Distributed PlusCal
-                      if(PcalParams.distpcalFlag) {
-                        String[] stringArray = pe.iPC.toString().split(",");
-                        is.append("<<");
-                        for(int i = 0; i < stringArray.length; i++) {
-                          is.append("\"" + stringArray[i].trim() + "\"");
-                          if(i != stringArray.length-1) {
-                            is.append(",");
+
+                        // For Distributed PlusCal
+                        if(PcalParams.distpcalFlag) {
+                          String[] stringArray = pe.iPC.toString().split(",");
+                          is.append("<<");
+                          for(int i = 0; i < stringArray.length; i++) {
+                            is.append("\"" + stringArray[i].trim() + "\"");
+                            if(i != stringArray.length-1) {
+                              is.append(",");
+                            }
                           }
+                          is.append(">>]");
+                        } else { // end For Distributed PlusCal
+                          is.append("\"" + pe.iPC + "\"]");
                         }
-                        is.append(">>]");
-                      } else { // end For Distributed PlusCal
-                        is.append("\"" + pe.iPC + "\"]");
-                      }
                     }
 //                  tlacode.addElement(is.toString());
                   addOneTokenToTLA(is.toString());
@@ -3028,7 +3059,7 @@ public class PcalTLAGen
               * is perfectly correct and easy to understand.              *
               ************************************************************/
             
-        	    // For Distributed PlusCal
+        	  // For Distributed PlusCal
               if(PcalParams.distpcalFlag) {
                 sb.append("/\\ \\A self \\in ProcSet : \\A "+THREAD+" \\in SubProcSet[self]: pc[self]["+THREAD+"] = \"Done\"");
               } else { // end For Distributed PlusCal
@@ -3086,6 +3117,7 @@ public class PcalTLAGen
                 if (sb.length() > 0)
                     sb.append(" \\/ ");
                 sb.append(p.name);
+
                 // For Distributed PlusCal
                 if(PcalParams.distpcalFlag) {
                     sb.append("(self, "+THREAD+")");
@@ -3511,6 +3543,7 @@ public class PcalTLAGen
         		   String xf = (fairness == AST.WF_PROC) ? "WF" : "SF";
         		   
                    Vector pSelf = p.id.toStringVector();
+                   
                    // makeLetIn is true iff prefix will be LET self == ... IN
                    boolean makeLetIn = false ;
                    
@@ -3581,7 +3614,7 @@ public class PcalTLAGen
                    }
                    wfSB.append(pName);
         		   wfSB.append(")");
-
+        		   
         		   StringBuffer sfSB = null ;
         		   if (    xf.equals("WF") 
         		       && (pAst.plusLabels != null) 
@@ -3593,7 +3626,6 @@ public class PcalTLAGen
         		           }
         		           sfSB.append("SF_vars(");
         		           sfSB.append(pAst.plusLabels.elementAt(j));
-                       
         		           if (!p.isEq) {
         		               sfSB.append("(self)");
         		           }
@@ -3668,8 +3700,8 @@ public class PcalTLAGen
         	                 prcdFormulas)
         	              ) ;
                } // end if (fairness != AST.UNFAIR_PROC)
-             }
-           }
+           } 
+          }	   
         } // ends construction of procFairnessFormulas
            
         if (wfNextConj == null && procFairnessFormulas.size() == 0) {
@@ -3735,7 +3767,7 @@ public class PcalTLAGen
         		sb.append("\\A self \\in ProcSet: \\A "+THREAD+" \\in SubProcSet[self] : pc[self]["+THREAD+"]");
         	} else { // end For Distributed PlusCal
             sb.append("\\A self \\in ProcSet: pc[self]");
-          }
+            }
         } else {
             sb.append("pc");
         }
@@ -4034,7 +4066,7 @@ public class PcalTLAGen
             		s = procedureSelfAsExpr();
             	} else { // end For Distributed PlusCal
                 s = selfAsExpr();
-              }
+                }
             } else {
                 s = self;
             }
@@ -4557,7 +4589,7 @@ public class PcalTLAGen
         boolean needsParens = NeedsParentheses(decl.val.toStringVector());
         if (needsParens) {
             addOneTokenToTLA("(");
-        }        
+        }
         // For Distributed PlusCal
         if(decl instanceof AST.Channel 
            && ((AST.Channel) decl).dimensions.size() != 0) {
@@ -5093,6 +5125,7 @@ public class PcalTLAGen
                      * type ADDED rather than IDENT.  I don't think this matters.
                      */
                     TLAToken newTok = tok.Clone() ;
+                    
                     /*
                      * The new token should inherit nothing from the baggage of tok, whose
                      * only function is to provide the name
@@ -5228,6 +5261,5 @@ public class PcalTLAGen
         return expr;
     }
     // end For Distributed PlusCal
-
 
 }

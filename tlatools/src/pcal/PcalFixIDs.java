@@ -274,6 +274,8 @@ public class PcalFixIDs {
      * @throws PcalFixIDException
      */
     private static void FixProcess(AST.Process ast, String context) throws PcalFixIDException {
+
+
         // For Distributed PlusCal
         if(PcalParams.distpcalFlag) {
             // build the context string for the variables in the thread: pid#thread1##thread2##...
@@ -287,6 +289,8 @@ public class PcalFixIDs {
             for (int i = 0; i < ast.decls.size(); i++)
                 FixVarDecl((AST.VarDecl) ast.decls.elementAt(i), ast.name);
         }
+        
+        
         // For Distributed Pluscal.
         if ( PcalParams.distpcalFlag ) {
           for (AST.Thread thread : ast.threads) {
