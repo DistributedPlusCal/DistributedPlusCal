@@ -5,7 +5,7 @@ MAXINT == 2
 N == 3
 Nodes == 1 .. N
 
-(* PlusCal options ( -label -distpcal) *)
+(* PlusCal options ( -label ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -18,10 +18,10 @@ process ( pid \in Nodes )
 variables c = 3;
 {
         found := TRUE;
-				x := ar[1];
+		x := ar[1];
         i := i + 1;
-				ar[i] := 0;
-				c := c+1;
+		ar[i] := 0;
+		c := c+1;
 }
 
 }
@@ -34,5 +34,6 @@ variables c = 3;
     "model-checking-args": {
         "N": 2,
         "MAXINT": 2
-    }
+    },
+    "compare_to": ""
 }

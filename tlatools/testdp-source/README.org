@@ -1,0 +1,265 @@
+* Processes
+
+** Test No Process
+*** NoProcessNoLabel
+- dummy algorithm with NO processes and No label
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessOneLabel
+- dummy algorithm with NO processes and ONE label
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessTwoLabels
+- dummy algorithm with NO processes and TWO labels
+- should produce the same code with distpcal flag or not - OK
+*** NoProcessNoLabelMacro
+- dummy algorithm with NO processes and a macro
+- should produce the same code with distpcal flag or not - OK
+
+
+** Test One Process
+*** OneProcessOneThread (C & P)
+- dummy algorithm with ONE process
+- uses local variable
+- should produce the same code (except for pc) with distpcal flag or not
+*** OneProcessOneThreadGoto (C & P)
+- one process with one thread containing a goto
+- should produce the same code (except for pc) with distpcal flag or not
+*** OneProcessOneThreadLVandLabelsC.tla (C & P)
+- as OneProcessOneThread but with explicit labels and process id in set
+- should produce the same code (except for pc) with distpcal flag or not
+
+*** OneProcessOneThreadPlusLabels
+- use + and - on labels 
+- should produce the same code (except for pc) with distpcal flag or not
+
+*** OneProcessOneThreadSet (C & P)
+- as OneProcessOneThread but use string identifiers for processes
+- generates two labels (because of the -labels option; two ops on same variable)
+- should produce the same code (except for pc) with distpcal flag or not
+
+*** OneProcessOneThreadStringId (C & P)
+- as OneProcessOneThread but use string identifiers for processes
+- generates two labels (because of the -labels option; two ops on same variable)
+- should produce the same code (except for pc) with distpcal flag or not
+
+
+
+
+*** OneProcessMultiThread (C & P)
+- one process with multiple threads
+- process id explicit (not in set)
+- C or P
+*** OneProcessMultiThreadLocalVar (C & P)
+- as OneProcessMultiThread but with a local variable to the process
+*** OneProcessSetMultiThread (C & P)
+- one process definition
+- process ids from Set 
+*** OneProcessSetMultiThreadXalt (C & P)
+- same as OneProcessSetMultiThread but the set of Nodes is a parameter
+  (for tests)
+*** OneProcessEmptyThreadP (P)
+- dummy algorithm with ONE processes with EMPTY body
+- only possible with P syntax (?)
+- should produce the same code with distpcal flag or not - OK
+- doesn't parse in Toolbox
+
+*** OneProcessMultiThreadMacroC.tla
+- OneProcessMultiThread with a macro
+
+*** OneProcessTwoThreadsLabelsIncorrectC
+- one process two threads
+- incorrect goto label from another thread 
+- should produce parse error
+
+
+** Test Several Processes
+
+*** NProcessesNoLabelNoPc (C+P)
+- 3 processes (2 with IN, 1 with =) with no threads
+- should produce the same code with distpcal flag or not
+- each process is a WHILE TRUE => no need for PC
+
+*** NProcesses2ThreadsNoPc (C+P)
+- 3 processes (2 with IN, 1 with =), each with 2 threads
+- 2 of the processes are fair
+- each process is a WHILE TRUE => no need for PC
+- check WF statements
+
+*** NProcesses2Threads (C+P)
+- 3 processes (2 with IN, 1 with =), each with 2 threads
+- 2 of the processes are fair
+- check WF statements
+
+*** Processes2p1tPvarClash
+- two processes, id fixed and id in set
+- try to create a clash between declared variables and generated
+  (normally fresh) variable
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+
+*** TwoProcessesOneThread2C
+- two processes (1 and n instances) and one thread
+- should produce the same code (except for pc and thread statement) with distpcal flag or not
+
+*** TwoProcessesOneThread2sC
+- as TwoProcessesOneThread2C but use string identifiers for processes
+
+*** TwoProcessesOneThread2Cvars
+- two processes (1 and n instances) and one thread
+- local variables with same name in both processes, one is normally renamed
+
+*** TwoProcessesTwoThreadsLvC
+- two processes (1 and n instances) each with 2 threads
+- each process has local variables
+
+*** TwoProcessesTwoThreadsLabelsC
+- two processes (1 and n instances) each with 2 threads
+- each process has labels
+
+*** TwoProcessesTwoThreadsLabelsSimpleC
+- two processes (1 and n instances) each with 2 threads
+- each process has labels
+- needs disambiguation for labels and variables
+
+*** NProcesses2ThreadsFairnessWfC
+- 2 processes (1 with IN, 1 with =), each with 2 threads
+- processes are WF
+- one or two labels are - and +
+*** NProcesses2ThreadsFairness1ProcC
+- 2 processes (1 with IN, 1 with =), each with 2 threads
+- processes are WF and SF
+- and call one procedure with labels are - and +
+*** NProcesses2ThreadsFairness2ProcC
+- 1 processes with IN with 2 threads
+- process is WF
+- and calls two procedures with labels are - and +
+*** NProcesses2ThreadsFairness2IdC
+- 1 processes with = with 2 threads
+- process is WF
+- and calls two procedures with labels are - and +
+
+
+** Test Procedures with Processes
+
+*** Procedures0p
+- no process
+- should produce the same code with distpcal flag or not - OK
+*** Procedures1p1t
+- one process, id fixed
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+*** Procedures1p1tRec
+- one process, id fixed
+- recursive procedure
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+*** Procedures2p1t
+- two processes, id fixed and id in set
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+*** Procedures2p1talt
+- same as Procedures2p1t but local variables in processes have same names 
+*** Procedures1p2t
+- one process, two threads, id fixed
+- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+
+
+
+
+
+
+* Test Channels
+
+** Multicast
+	 
+*** BroadcastChannel
+- channel 0/1/2-dimensional
+- broadcasts message using multicast operator and broadcast macro
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+*** BroadcastFIFO
+- same as BroadcastChannel but with
+  - FIFO 0/1/2-dimensional
+- broadcasts message using multicas operator and broadcast macro
+- shouldn't deadlock
+	
+*** MulticastChannelSimple
+- channel 1/2-dimensional
+- multicast with simple expressions
+*** MulticastFIFOSimple
+- same as MulticastChannelSimple but with
+  - FIFO 1/2-dimensional
+*** MulticastChannel
+- channel 1/2-dimensional
+- multicast with different expressions
+- expressions on several lines
+- deadlocks if "-setchannels" option used
+*** MulticastFIFO
+- same as MulticastChannel but with
+  - FIFO 1/2-dimensional
+- shouldn't deadlock
+	
+
+** Send/Receive 
+
+*** BagChannel
+- one process (ID)
+- channel 0/1/2-dimensional
+- fifo 0/1/2-dimensional
+- deadlocks if "-setchannels" option used (since identical messages
+  are collapsed with a set implementation)
+
+*** MacrosChannel1dimension
+- same as OneProcessesThreadsMacrosChannel0dimension but with 1-dimensional channels
+*** MacrosChannelNdimension
+- same as OneProcessesThreadsMacrosChannel0dimension but with 2-dimensional channels
+
+*** MacrosChannels
+- macros with channel dimension and array in parameters
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+
+*** NoProcessChannels
+- no process
+- channel 0/1/2-dimensional
+- fifo 0/1/2-dimensional
+- send and receive on all channels
+
+
+*** OneProcessThreadsMacrosChannel0dimension
+- two processes, multiple threads
+- global channel dimension 0
+- macros for send and receive
+
+*** Send0dimension 
+- one process, 2 threads
+- send and receive on 0 dimensional channel 
+- message and receiver can be array
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+	
+*** TwoProcessesGlobalChannel
+- two processes
+- global channel and fifo
+- Channel/fifo declaration with dimension other than identifier (Nodes \cup {Id})
+- send/receive on channel
+	
+*** TwoProcessesLocalChannel
+- two processes
+- LOCAL channel and fifo
+- BUG: can't have local definitions for channels
+
+*** TwoProcessesGlobalChannelCLASH
+- local variables with same name in different processes
+
+
+
+
+** Procedures
+
+*** OneProcessProcedures
+- one process with 2 threads
+- 2 procedures: send and receive
+- sends and receives messages with and without procedures
+- deadlocks if "-setchannels" option used (since identical messages
+  sent to ch1 are collapsed with a set implementation)
+*** OneProcessProceduresChanParams
+- procedures containing send/receive operations and with parameters
+  which are channel names or message receivers
+- shouldn't compile
+

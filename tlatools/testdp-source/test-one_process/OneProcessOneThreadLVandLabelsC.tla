@@ -5,7 +5,7 @@ CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 CONSTANT PROCSet     (* Set of process indexes *)
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -19,11 +19,11 @@ variables c = 3;
 {
     One:
         found := TRUE;
-				x := ar[1];
-				c := c+1;
-	  Two:
-				i := i + 1;
-				ar[i] := 0;
+		x := ar[1];
+		c := c+1;
+	Two:
+		i := i + 1;
+		ar[i] := 0;
 }
 
 }
@@ -37,5 +37,6 @@ variables c = 3;
         "N": 2,
         "MAXINT": 2,
         "PROCSet": "1..2"
-    }
+    },
+    "compare_to": ""
 }

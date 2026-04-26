@@ -5,7 +5,7 @@ CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 CONSTANT PROCSet     (* Set of process indexes *)
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy 
 variables 

@@ -5,7 +5,7 @@ MAXINT == 2
 N == 3
 Nodes == 1 .. N
 
-(* PlusCal options ( -label -distpcal) *)
+(* PlusCal options ( -label ) *)
 
 (*--algorithm Dummy
 variables 

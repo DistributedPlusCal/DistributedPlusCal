@@ -3,8 +3,6 @@ EXTENDS Naturals, TLC
 
 PROCSet == 1..2
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm Dummy {
 variables 
     found = FALSE,
@@ -26,5 +24,6 @@ variables c = 3;
     "expect-error-parse": false,
     "expect-error-check": false,
     "args-check": ["-deadlock"],
-    "model-checking-args": {}
+    "model-checking-args": {},
+    "compare_to": ""
 }

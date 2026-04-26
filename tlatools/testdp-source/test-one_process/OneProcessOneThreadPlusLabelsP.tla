@@ -3,8 +3,6 @@ EXTENDS Naturals, TLC
 
 PROCSet == 1..2
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm Dummy 
 variables 
     found = FALSE,

@@ -4,7 +4,7 @@ EXTENDS Naturals, TLC
 CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -32,5 +32,6 @@ process ( pid = "ID" )
     "model-checking-args": {
         "N": 2,
         "MAXINT": 2
-    }
+    },
+    "compare_to": ""
 }
