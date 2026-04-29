@@ -14,10 +14,10 @@ variables
 
 process pid = 1
 begin
-     x := ar[1];
+    x := ar[1];
 end thread;
 begin
-     ar[i] := 0;
+    ar[i] := 0;
 end thread;
 
 end algorithm;

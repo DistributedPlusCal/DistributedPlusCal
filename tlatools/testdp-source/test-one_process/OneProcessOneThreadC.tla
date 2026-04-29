@@ -16,11 +16,11 @@ variables
 process ( pid = 1 )
 variables c = 3;
 {
-        found := TRUE;
-				x := ar[1];
-        i := i + 1;
-				ar[i] := 0;
-				c := c+1;
+    found := TRUE;
+	x := ar[1];
+    i := i + 1;
+	ar[i] := 0;
+	c := c+1;
 }
 
 }

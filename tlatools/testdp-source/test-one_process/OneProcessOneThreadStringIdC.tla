@@ -15,11 +15,11 @@ variables
 
 process ( pid = "ID" )
 {
-        found := TRUE;
-				x := ar[1];
-        i := i + 1;
-				ar[i] := 0;
-        i := i + 1;
+    found := TRUE;
+	x := ar[1];
+    i := i + 1;
+	ar[i] := 0;
+    i := i + 1;
 }
 
 }

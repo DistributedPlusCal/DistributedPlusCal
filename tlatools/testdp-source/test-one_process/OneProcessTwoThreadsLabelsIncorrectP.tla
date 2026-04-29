@@ -10,10 +10,10 @@ variables
 process ( pid1 = 2 )
 variables n;
 begin
-a:      goto b;
+    a: goto b;
 end thread;
 begin
-b:      goto a;
+    b: goto a;
 end thread;
 
 end algorithm;

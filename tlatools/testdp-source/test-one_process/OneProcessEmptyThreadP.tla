@@ -1,7 +1,7 @@
 ------------------------ MODULE OneProcessEmptyThreadP -------------------------
 EXTENDS Naturals, TLC 
 
-(* PlusCal options (-termination  -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy 
 variables 

@@ -16,6 +16,13 @@
 
 
 ** Test One Process
+*** OneProcessEmptyThreadP (C & P)
+- dummy algorithm with ONE processes with EMPTY body
+- compilation for C syntax different from the one with P syntax (and
+  with bad ProcSet)
+- does not translate without distpcal flag
+
+
 *** OneProcessOneThread (C & P)
 - dummy algorithm with ONE process
 - uses local variable
@@ -43,27 +50,24 @@
 
 
 
-
 *** OneProcessMultiThread (C & P)
 - one process with multiple threads
 - process id explicit (not in set)
 - C or P
 *** OneProcessMultiThreadLocalVar (C & P)
 - as OneProcessMultiThread but with a local variable to the process
+- process id explicit (not in set)
 *** OneProcessSetMultiThread (C & P)
-- one process definition
+- one process with  multiple threads
 - process ids from Set 
+
 *** OneProcessSetMultiThreadXalt (C & P)
 - same as OneProcessSetMultiThread but the set of Nodes is a parameter
   (for tests)
-*** OneProcessEmptyThreadP (P)
-- dummy algorithm with ONE processes with EMPTY body
-- only possible with P syntax (?)
-- should produce the same code with distpcal flag or not - OK
-- doesn't parse in Toolbox
 
-*** OneProcessMultiThreadMacroC.tla
+*** OneProcessMultiThreadMacroC.tla (C & P)
 - OneProcessMultiThread with a macro
+
 
 *** OneProcessTwoThreadsLabelsIncorrectC
 - one process two threads

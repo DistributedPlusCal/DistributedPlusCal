@@ -14,15 +14,15 @@ variables l = 2;
 begin
 	Write:
   	while ( i < 4 ) do
-          i := i+1;
-					l := l+2;
+        i := i+1;
+		l := l+2;
   	end while
 end thread
 begin
 	Read:
   	while ( l < 10 ) do
-          i := i+1;
-					l := l+2;    	    
+        i := i+1;
+		l := l+2;    	    
   	end while
 end thread
 
@@ -37,5 +37,5 @@ end algorithm
         "Nodes": "1..3"
     },
     "compare_path": "compile",
-    "compare_to": "test-one_process/OneProcessSetMultiThreadCalt.tla"
+    "compare_to": "test-one_process/OneProcessSetMultiThreadP.tla"
 }

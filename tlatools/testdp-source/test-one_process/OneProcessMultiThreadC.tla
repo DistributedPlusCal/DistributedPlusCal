@@ -14,10 +14,10 @@ variables
 
 process ( pid = 1 )
 {
-       x := ar[1];
+    x := ar[1];
 }
 {
-       ar[i] := 0;
+    ar[i] := 0;
 }
 
 }
@@ -30,5 +30,6 @@ process ( pid = 1 )
     "model-checking-args": {
         "N": 4,
         "MAXINT": 4
-    }
+    },
+    "compare_to": ""
 }

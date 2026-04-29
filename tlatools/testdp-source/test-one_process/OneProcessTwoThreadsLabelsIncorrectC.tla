@@ -9,12 +9,12 @@ variables
 
 process ( pid1 = 2 )
 variables n;
-    {
-a:      goto b;
-    }
-    {
-b:      goto a;
-    }
+{
+    a: goto b;
+}
+{
+    b: goto a;
+}
 
 }
 *)
@@ -24,5 +24,6 @@ b:      goto a;
     "expect-error-parse": true,
     "expect-error-check": false,
     "args-check": ["-deadlock"],
-    "model-checking-args": {  }
+    "model-checking-args": {  },
+    "compare_to": ""
 }

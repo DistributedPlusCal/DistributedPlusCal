@@ -3,10 +3,10 @@
 (*--algorithm X {
 variables 
     found = FALSE
-    process (x \in {})
-    {
-a:      goto a;
-    }
+process (x \in {})
+{
+    a: goto a;
+}
 }*)
 =============================================================================
 {

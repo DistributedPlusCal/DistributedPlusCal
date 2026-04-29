@@ -19,11 +19,11 @@ variables c = 3;
 begin
     One:
         found := TRUE;
-				x := ar[1];
-				c := c+1;
-	  Two:
-				i := i + 1;
-				ar[i] := 0;
+		x := ar[1];
+		c := c+1;
+	Two:
+		i := i + 1;
+		ar[i] := 0;
 end thread
 
 end algorithm
