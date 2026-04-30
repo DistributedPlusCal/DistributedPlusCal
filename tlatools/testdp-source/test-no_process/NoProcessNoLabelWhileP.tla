@@ -17,5 +17,5 @@ end algorithm;
     "model-checking-args": {},
     "compare_to": "",
     "compare_path": "compile",
-    "compare_to": "test-no_process/NoProcessNoLabelC.tla"
+    "compare_to": "test-no_process/NoProcessNoLabelWhileC.tla"
 }
