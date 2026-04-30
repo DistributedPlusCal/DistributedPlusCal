@@ -2,18 +2,26 @@
 
 ** Test No Process
 *** NoProcessNoLabel
-- dummy algorithm with NO processes and No label
+- dummy algorithm with NO processes and NO label
 - should produce the same code with distpcal flag or not - OK
+	
 *** NoProcessOneLabel
 - dummy algorithm with NO processes and ONE label
 - should produce the same code with distpcal flag or not - OK
+
 *** NoProcessTwoLabels
 - dummy algorithm with NO processes and TWO labels
 - should produce the same code with distpcal flag or not - OK
+
 *** NoProcessNoLabelMacro
 - dummy algorithm with NO processes and a macro
 - should produce the same code with distpcal flag or not - OK
 
+*** NoProcessNoLabelWhile
+- dummy algorithm with NO processes and a WHILE loop
+- should produce the same code with distpcal flag or not - OK
+- code produced for C and P is different (with or without distpcal flag)
+	
 
 ** Test One Process
 *** OneProcessEmptyThreadP (C & P)
@@ -47,7 +55,6 @@
 - as OneProcessOneThread but use string identifiers for processes
 - generates two labels (because of the -labels option; two ops on same variable)
 - should produce the same code (except for pc) with distpcal flag or not
-
 
 
 *** OneProcessMultiThread (C & P)
