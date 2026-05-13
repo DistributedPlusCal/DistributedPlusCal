@@ -84,29 +84,23 @@
 
 ** Test Several Processes
 
-*** NProcessesNoLabelNoPc (C+P)
+*** NProcessesNoLabelNoPc 
 - 3 processes (2 with IN, 1 with =) with no threads
-- should produce the same code with distpcal flag or not
+- should produce the same code without distpcal flag modulo SubProcSet
 - each process is a WHILE TRUE => no need for PC
 
-*** NProcesses2ThreadsNoPc (C+P)
+*** NProcesses2ThreadsNoPc 
 - 3 processes (2 with IN, 1 with =), each with 2 threads
 - 2 of the processes are fair
 - each process is a WHILE TRUE => no need for PC
-- check WF statements
+- check WF statements (for -termination)
 
-*** NProcesses2Threads (C+P)
+*** NProcesses2Threads 
 - 3 processes (2 with IN, 1 with =), each with 2 threads
 - 2 of the processes are fair
 - check WF statements
 
-*** Processes2p1tPvarClash
-- two processes, id fixed and id in set
-- try to create a clash between declared variables and generated
-  (normally fresh) variable
-- should produce the same code (except for pc,stack) with distpcal flag or not - OK
-
-*** TwoProcessesOneThread2C
+*** TwoProcessesOneThread2 
 - two processes (1 and n instances) and one thread
 - should produce the same code (except for pc and thread statement) with distpcal flag or not
 
@@ -126,7 +120,7 @@
 - each process has labels
 
 *** TwoProcessesTwoThreadsLabelsSimpleC
-- two processes (1 and n instances) each with 2 threads
+- three processes (1 instance)  with 1 or 2 threads
 - each process has labels
 - needs disambiguation for labels and variables
 
@@ -134,18 +128,31 @@
 - 2 processes (1 with IN, 1 with =), each with 2 threads
 - processes are WF
 - one or two labels are - and +
+
 *** NProcesses2ThreadsFairness1ProcC
 - 2 processes (1 with IN, 1 with =), each with 2 threads
 - processes are WF and SF
-- and call one procedure with labels are - and +
-*** NProcesses2ThreadsFairness2ProcC
+- and call one procedure with labels - and +
+
+*** NProcesses2ThreadsFairness2ProcSetC
 - 1 processes with IN with 2 threads
 - process is WF
 - and calls two procedures with labels are - and +
+
 *** NProcesses2ThreadsFairness2IdC
 - 1 processes with = with 2 threads
 - process is WF
 - and calls two procedures with labels are - and +
+*** NProcesses2ThreadsSfC
+- 3 processes 2 threads each
+- 1 process classic, 1 fair, 1 fair+
+
+*** NProcesses2ThreadsNoStutteringC.tla
+- 3 processes 2 threads each
+- 1 process classic, 1 fair, 1 fair+
+
+*** TwoProcessOneThreadLabelC.tla
+- should be almost the same as without distpcal 
 
 
 ** Test Procedures with Processes
