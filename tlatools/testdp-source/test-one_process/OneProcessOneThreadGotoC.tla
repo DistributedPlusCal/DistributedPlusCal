@@ -1,13 +1,17 @@
 ----- MODULE OneProcessOneThreadGotoC----
+EXTENDS Naturals, TLC
+
+(* PlusCal options (-termination ) *)
 
 (*--algorithm X {
 variables 
     found = FALSE
-process (x \in {})
+process (x \in 1..2)
 {
     a: goto a;
 }
-}*)
+}
+*)
 =============================================================================
 {
     "expect-error-parse": false,

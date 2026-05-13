@@ -1,10 +1,13 @@
 ----- MODULE OneProcessOneThreadGotoP----
+EXTENDS Naturals, TLC
+
+(* PlusCal options (-termination ) *)
 
 (*--algorithm X 
 variables 
     found = FALSE
 
-process x \in {}
+process x \in 1..2
 begin 
     a: goto a;
 end thread

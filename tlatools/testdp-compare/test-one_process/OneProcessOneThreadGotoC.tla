@@ -1,19 +1,23 @@
 ----- MODULE OneProcessOneThreadGotoC----
+EXTENDS Naturals, TLC
+
+(* PlusCal options (-termination ) *)
 
 (*--algorithm X {
 variables 
     found = FALSE
-    process (x \in {})
-    {
-a:      goto a;
-    }
-}*)
-\* BEGIN TRANSLATION (chksum(pcal) = "807107b7" /\ chksum(tla) = "5bfb6e0")
+process (x \in 1..2)
+{
+    a: goto a;
+}
+}
+*)
+\* BEGIN TRANSLATION (chksum(pcal) = "c22bdb91" /\ chksum(tla) = "6d585083")
 VARIABLES pc, found
 
 vars == << pc, found >>
 
-ProcSet == ({})
+ProcSet == (1..2)
 
 SubProcSet == [self \in ProcSet |-> 1..1]
 
@@ -33,10 +37,11 @@ x(self) == x_thread_1(self)
 Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
-Next == (\E self \in {}: x(self))
+Next == (\E self \in 1..2: x(self))
            \/ Terminating
 
-Spec == Init /\ [][Next]_vars
+Spec == /\ Init /\ [][Next]_vars
+        /\ \A self \in 1..2 : WF_vars(x_thread_1(self))
 
 Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
@@ -45,5 +50,6 @@ Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self]
 {
     "expect-error-parse": false,
     "expect-error-check": false,
-    "args-check": ["-deadlock"]
+    "args-check": ["-deadlock"],
+    "compare_to": ""
 }
