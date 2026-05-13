@@ -81,7 +81,7 @@ def extract_translation_body(tla_file_path):
 def run_parsing(tla_file_path):
     # run the command
     try:
-        cmd = ["java", "-cp", jar_parse, "pcal.trans", "-label", tla_file_path]
+        cmd = ["java", "-cp", jar_parse, "pcal.trans", "-distpcal", "-label", tla_file_path]
         output = subprocess.run(cmd, capture_output=True,
                                 text=True, timeout=TIMEOUT_TIME)
     except subprocess.TimeoutExpired:
