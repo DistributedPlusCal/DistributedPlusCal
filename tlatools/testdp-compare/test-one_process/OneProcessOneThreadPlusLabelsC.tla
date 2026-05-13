@@ -3,8 +3,6 @@ EXTENDS Naturals, TLC
 
 PROCSet == 1..2
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm Dummy {
 variables 
     found = FALSE,
@@ -21,10 +19,10 @@ variables c = 3;
 
 }
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "2a8ce77d" /\ chksum(tla) = "8ac7fc0c")
-VARIABLES found, i, pc, c
+\* BEGIN TRANSLATION (chksum(pcal) = "de87c50e" /\ chksum(tla) = "25445210")
+VARIABLES pc, found, i, c
 
-vars == << found, i, pc, c >>
+vars == << pc, found, i, c >>
 
 ProcSet == (PROCSet)
 
@@ -47,27 +45,29 @@ L2(self) == /\ pc[self][1]  = "L2"
             /\ pc' = [pc EXCEPT ![self][1] = "Done"]
             /\ UNCHANGED << found, c >>
 
-pid1(self) == L1(self) \/ L2(self)
+pid_thread_1(self) == L1(self) \/ L2(self)
 
-pid(self) == pid1(self)
+pid(self) == pid_thread_1(self)
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet : \A sub \in SubProcSet[self]: pc[self][sub] = "Done"
+Terminating == /\ \A self \in ProcSet : \A thread \in SubProcSet[self]: pc[self][thread] = "Done"
                /\ UNCHANGED vars
 
 Next == (\E self \in PROCSet: pid(self))
            \/ Terminating
 
 Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in PROCSet : WF_vars((pc[self][1] # "L2") /\ pid1(self)) /\ SF_vars(L1(self))
+        /\ \A self \in PROCSet : /\ WF_vars((pc[self][1] # "L2") /\ pid_thread_1(self))
+                                 /\ SF_vars(L1(self))
 
-Termination == <>(\A self \in ProcSet: \A sub \in SubProcSet[self] : pc[self][sub] = "Done")
+Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self][thread] = "Done")
 
 \* END TRANSLATION 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
+    "expect-error-parse": false,
+    "expect-error-check": false,
     "args-check": ["-deadlock"],
-    "model-checking-args": {}
+    "model-checking-args": {},
+    "compare_to": ""
 }
