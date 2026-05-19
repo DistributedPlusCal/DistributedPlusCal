@@ -9,8 +9,6 @@ end algorithm;
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {},
     "compare_path": "compile",

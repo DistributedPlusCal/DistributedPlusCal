@@ -23,8 +23,6 @@ variables
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 3,
