@@ -153,33 +153,57 @@
 
 *** TwoProcessOneThreadLabelC.tla
 - should be almost the same as without distpcal 
+- some labels are renamed with distpcal but not without
 
 
 ** Test Procedures with Processes
 
 *** Procedures0p
 - no process
-- should produce the same code with distpcal flag or not - OK
+- should produce the same code with distpcal flag or not
+
 *** Procedures1p1t
 - one process, id fixed
-- should produce the same code (except for pc,stack) with distpcal flag or not - OK
+- should produce the same code (except for pc,stack) with distpcal flag or not 
+*** Procedures1p1tArray
+- one process, id fixed
+- uses arrays
+- should produce the same code (except for pc,stack) with distpcal flag or not 
+
 *** Procedures1p1tRec
 - one process, id fixed
 - recursive procedure
-- should produce the same code (except for pc,stack) with distpcal flag or not - OK
-*** Procedures2p1t
-- two processes, id fixed and id in set
-- should produce the same code (except for pc,stack) with distpcal flag or not - OK
-*** Procedures2p1talt
-- same as Procedures2p1t but local variables in processes have same names 
+- should produce the same code (except for pc,stack) with distpcal flag or not 
+
 *** Procedures1p2t
 - one process, two threads, id fixed
 - should produce the same code (except for pc,stack) with distpcal flag or not - OK
 
+*** Procedures2p1t
+- two processes, id fixed and id in set
+- should produce the same code (except for pc,stack) with distpcal flag or not
 
+*** Procedures2p1tAlt
+- same as Procedures2p1t but local variables in processes have same names 
 
+*** Procedures2p2t2p
+- two processes two threads two procedures
+	
+*** Procedures2p2tCall
+- two processes two threads
+- one of the procedures call the other one
+- should produce the same code (except for pc,stack) with distpcal flag or not
 
-
+*** Procedures2p2tFail
+- two processes one thread
+- should produce the same code (except for pc,stack) with distpcal flag or not
+- the procedure uses a variable local to process(es) pid and thus, can't be called from another process
+*** Procedures2p2tFix
+- two processes one thread
+- should produce the same code (except for pc,stack) with distpcal flag or not
+- the procedure uses a variable local to process(es) pid but the procedures are respectivelly called from the process defining the corresponding variables 
+	
+	
 
 * Test Channels
 
@@ -281,3 +305,4 @@
   which are channel names or message receivers
 - shouldn't compile
 
+	
