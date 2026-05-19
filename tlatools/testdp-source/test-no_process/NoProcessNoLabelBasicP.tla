@@ -1,4 +1,4 @@
------------------------- MODULE NoProcessNoLabelP -------------------------
+------------------------ MODULE NoProcessNoLabelBasicP -------------------------
 EXTENDS Naturals, TLC
 
 (*--algorithm Dummy 
@@ -14,5 +14,5 @@ end algorithm;
     "args-check": ["-deadlock"],
     "model-checking-args": {},
     "compare_path": "compile",
-    "compare_to": "test-no_process/NoProcessNoLabelC.tla"
+    "compare_to": "test-no_process/NoProcessNoLabelBasicC.tla"
 }

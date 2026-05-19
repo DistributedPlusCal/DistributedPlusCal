@@ -1,4 +1,4 @@
------------------------- MODULE NoProcessNoLabelC -------------------------
+------------------------ MODULE NoProcessNoLabelBasicC -------------------------
 EXTENDS Naturals, TLC
 
 (*--algorithm Dummy {
