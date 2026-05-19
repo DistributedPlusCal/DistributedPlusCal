@@ -85,5 +85,6 @@ Termination == <>(\A self \in ProcSet: \A thread \in SubProcSet[self] : pc[self]
         "N": 2,
         "MAXINT": 2,
         "PROCSet": "1..2"
-    }
+    },
+    "compare_to": ""
 }

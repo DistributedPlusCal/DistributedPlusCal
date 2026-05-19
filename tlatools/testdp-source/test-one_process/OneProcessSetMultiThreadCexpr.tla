@@ -4,8 +4,6 @@ EXTENDS TLC, Integers, Sequences
 N == 2
 Nodes == 1 .. N
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm dummy {
 
 variables i = 1;
@@ -28,5 +26,6 @@ variables l = 2;
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 3
-    }
+    },
+    "compare_to": ""
 }
