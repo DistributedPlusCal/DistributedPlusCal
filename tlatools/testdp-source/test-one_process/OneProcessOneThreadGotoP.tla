@@ -16,8 +16,6 @@ end algorithm
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "compare_path": "compile",
     "compare_to": "test-one_process/OneProcessOneThreadGotoC.tla"

@@ -28,8 +28,6 @@ end algorithm;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 2,

@@ -21,8 +21,6 @@ end algorithm;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {},
     "compare_path": "compile",

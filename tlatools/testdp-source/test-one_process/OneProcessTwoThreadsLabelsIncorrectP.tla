@@ -1,7 +1,7 @@
 ------------------------ MODULE OneProcessTwoThreadsLabelsIncorrectP  -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-label -termination -distpcal) *)
+(* PlusCal options (-label -termination ) *)
 
 (*--algorithm Dummy
 variables       

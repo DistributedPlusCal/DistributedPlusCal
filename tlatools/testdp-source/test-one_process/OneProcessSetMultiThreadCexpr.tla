@@ -21,8 +21,6 @@ variables l = 2;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 3

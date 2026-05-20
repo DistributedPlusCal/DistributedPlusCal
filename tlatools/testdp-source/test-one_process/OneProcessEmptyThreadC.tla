@@ -17,7 +17,6 @@ end algorithm;
 
 =============================================================================
 {
-    "expect-error-parse": false,
     "expect-error-check": true,
     "args-check": ["-deadlock"],
     "model-checking-args": {},

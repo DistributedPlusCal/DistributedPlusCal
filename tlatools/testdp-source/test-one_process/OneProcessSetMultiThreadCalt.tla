@@ -3,8 +3,6 @@ EXTENDS TLC, Integers, Sequences
 
 CONSTANT Nodes
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm dummy {
 
 variables i = 1;
@@ -29,8 +27,6 @@ variables l = 2;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "Nodes": "1..3"

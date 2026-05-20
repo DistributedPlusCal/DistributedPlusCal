@@ -22,8 +22,6 @@ variables c = 3;
 
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {},
     "compare_to": ""

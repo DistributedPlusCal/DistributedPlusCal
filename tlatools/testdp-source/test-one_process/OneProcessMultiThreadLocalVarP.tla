@@ -4,7 +4,7 @@ EXTENDS Naturals, TLC
 CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy 
 variables 
@@ -26,8 +26,6 @@ end algorithm;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 4,

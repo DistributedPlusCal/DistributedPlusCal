@@ -6,7 +6,7 @@ CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 \* MAXINT == 3
 
-(* PlusCal options (-label -termination -distpcal) *)
+(* PlusCal options (-label -termination ) *)
 
 (*--algorithm Dummy 
 variables 
@@ -35,8 +35,6 @@ end algorithm;
 
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 2,

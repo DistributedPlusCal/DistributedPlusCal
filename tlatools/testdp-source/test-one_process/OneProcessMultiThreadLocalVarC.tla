@@ -6,7 +6,7 @@ N == 4
 \* CONSTANT MAXINT      (* Size of arrays *)
 MAXINT == 4
 
-(* PlusCal options (-termination -label -distpcal) *)
+(* PlusCal options (-termination -label ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -29,8 +29,6 @@ variable c = 1;
 
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 4,

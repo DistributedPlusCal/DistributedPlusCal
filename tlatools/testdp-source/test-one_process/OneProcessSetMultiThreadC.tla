@@ -5,8 +5,6 @@ CONSTANT N
 ASSUME N \in Nat 
 Nodes == 1 .. N
 
-(* PlusCal options (-distpcal) *)
-
 (*--algorithm dummy {
 
 variables i = 1;
@@ -31,8 +29,6 @@ variables l = 2;
 *)
 =============================================================================
 {
-    "expect-error-parse": false,
-    "expect-error-check": false,
     "args-check": ["-deadlock"],
     "model-checking-args": {
         "N": 3
