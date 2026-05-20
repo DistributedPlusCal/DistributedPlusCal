@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessSetMultiThreadC -------------------------
+------------------------ MODULE OneProcessSetMultiThreadBasicC -------------------------
 EXTENDS TLC, Integers, Sequences
 
 CONSTANT N

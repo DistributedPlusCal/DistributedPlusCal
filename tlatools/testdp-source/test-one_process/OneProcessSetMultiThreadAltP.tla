@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessSetMultiThreadPalt -------------------------
+------------------------ MODULE OneProcessSetMultiThreadAltP -------------------------
 EXTENDS TLC, Integers, Sequences
 
 CONSTANT Nodes
@@ -33,5 +33,5 @@ end algorithm
         "Nodes": "1..3"
     },
     "compare_path": "compile",
-    "compare_to": "test-one_process/OneProcessSetMultiThreadP.tla"
+    "compare_to": "test-one_process/OneProcessSetMultiThreadBasicP.tla"
 }

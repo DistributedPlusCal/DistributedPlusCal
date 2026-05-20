@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessOneThreadC -------------------------
+------------------------ MODULE OneProcessOneThreadBasicC -------------------------
 EXTENDS Naturals, TLC
 
 CONSTANT N           (* Size of arrays *)

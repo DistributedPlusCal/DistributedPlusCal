@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessOneThreadP -------------------------
+------------------------ MODULE OneProcessOneThreadBasicP -------------------------
 EXTENDS Naturals, TLC
 
 CONSTANT N           (* Size of arrays *)
@@ -33,5 +33,5 @@ end algorithm;
         "MAXINT": 2
     },
     "compare_path": "compile",
-    "compare_to": "test-one_process/OneProcessOneThreadC.tla"
+    "compare_to": "test-one_process/OneProcessOneThreadBasicC.tla"
 }

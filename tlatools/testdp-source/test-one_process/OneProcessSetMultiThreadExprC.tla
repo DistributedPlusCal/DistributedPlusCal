@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessSetMultiThreadCexpr -------------------------
+------------------------ MODULE OneProcessSetMultiThreadExprC -------------------------
 EXTENDS TLC, Integers, Sequences
 
 N == 2

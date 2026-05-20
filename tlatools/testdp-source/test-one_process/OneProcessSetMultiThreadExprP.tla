@@ -1,4 +1,4 @@
------------------------- MODULE OneProcessSetMultiThreadPexpr -------------------------
+------------------------ MODULE OneProcessSetMultiThreadExprP -------------------------
 EXTENDS TLC, Integers, Sequences
 
 N == 2
@@ -28,5 +28,5 @@ end algorithm;
         "N": 3
     },
     "compare_path": "compile",
-    "compare_to": "test-one_process/OneProcessSetMultiThreadCexpr.tla"
+    "compare_to": "test-one_process/OneProcessSetMultiThreadExprC.tla"
 }
