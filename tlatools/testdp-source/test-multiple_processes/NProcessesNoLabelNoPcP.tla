@@ -28,45 +28,11 @@ EXTENDS Naturals, TLC
 end algorithm
 
 *)
-\* BEGIN TRANSLATION (chksum(pcal) = "8a485af4" /\ chksum(tla) = "819845d6")
-VARIABLE i
-
-vars == << i >>
-
-ProcSet == (1..2) \cup (3..4) \cup {5}
-
-SubProcSet == [self \in ProcSet |->  CASE self \in 1..2 -> 1..1
-                                     []   self \in 3..4 -> 1..1
-                                     []   self = 5 -> 1..1 ]
-
-Init == (* Global variables *)
-        /\ i = 1
-
-pid_thread_1(self) == i' = i + 1
-
-pid(self) == pid_thread_1(self)
-
-qid_thread_1(self) == i' = i + 3
-
-qid(self) == qid_thread_1(self)
-
-sid_thread_1 == i' = i + 5
-
-sid == sid_thread_1
-
-Next == sid
-           \/ (\E self \in 1..2: pid(self))
-           \/ (\E self \in 3..4: qid(self))
-
-Spec == Init /\ [][Next]_vars
-
-\* END TRANSLATION 
-
 =============================================================================
 {
-    "need-error-parse": false,
+    "expect-error-parse": false,
     "just-sanity": true,
-    "need-error-check": false,
+    "expect-error-check": false,
     "model-checking-args": {},
 	"compare_path": "compile",		
     "compare_to": "test-multiple_processes/NProcessesNoLabelNoPcC.tla"

@@ -46,8 +46,6 @@ end algorithm
 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "args-check": ["-deadlock"],
 	"compare_path": "compile",
     "compare_to": "test-multiple_processes/TwoProcessesTwoThreadsLabelsSimpleC.tla"

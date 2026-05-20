@@ -42,8 +42,6 @@ end algorithm
 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "model-checking-args": {},
 	"compare_path": "compile",
     "compare_to": "test-multiple_processes/NProcesses2ThreadsFairnessWfC.tla"

@@ -49,8 +49,6 @@ end algorithm
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "model-checking-args": {
         "defaultInitValue": 0
     },

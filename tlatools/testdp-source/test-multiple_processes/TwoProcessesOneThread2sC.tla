@@ -5,7 +5,7 @@ CONSTANT N           (* Size of arrays *)
 CONSTANT MAXINT      (* Size of arrays *)
 \* CONSTANT PROCSet     (* Set of process indexes *)
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -43,8 +43,6 @@ process ( pid3 = "P4" )
 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "model-checking-args": {
 		    "N": 2,
 		    "MAXINT": 2

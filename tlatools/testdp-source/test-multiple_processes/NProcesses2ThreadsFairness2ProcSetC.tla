@@ -49,8 +49,6 @@ PROCSet == 1..2
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "model-checking-args": {
         "defaultInitValue": 0
     },

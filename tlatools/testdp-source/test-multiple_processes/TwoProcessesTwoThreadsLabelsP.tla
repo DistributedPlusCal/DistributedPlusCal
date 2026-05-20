@@ -43,8 +43,6 @@ end algorithm
 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
 	"compare_path": "compile",
     "compare_to": "test-multiple_processes/TwoProcessesTwoThreadsLabelsC.tla"
 }

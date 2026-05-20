@@ -45,8 +45,6 @@ variables n = 0;
 
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "args-check": ["-deadlock"],
     "compare_to": ""
 }

@@ -1,7 +1,7 @@
 ------------------------ MODULE TwoProcessesOneThread2Cvars  -------------------------
 EXTENDS Naturals, TLC
 
-(* PlusCal options (-termination -distpcal) *)
+(* PlusCal options (-termination ) *)
 
 (*--algorithm Dummy {
 variables 
@@ -25,7 +25,5 @@ variable lp = 11;
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "compare_to": ""
 }

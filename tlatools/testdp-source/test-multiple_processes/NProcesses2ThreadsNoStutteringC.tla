@@ -35,9 +35,9 @@ EXTENDS Naturals, TLC
 *)
 =============================================================================
 {
-    "need-error-parse": false,
+    "expect-error-parse": false,
     "just-sanity": true,
-    "need-error-check": false,
+    "expect-error-check": false,
     "model-checking-args": {},
     "compare_to": ""
 }

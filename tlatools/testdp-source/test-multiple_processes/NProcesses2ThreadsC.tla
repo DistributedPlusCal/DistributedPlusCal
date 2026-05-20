@@ -59,8 +59,6 @@ PROCid == 5
 *)
 =============================================================================
 {
-    "need-error-parse": false,
-    "need-error-check": false,
     "model-checking-args": {
 		    "N": 2,
 		    "MAXINT": 2
